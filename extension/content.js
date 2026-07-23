@@ -1,10 +1,12 @@
-/* United ✕ Starlink — content script for united.com  (v1.1)
- * - Badges: Starlink-odds pill next to every flight number in results.
- * - Registry: captures each flight's row element + departure times from the page.
- * - Panel: floating route summary; rows click-to-scroll; "Sort page by odds" button.
- * - Popup bridge: answers {flightsOnPage} and {gotoFlight} messages.
- * Selector-independent: keys on visible "UA ####" text (united.com ships hashed
- * CSS classes). Route comes from URL params. Data via service worker (6h cache).
+/* United ✕ Starlink — content script for united.com  (v1.1.1)
+ * - Badges: odds pill on every flight with tracker history; gray "n/a" pill on
+ *   result rows with no history (so the sort order is self-explanatory).
+ * - Sort: reorders ALL flight rows in United's results container — known odds
+ *   ranked first, no-history flights below in their original order.
+ * - Panel: floating summary; rows jump-to-flight; flights not in today's
+ *   results are dimmed and unclickable (no more orphan rows).
+ * - Popup bridge: {flightsOnPage} and {gotoFlight} messages.
+ * Selector-independent: keys on visible "UA ####" text. Data via service worker.
  */
 (() => {
   "use strict";
@@ -46,8 +48,7 @@
 
   const cls = (p) => (p >= 50 ? "usl-hi" : p >= 35 ? "usl-mid" : p >= 20 ? "usl-low" : "usl-no");
 
-  /* Climb from the badged element to the smallest ancestor whose text includes
-   * departure times — that's our "row". Capture the first two times. */
+  /* Smallest ancestor whose text includes departure times = the flight "row". */
   function findRow(el) {
     let e = el;
     for (let i = 0; i < 8 && e && e !== document.body; i++, e = e.parentElement) {
@@ -55,13 +56,13 @@
       const times = txt.match(TIME_RE);
       if (times && times.length) return { rowEl: e, times: times.slice(0, 2).join(" – ") };
     }
-    return { rowEl: el, times: "" };
+    return null;
   }
 
   /* ── badge injection ── */
   function scan() {
     scanScheduled = false;
-    if (!probMap.size) return;
+    if (!data) return;
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode(n) {
         if (!n.nodeValue || !FN_RE.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
@@ -80,9 +81,10 @@
       const m = n.nodeValue.match(FN_RE);
       const fn = "UA" + m[1];
       const hit = probMap.get(fn);
+      const row = findRow(el); // null unless this sits in a timed flight row
       if (!el.dataset.uslBadged) {
-        el.dataset.uslBadged = hit ? "1" : "miss";
         if (hit) {
+          el.dataset.uslBadged = "1";
           const b = document.createElement("span");
           b.className = "usl-badge " + cls(hit.prob);
           b.textContent = "🛰️ " + hit.prob + "%" + (hit.dep ? " ✓" : "");
@@ -90,14 +92,24 @@
             (hit.dep ? ` — CONFIRMED Starlink tail ${hit.dep.tail} on ${hit.dep.date}` : "") +
             " · data: unitedstarlinktracker.com";
           el.appendChild(b);
+        } else if (row) {
+          // real flight row, but no tracker history — mark it so ranking is clear
+          el.dataset.uslBadged = "na";
+          const b = document.createElement("span");
+          b.className = "usl-badge usl-na";
+          b.textContent = "🛰️ n/a";
+          b.title = fn + ": no Starlink-assignment history for this flight number yet · data: unitedstarlinktracker.com";
+          el.appendChild(b);
+        } else {
+          el.dataset.uslBadged = "miss";
         }
       }
-      if (hit && (!registry.has(fn) || !registry.get(fn).rowEl.isConnected)) {
-        registry.set(fn, findRow(el));
+      if (hit && row && (!registry.has(fn) || !registry.get(fn).rowEl.isConnected)) {
+        registry.set(fn, row);
         registered = true;
       }
     }
-    if (registered) updatePanelSortBtn();
+    if (registered) { updatePanelSortBtn(); refreshPanelTimes(); }
   }
   function scheduleScan() {
     if (scanScheduled) return;
@@ -118,24 +130,33 @@
     return true;
   }
 
-  /* ── sort the actual results list by odds ── */
+  /* ── sort ALL flight rows in the results container by odds ── */
+  function findContainer() {
+    const badge = document.querySelector(".usl-badge");
+    if (!badge) return null;
+    let best = null, bestScore = 0, e = badge.parentElement;
+    for (let i = 0; i < 14 && e && e !== document.body; i++, e = e.parentElement) {
+      const fns = [...e.children]
+        .map((k) => ((k.textContent || "").match(FN_RE) || [])[1]).filter(Boolean);
+      const distinct = new Set(fns).size;
+      if (distinct > bestScore) { bestScore = distinct; best = e; }
+    }
+    return bestScore >= 2 ? best : null;
+  }
   function sortPage() {
-    const rows = [...registry.entries()]
-      .filter(([, r]) => r.rowEl.isConnected)
-      .map(([fn, r]) => ({ fn, prob: (probMap.get(fn) || { prob: 0 }).prob, el: r.rowEl }));
-    if (rows.length < 2) return { ok: false, why: "fewer than 2 known flights on page" };
-    let P = rows[0].el;
-    while (P && !rows.every((r) => P.contains(r.el))) P = P.parentElement;
-    if (!P || P === document.body) return { ok: false, why: "no common container" };
-    const unitOf = (el) => { let e = el; while (e.parentElement !== P) e = e.parentElement; return e; };
-    const seen = new Set();
-    const sorted = rows.sort((a, b) => b.prob - a.prob)
-      .map((r) => unitOf(r.el))
-      .filter((u) => (seen.has(u) ? false : (seen.add(u), true)));
-    if (sorted.length < 2) return { ok: false, why: "rows share one container" };
-    const domOrder = [...P.children].filter((c) => seen.has(c));
+    const P = findContainer();
+    if (!P) return { ok: false, why: "results container not found" };
+    const flightUnits = [...P.children].filter((k) => FN_RE.test(k.textContent || ""));
+    if (flightUnits.length < 2) return { ok: false, why: "fewer than 2 flight rows" };
+    const key = (u) => {
+      const m = (u.textContent || "").match(FN_RE);
+      const hit = m ? probMap.get("UA" + m[1]) : null;
+      return hit ? hit.prob : -1; // no-history flights sink, keeping their order
+    };
+    const sorted = flightUnits.map((u, i) => ({ u, i, k: key(u) }))
+      .sort((a, b) => b.k - a.k || a.i - b.i).map((x) => x.u);
     const anchor = document.createComment("usl-anchor");
-    P.insertBefore(anchor, domOrder[0]);
+    P.insertBefore(anchor, flightUnits[0]);
     for (const u of sorted) P.insertBefore(u, anchor);
     anchor.remove();
     return { ok: true, count: sorted.length };
@@ -147,7 +168,7 @@
     const btn = panelEl && panelEl.querySelector(".usl-sortbtn");
     if (!btn) return;
     const n = [...registry.values()].filter((r) => r.rowEl.isConnected).length;
-    btn.style.display = n >= 2 ? "" : "none";
+    btn.style.display = n >= 1 ? "" : "none";
   }
   function renderPanel() {
     if (panelEl) panelEl.remove();
@@ -163,7 +184,7 @@
       <div class="usl-body">` +
       (flights.length
         ? flights.map((f, i) =>
-            `<div class="usl-row usl-jump" data-fn="${esc(f.fn)}" title="Click to find this flight on the page">` +
+            `<div class="usl-row usl-jump" data-fn="${esc(f.fn)}">` +
             `<span>${i === 0 ? "⭐ " : ""}${esc(f.fn)}${probMap.get(f.fn) && probMap.get(f.fn).dep ? " ✓" : ""}<span class="usl-time" data-time="${esc(f.fn)}"></span></span>` +
             `<span class="usl-badge ${cls(f.prob)}">${f.prob}%</span></div>`).join("")
         : `<div class="usl-row">No Starlink history on this route yet.</div>`) +
@@ -181,25 +202,31 @@
       chrome.storage.local.set({ uslCollapsed: p.classList.contains("usl-collapsed") });
     });
     p.querySelectorAll(".usl-jump").forEach((row) => row.addEventListener("click", () => {
+      if (row.classList.contains("usl-ghost")) return;
       gotoFlight(row.dataset.fn);
-      refreshPanelTimes();
     }));
     const sb = p.querySelector(".usl-sortbtn");
     if (sb) sb.addEventListener("click", () => {
       const r = sortPage();
-      sb.textContent = r.ok ? `✓ sorted ${r.count} flights by odds` : `couldn't sort (${r.why})`;
-      setTimeout(() => { sb.textContent = "⇅ Sort page by Starlink odds"; }, 3000);
+      sb.textContent = r.ok ? `✓ sorted ${r.count} flights (best first)` : `couldn't sort (${r.why})`;
+      setTimeout(() => { sb.textContent = "⇅ Sort page by Starlink odds"; }, 3500);
     });
     document.documentElement.appendChild(p);
     panelEl = p;
     refreshPanelTimes();
     updatePanelSortBtn();
   }
+  /* Sync panel rows with what's actually on the page: times + ghost state. */
   function refreshPanelTimes() {
     if (!panelEl) return;
-    panelEl.querySelectorAll(".usl-time").forEach((s) => {
-      const r = registry.get(s.dataset.time);
-      s.textContent = r && r.times ? " · " + r.times.split(" – ")[0] : "";
+    panelEl.querySelectorAll(".usl-jump").forEach((row) => {
+      const fn = row.dataset.fn;
+      const r = registry.get(fn);
+      const onPage = !!(r && r.rowEl.isConnected);
+      row.classList.toggle("usl-ghost", !onPage);
+      row.title = onPage ? "Click to find this flight on the page" : "Not operating in these results (odds are route history)";
+      const s = row.querySelector(".usl-time");
+      if (s) s.textContent = onPage && r.times ? " · " + r.times.split(" – ")[0] : (onPage ? "" : " · not in results");
     });
   }
 
@@ -223,7 +250,11 @@
   async function refresh() {
     const r = detectRoute();
     if (!r) { if (panelEl) { panelEl.remove(); panelEl = null; } route = null; return; }
-    if (route && r.o === route.o && r.d === route.d && data) { refreshPanelTimes(); return; }
+    if (route && r.o === route.o && r.d === route.d && data) {
+      if (!panelEl || !panelEl.isConnected) renderPanel(); // recover if the SPA nuked it
+      refreshPanelTimes();
+      return;
+    }
     route = r;
     registry = new Map();
     data = await loadData(r);

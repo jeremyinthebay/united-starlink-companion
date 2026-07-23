@@ -66,6 +66,10 @@ function renderFlights(flights, o, d) {
       row.classList.add("usl-clickable");
       row.title = "Scroll the united.com tab to " + f.fn;
       row.addEventListener("click", function () { jumpTo(f.fn); });
+    } else if (onPage) {
+      row.classList.add("usl-ghost");
+      row.title = "Not operating in these results (odds are route history)";
+      left.appendChild(el("span", "usl-time", "not in these results"));
     }
     wrap.appendChild(row);
   });

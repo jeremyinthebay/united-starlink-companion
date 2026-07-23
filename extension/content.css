@@ -112,3 +112,8 @@
   font-family:-apple-system,sans-serif;
 }
 .usl-sortbtn:hover{background:#0a4fd6}
+
+/* v1.1.1 */
+.usl-na{color:#93a1c0;border-color:rgba(147,161,192,.4);background:rgba(147,161,192,.08)}
+.usl-ghost{opacity:.45;cursor:default}
+.usl-ghost:hover{background:transparent}
