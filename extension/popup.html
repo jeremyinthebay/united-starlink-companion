@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>United ✕ Starlink Odds</title>
+<style>
+  :root {
+    --bg: #040816;
+    --card-bg: rgba(148, 178, 255, 0.055);
+    --card-edge: rgba(148, 178, 255, 0.14);
+    --ink: #e8eefb;
+    --dim: #93a1c0;
+    --united-blue: #0033A0;
+    --united-blue-2: #0a4fd6;
+    --sky: #8ecdff;
+    --gold: #ffd166;
+    --green: #35d07f;
+    --red: #ff5a6e;
+    --mono: "SF Mono", ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    width: 360px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .usl-wrap { padding: 14px 16px 12px; }
+
+  .usl-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .usl-title {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    color: var(--sky);
+  }
+  .usl-full-link {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--sky);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .usl-full-link:hover { text-decoration: underline; }
+  .usl-credit {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--dim);
+    margin-top: 2px;
+    margin-bottom: 12px;
+  }
+
+  .usl-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .usl-input {
+    flex: 1;
+    min-width: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--card-edge);
+    border-radius: 8px;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    text-align: center;
+    text-transform: uppercase;
+    padding: 8px 4px;
+    outline: none;
+  }
+  .usl-input:focus { border-color: var(--sky); }
+  .usl-arrow { color: var(--dim); font-size: 14px; }
+  .usl-go {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 13px;
+    color: #fff;
+    background: linear-gradient(135deg, var(--united-blue), var(--united-blue-2));
+    border: none;
+    border-radius: 8px;
+    padding: 9px 14px;
+    cursor: pointer;
+  }
+  .usl-go:hover { filter: brightness(1.1); }
+  .usl-go:disabled { opacity: 0.6; cursor: default; }
+
+  .usl-status {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--dim);
+    min-height: 14px;
+    margin-bottom: 6px;
+  }
+
+  .usl-section-label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 12px 0 6px;
+  }
+
+  .usl-flight-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--card-bg);
+    border: 1px solid var(--card-edge);
+    border-radius: 10px;
+    padding: 7px 10px;
+    margin-bottom: 6px;
+  }
+  .usl-flight-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .usl-star { color: var(--gold); font-size: 12px; }
+  .usl-flight-right {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .usl-pct {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 18px;
+  }
+  .usl-pct-hi { color: var(--gold); }
+  .usl-pct-mid { color: var(--green); }
+  .usl-pct-low { color: #4da6ff; }
+  .usl-pct-no { color: var(--red); }
+  .usl-obs {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--dim);
+  }
+
+  .usl-itin-row {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink);
+    padding: 4px 2px;
+    border-bottom: 1px solid var(--card-edge);
+  }
+  .usl-itin-row:last-child { border-bottom: none; }
+
+  .usl-dep-row {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--green);
+    padding: 3px 2px;
+  }
+
+  .usl-empty {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--dim);
+    padding: 10px 2px;
+    line-height: 1.5;
+  }
+  .usl-empty a { color: var(--sky); }
+
+  .usl-footer {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--card-edge);
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+  <div class="usl-wrap">
+    <header class="usl-header">
+      <div class="usl-title">🛰️ UNITED ✕ STARLINK</div>
+      <a class="usl-full-link" href="https://smithfamai.com/unitedstarlink/" target="_blank" rel="noopener">full optimizer ↗</a>
+    </header>
+    <div class="usl-credit">data: unitedstarlinktracker.com</div>
+
+    <form id="usl-form" class="usl-form">
+      <input id="usl-from" class="usl-input" type="text" maxlength="3" placeholder="FROM" autocomplete="off" />
+      <span class="usl-arrow">→</span>
+      <input id="usl-to" class="usl-input" type="text" maxlength="3" placeholder="TO" autocomplete="off" />
+      <button id="usl-go" class="usl-go" type="submit">Go</button>
+    </form>
+
+    <div id="usl-status" class="usl-status"></div>
+    <div id="usl-results" class="usl-results"></div>
+
+    <div class="usl-footer">Estimates from tail-assignment history — verify at T-48h.</div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

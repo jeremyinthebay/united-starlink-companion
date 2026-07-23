@@ -42,3 +42,21 @@ the page picks it up automatically, and the updater refreshes any flight number 
 
 MIT. Data referenced from unitedstarlinktracker.com remains theirs; probabilities are historical estimates,
 not guarantees — verify your tail ~48h before departure.
+
+## Chrome extension (`extension/`)
+
+Injects Starlink odds directly into **united.com** flight search results while you book — a companion to the
+tracker team's own [Google Flights extension](https://chromewebstore.google.com/detail/jjfljoifenkfdbldliakmmjhdkbhehoi)
+(use both; they don't overlap).
+
+- **Badges**: every flight number in United's results gets a 🛰️ odds pill (gold ≥50%, green ≥35%, blue ≥20%, red <20%);
+  a ✓ means that flight already has a confirmed Starlink tail. Selector-independent (keys on visible "UA ####" text),
+  so United's frequent DOM changes don't break it.
+- **Route panel**: floating summary (top flights, best full-coverage connection, confirmed tails) detected from the
+  booking URL; collapsible.
+- **Popup**: quick odds lookup for any route; auto-detects the route from the active united.com tab.
+- All data flows through a service worker with a 6-hour cache, hitting the tracker's public API/MCP endpoints.
+
+**Install (unpacked):** chrome://extensions → enable *Developer mode* → *Load unpacked* → select the `extension/`
+folder. Then search a flight on united.com.
+

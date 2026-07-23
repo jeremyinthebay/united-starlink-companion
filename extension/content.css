@@ -1,0 +1,103 @@
+/* content.css — styles for United ✕ Starlink Odds injected UI on united.com */
+
+.usl-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-left: 6px;
+  vertical-align: middle;
+  background: rgba(148, 178, 255, 0.08);
+  border: 1px solid rgba(148, 178, 255, 0.3);
+  color: #e8eefb;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.usl-badge.usl-hi {
+  color: #ffd166;
+  border-color: rgba(255, 209, 102, 0.55);
+  background: rgba(255, 209, 102, 0.12);
+}
+
+.usl-badge.usl-mid {
+  color: #35d07f;
+  border-color: rgba(53, 208, 127, 0.55);
+  background: rgba(53, 208, 127, 0.12);
+}
+
+.usl-badge.usl-low {
+  color: #4da6ff;
+  border-color: rgba(77, 166, 255, 0.55);
+  background: rgba(77, 166, 255, 0.12);
+}
+
+.usl-badge.usl-no {
+  color: #ff5a6e;
+  border-color: rgba(255, 90, 110, 0.55);
+  background: rgba(255, 90, 110, 0.12);
+}
+
+.usl-panel {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 2147483000;
+  width: 320px;
+  max-height: 70vh;
+  overflow: auto;
+  background: #040816f2;
+  border: 1px solid rgba(148, 178, 255, 0.3);
+  border-radius: 16px;
+  color: #e8eefb;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.usl-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(148, 178, 255, 0.14);
+}
+
+.usl-panel .usl-body {
+  padding: 12px 16px;
+}
+
+.usl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  font-size: 13px;
+  padding: 5px 0;
+}
+
+.usl-collapsed .usl-body {
+  display: none;
+}
+
+.usl-x {
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.usl-x:hover {
+  opacity: 1;
+}
+
+@media (max-width: 600px) {
+  .usl-panel {
+    left: 12px;
+    right: 12px;
+    width: auto;
+  }
+}
