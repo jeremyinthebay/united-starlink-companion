@@ -395,4 +395,5 @@
   new MutationObserver(scheduleScan).observe(document.documentElement, { childList: true, subtree: true });
   setInterval(refresh, 2000);
   refresh();
+  if (NAVAN) { data = data || {}; scheduleScan(); setInterval(scheduleScan, 4000); }
 })();
