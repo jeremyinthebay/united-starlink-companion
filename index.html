@@ -4,21 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>United ✕ Starlink Route Optimizer</title>
-<meta name="description" content="Pick your United route and get the best plan to land a Starlink-equipped plane — flight-by-flight odds, a booking playbook, and live fleet data refreshed daily. DEN⇄SFO deep dive.">
+<meta name="description" content="Pick any United route and get the best plan to land a Starlink-equipped plane — every flight ranked by live odds, the smartest routings, confirmed tails, and a booking playbook. Updated daily and on demand.">
 <!-- Open Graph / Twitter — auto-injected by lib/og.js. This is what iMessage/Slack
      build the link preview from. Delete the og:title line to have it regenerated;
      hand-write your own og: tags and this block is left alone. -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="The Smiths">
 <meta property="og:title" content="United ✕ Starlink Route Optimizer">
-<meta property="og:description" content="Pick your United route and get the best plan to land a Starlink-equipped plane — flight-by-flight odds, a booking playbo">
+<meta property="og:description" content="Any United route: every flight ranked by live Starlink odds, best routings, confirmed tails, and a booking playbook.">
 <meta property="og:url" content="https://smithfamai.com/unitedstarlink/">
 <meta property="og:image" content="https://smithfamai.com/unitedstarlink/og.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="United ✕ Starlink Route Optimizer">
-<meta name="twitter:description" content="Pick your United route and get the best plan to land a Starlink-equipped plane — flight-by-flight odds, a booking playbo">
+<meta name="twitter:description" content="Any United route: every flight ranked by live Starlink odds, best routings, confirmed tails, and a booking playbook.">
 <meta name="twitter:image" content="https://smithfamai.com/unitedstarlink/og.png?v=2">
 <style>
   :root{
@@ -99,7 +99,7 @@
 
   /* ── section frame ──────────────────────── */
   section{margin:38px 0}
-  .sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
+  .sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;flex-wrap:wrap}
   .sec-h h2{font-size:21px;font-weight:800;letter-spacing:.3px}
   .sec-h .sub{color:var(--faint);font-size:13px}
 
@@ -111,11 +111,12 @@
   .picker-row{display:flex;gap:14px;align-items:end;flex-wrap:wrap}
   .field{flex:1;min-width:180px}
   .field label{display:block;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
-  .field select{
+  .field input{
     width:100%;padding:13px 14px;border-radius:12px;font-size:16px;font-weight:600;
     background:#0a122e;color:var(--ink);border:1px solid var(--card-edge);
-    appearance:auto;cursor:pointer;
+    text-transform:uppercase;
   }
+  .field input:focus{outline:none;border-color:var(--sky)}
   .swap{
     flex:none;width:48px;height:48px;border-radius:50%;border:1px solid var(--card-edge);
     background:var(--card);color:var(--sky-bright);font-size:20px;cursor:pointer;transition:.2s;
@@ -124,8 +125,24 @@
   .route-strip{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   .route-strip .rt{font-family:var(--mono);font-size:26px;font-weight:800;letter-spacing:2px}
   .badge{font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:99px;border:1px solid}
-  .badge.tracked{color:var(--green);border-color:rgba(53,208,127,.4);background:rgba(53,208,127,.08)}
-  .badge.untracked{color:var(--amber);border-color:rgba(255,176,32,.4);background:rgba(255,176,32,.08)}
+  .badge.live{color:var(--green);border-color:rgba(53,208,127,.4);background:rgba(53,208,127,.08)}
+  .badge.cachetag{color:var(--sky-bright);border-color:rgba(105,179,231,.4);background:rgba(105,179,231,.08)}
+  .badge.offline{color:var(--amber);border-color:rgba(255,176,32,.4);background:rgba(255,176,32,.08)}
+  .lb{margin-top:18px}
+  .lb .lbt{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+  .lb-chips{display:flex;gap:8px;flex-wrap:wrap}
+  .lb-chip{
+    font-family:var(--mono);font-size:13px;padding:7px 12px;border-radius:99px;cursor:pointer;
+    background:var(--card);border:1px solid var(--card-edge);color:var(--dim);transition:.15s;
+  }
+  .lb-chip:hover{border-color:var(--sky);color:var(--sky-bright)}
+  .lb-chip b{color:var(--sky-bright)}
+
+  /* ── loading / status ───────────────────── */
+  .loadbar{display:none;align-items:center;gap:10px;color:var(--dim);font-size:14px;margin:14px 0}
+  .loadbar.on{display:flex}
+  .orb{width:14px;height:14px;border-radius:50%;border:2px solid rgba(142,205,255,.25);border-top-color:var(--sky-bright);animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
 
   /* ── flight cards ───────────────────────── */
   .meta-row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 18px}
@@ -154,6 +171,7 @@
   .fmain .star{color:var(--gold)}
   .fmain .meta{color:var(--dim);font-size:13.5px;margin-top:3px}
   .fmain .note{color:var(--faint);font-size:12px;margin-top:4px;font-style:italic}
+  .fmain .conf-tail{display:inline-block;font-size:11.5px;color:var(--green);border:1px solid rgba(53,208,127,.35);border-radius:99px;padding:2px 9px;margin-top:6px}
   .verdict{justify-self:end;text-align:right}
   .v-tag{font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;padding:6px 13px;border-radius:99px;border:1px solid;white-space:nowrap}
   .v-best{color:var(--gold);border-color:rgba(255,209,102,.5);background:rgba(255,209,102,.1)}
@@ -162,6 +180,41 @@
   .v-risky{color:var(--amber);border-color:rgba(255,176,32,.4);background:rgba(255,176,32,.08)}
   .v-avoid{color:var(--red);border-color:rgba(255,90,110,.4);background:rgba(255,90,110,.08)}
   .verdict .conf{display:block;color:var(--faint);font-size:11.5px;margin-top:6px}
+  .empty-state{
+    background:var(--card);border:1px dashed rgba(255,176,32,.4);border-radius:16px;
+    padding:26px;text-align:center;color:var(--dim);
+  }
+  .empty-state .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+
+  /* ── itineraries (best routings) ────────── */
+  .itins{display:grid;gap:12px}
+  .icard{
+    background:var(--card);border:1px solid var(--card-edge);border-radius:16px;padding:16px 18px;
+  }
+  .icard.top{border-color:rgba(53,208,127,.45);background:linear-gradient(135deg,rgba(53,208,127,.07),var(--card))}
+  .icard .ihead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .icard .rank{font-family:var(--mono);font-weight:800;color:var(--faint);font-size:14px}
+  .icard .chain{font-family:var(--mono);font-weight:800;font-size:17px;letter-spacing:1px}
+  .icard .jp{margin-left:auto;font-family:var(--mono);font-weight:800;font-size:20px;color:var(--green)}
+  .cov{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border-radius:99px;border:1px solid}
+  .cov.full{color:var(--green);border-color:rgba(53,208,127,.4)}
+  .cov.partial{color:var(--amber);border-color:rgba(255,176,32,.4)}
+  .cov.direct{color:var(--sky-bright);border-color:rgba(105,179,231,.4)}
+  .icard .legs{margin-top:10px;display:grid;gap:5px}
+  .icard .leg{display:flex;gap:10px;font-size:13.5px;color:var(--dim);font-family:var(--mono)}
+  .icard .leg b{color:var(--ink)}
+  .icard .leg .lp{margin-left:auto;color:var(--sky-bright)}
+  .icard .isub{color:var(--faint);font-size:12.5px;margin-top:8px}
+
+  /* ── confirmed departures ───────────────── */
+  .confirmed-list{display:grid;gap:8px}
+  .dep{
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+    background:rgba(53,208,127,.06);border:1px solid rgba(53,208,127,.2);border-radius:12px;
+    padding:10px 14px;font-family:var(--mono);font-size:13.5px;
+  }
+  .dep b{color:var(--green)}
+  .dep .tail{color:var(--dim);margin-left:auto}
 
   /* ── trip builder ───────────────────────── */
   .trip{
@@ -205,17 +258,6 @@
   .btn.ghost{background:transparent;border:1px solid var(--card-edge);color:var(--sky-bright)}
   .btn.ghost:hover{border-color:var(--sky);box-shadow:none}
 
-  /* ── connections / details ──────────────── */
-  details{background:var(--card);border:1px solid var(--card-edge);border-radius:14px;padding:0 18px;margin-top:14px}
-  details summary{cursor:pointer;padding:15px 0;font-weight:700;color:var(--sky-bright);list-style:none}
-  details summary::-webkit-details-marker{display:none}
-  details summary:before{content:"▸ ";transition:.2s}
-  details[open] summary:before{content:"▾ "}
-  details .inner{padding:0 0 16px;color:var(--dim);font-size:14.5px}
-  .conn-grid{display:grid;gap:8px;margin-top:10px}
-  .conn{display:flex;justify-content:space-between;gap:12px;background:rgba(53,208,127,.06);border:1px solid rgba(53,208,127,.2);border-radius:10px;padding:10px 14px;font-size:14px}
-  .conn b{color:var(--green);font-family:var(--mono)}
-
   /* ── fleet ──────────────────────────────── */
   .fleet-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
   @media(max-width:760px){.fleet-grid{grid-template-columns:1fr}}
@@ -235,17 +277,16 @@
   .targets{margin-top:10px}
   .targets li{color:var(--dim);font-size:13.5px;margin-left:18px;margin-top:4px}
 
-  /* ── confirmed / untracked / footer ─────── */
-  .confirmed{margin-top:16px}
-  .tails{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-  .tail{font-family:var(--mono);font-size:13px;background:rgba(53,208,127,.08);border:1px solid rgba(53,208,127,.25);color:var(--green);border-radius:8px;padding:6px 11px}
-  .untracked-box{background:var(--card);border:1px dashed rgba(255,176,32,.4);border-radius:16px;padding:24px;text-align:center}
-  .untracked-box p{color:var(--dim);max-width:60ch;margin:8px auto 16px}
   .callout{
     display:flex;gap:12px;align-items:flex-start;background:rgba(105,179,231,.07);
     border-left:3px solid var(--sky);border-radius:0 12px 12px 0;padding:14px 16px;margin-top:16px;
     color:var(--dim);font-size:14.5px;
   }
+  footer{margin:60px 0 40px;border-top:1px solid var(--card-edge);padding-top:22px;color:var(--faint);font-size:13.5px}
+  footer a{color:var(--dim)}
+  .updated{font-family:var(--mono);color:var(--sky-bright)}
+  .hidden{display:none!important}
+
   /* ── mobile ─────────────────────────────── */
   @media(max-width:620px){
     header{padding-top:24px}
@@ -266,6 +307,8 @@
       border-top:1px solid var(--card-edge);padding-top:10px;
     }
     .verdict .conf{margin-top:0}
+    .icard .chain{font-size:14.5px}
+    .icard .jp{font-size:17px}
     .trip{padding:18px}
     .trip-big .v{font-size:32px}
     .step{grid-template-columns:40px 1fr;gap:12px}
@@ -275,19 +318,14 @@
     .checkbar{width:100%}
     .checkbar select,.checkbar input{flex:1;min-width:130px}
     .checkbar .btn{flex-basis:100%;text-align:center}
-    .conn{flex-wrap:wrap}
     .panel{padding:16px}
-    .untracked-box{padding:18px}
   }
   @media(prefers-reduced-motion:reduce){
     .sat{animation:none}
+    .orb{animation:none}
     .swap,.fcard,.fill{transition:none}
     html{scroll-behavior:auto}
   }
-  footer{margin:60px 0 40px;border-top:1px solid var(--card-edge);padding-top:22px;color:var(--faint);font-size:13.5px}
-  footer a{color:var(--dim)}
-  .updated{font-family:var(--mono);color:var(--sky-bright)}
-  .hidden{display:none!important}
 </style>
 </head>
 <body>
@@ -304,7 +342,7 @@
     </div>
     <div>
       <h1>UNITED<span class="x">✕</span><span class="sl">STARLINK</span> Route Optimizer</h1>
-      <div class="tagline">Stack the deck on getting a Starlink-equipped plane. Built for DEN ⇄ SFO, works for any route.</div>
+      <div class="tagline">Any United route: every flight ranked by live Starlink odds, the smartest routings, and a booking playbook.</div>
     </div>
   </div>
   <a class="credit" href="https://unitedstarlinktracker.com" target="_blank" rel="noopener">
@@ -323,102 +361,95 @@
   <div class="picker">
     <div class="picker-row">
       <div class="field">
-        <label for="orig">From</label>
-        <select id="orig"></select>
+        <label for="orig">From (any airport code)</label>
+        <input id="orig" list="airports" maxlength="3" autocapitalize="characters" autocomplete="off" spellcheck="false" value="DEN">
       </div>
       <button class="swap" id="swap" title="Swap direction">⇄</button>
       <div class="field">
         <label for="dest">To</label>
-        <select id="dest"></select>
+        <input id="dest" list="airports" maxlength="3" autocapitalize="characters" autocomplete="off" spellcheck="false" value="SFO">
       </div>
+      <datalist id="airports"></datalist>
     </div>
     <div class="route-strip">
       <span class="rt" id="rt-label">DEN → SFO</span>
-      <span class="badge tracked" id="rt-badge">Tracked · daily plan</span>
+      <span class="badge live hidden" id="rt-badge">live</span>
+    </div>
+    <div class="lb" id="lb">
+      <div class="lbt">Hottest Starlink routes right now (scheduled Starlink departures, next 48h)</div>
+      <div class="lb-chips" id="lb-chips"></div>
     </div>
   </div>
 </section>
 
-<!-- TRACKED ROUTE RESULTS -->
-<div id="tracked-view">
-  <section>
+<!-- ROUTE RESULTS -->
+<section id="results">
+  <div class="loadbar" id="loadbar"><span class="orb"></span><span id="load-msg">Querying live tracker data…</span></div>
+
+  <div id="flights-sec">
     <div class="sec-h">
       <h2>Every flight, ranked</h2>
       <span class="sub" id="rank-sub"></span>
     </div>
     <div class="meta-row" id="route-meta"></div>
     <div class="flights" id="flights"></div>
-    <div class="callout" id="onroute-note">
+    <div class="callout hidden" id="notimes-note">
       <span>ℹ️</span>
-      <span><b>Italic notes</b> mark flight numbers whose probability comes from other legs they fly — no Starlink tail has been verified on this exact leg yet. Treat them more cautiously than flights with confirmed history on the route.</span>
+      <span>Rankings show how often each flight number draws a Starlink-equipped tail (per
+      <a href="https://unitedstarlinktracker.com/methodology" target="_blank" rel="noopener" style="color:var(--sky-bright)">tracker history</a>).
+      Flights with no Starlink history on this route don't appear — check schedules for the full timetable, then verify any flight below at T-48h.</span>
     </div>
-    <details id="conn-details">
-      <summary>The ~98% near-guarantee: connect over a regional-jet hub</summary>
-      <div class="inner">
-        E175s and CRJ-550s are 97–99% Starlink-equipped. When a working flight is mission-critical,
-        a one-stop routing where <b>both</b> legs are regional jets trades ~1.5–2 extra hours for near-certain
-        coverage every airborne minute.
-        <div class="conn-grid" id="conn-grid"></div>
-      </div>
-    </details>
-    <div class="confirmed" id="confirmed"></div>
-  </section>
+  </div>
 
-  <!-- TRIP BUILDER -->
-  <section>
-    <div class="sec-h"><h2>Round-trip builder</h2><span class="sub">pick both legs, see your combined odds</span></div>
-    <div class="trip">
-      <div class="trip-grid">
-        <div class="trip-col">
-          <label id="out-label">Outbound</label>
-          <select id="trip-out-sel"></select>
-        </div>
-        <div class="trip-col">
-          <label id="ret-label">Return</label>
-          <select id="trip-ret-sel"></select>
-        </div>
-      </div>
-      <div class="trip-out">
-        <div class="trip-big"><div class="v" id="odds-any">–</div><div class="l">Starlink on ≥ 1 leg</div></div>
-        <div class="trip-big"><div class="v" id="odds-both">–</div><div class="l">Starlink on both legs</div></div>
-        <div style="color:var(--dim);font-size:14px;max-width:34ch" id="odds-note"></div>
-      </div>
+  <div id="itins-sec" style="margin-top:34px">
+    <div class="sec-h">
+      <h2>Best routings</h2>
+      <span class="sub">direct vs. connections, ranked by full-trip Starlink coverage</span>
     </div>
-  </section>
-</div>
+    <div class="itins" id="itins"></div>
+  </div>
 
-<!-- UNTRACKED ROUTE FALLBACK -->
-<div id="untracked-view" class="hidden">
-  <section>
-    <div class="untracked-box">
-      <div style="font-size:34px">🛰️</div>
-      <h2 style="margin-top:8px">No deep plan for this route yet</h2>
-      <p id="untracked-copy"></p>
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <a class="btn" id="planner-link" href="#" target="_blank" rel="noopener">Open the Route Planner for this pair ↗</a>
-        <a class="btn ghost" href="https://unitedstarlinktracker.com/routes" target="_blank" rel="noopener">Where Starlink is flying (48h) ↗</a>
+  <div id="confirmed-sec" style="margin-top:34px">
+    <div class="sec-h">
+      <h2>Confirmed Starlink departures</h2>
+      <span class="sub">tail assignments already published for this route (~next 72h)</span>
+    </div>
+    <div class="confirmed-list" id="confirmed"></div>
+  </div>
+</section>
+
+<!-- TRIP BUILDER -->
+<section id="trip-sec">
+  <div class="sec-h"><h2>Round-trip builder</h2><span class="sub">pick both legs, see your combined odds</span></div>
+  <div class="trip">
+    <div class="trip-grid">
+      <div class="trip-col">
+        <label id="out-label">Outbound</label>
+        <select id="trip-out-sel"></select>
       </div>
-      <div class="callout" style="text-align:left">
-        <span>🧠</span>
-        <span><b>Generic strategy that works on any United route:</b> favor midday/afternoon flights on
-        <b>737-800, A321neo or 737-900</b> (the only mainline types with installs); avoid anything scheduled as a
-        <b>737 MAX, A319/A320 or 757</b> (0% installed); regional E175/CRJ-550 legs are a near-lock (97–99%).
-        Then confirm the assigned tail ~48h out. Want this route tracked with a daily-refreshed plan like DEN⇄SFO?
-        Ask Claude to add it — the updater does the rest.</span>
+      <div class="trip-col">
+        <label id="ret-label">Return</label>
+        <select id="trip-ret-sel"></select>
       </div>
     </div>
-  </section>
-</div>
+    <div class="trip-out">
+      <div class="trip-big"><div class="v" id="odds-any">–</div><div class="l">Starlink on ≥ 1 leg</div></div>
+      <div class="trip-big"><div class="v" id="odds-both">–</div><div class="l">Starlink on both legs</div></div>
+      <div style="color:var(--dim);font-size:14px;max-width:34ch" id="odds-note"></div>
+    </div>
+  </div>
+</section>
 
 <!-- PLAYBOOK -->
 <section>
-  <div class="sec-h"><h2>The playbook</h2><span class="sub">four moves from booking to boarding</span></div>
+  <div class="sec-h"><h2>The playbook</h2><span class="sub">four moves from booking to boarding — works on any route</span></div>
   <div class="steps">
     <div class="step">
       <div class="dot">BOOK</div>
       <div>
-        <h3>Book the high-probability bank</h3>
-        <p id="playbook-book">Book the starred flight; keep the runners-up as backups. Avoid the flagged flights and the early-morning MAX-heavy bank entirely.</p>
+        <h3>Book the high-probability flight</h3>
+        <p id="playbook-book">Book the top-ranked flight above; keep the runners-up as backups. Avoid flights that
+        typically draw 737 MAX, A319/A320 or 757 equipment — those fleets have zero Starlink installs today.</p>
       </div>
     </div>
     <div class="step">
@@ -428,7 +459,8 @@
         <p>Aircraft assignments publish ~2 days out. Check your flight for a firm yes/no, or open the United app →
         flight status → <b>inflight amenities</b> (equipped flights list "Starlink Wi-Fi").</p>
         <div class="checkbar">
-          <select id="cf-flight"></select>
+          <input id="cf-flight" list="cf-flights" placeholder="UA1234" size="8" autocapitalize="characters" spellcheck="false">
+          <datalist id="cf-flights"></datalist>
           <input type="date" id="cf-date">
           <a class="btn" id="cf-go" href="#" target="_blank" rel="noopener">Check this flight ↗</a>
         </div>
@@ -438,9 +470,9 @@
       <div class="dot">T-24h</div>
       <div>
         <h3>Re-check, and switch if you drew a dud</h3>
-        <p>Swaps happen. If your flight drew a non-Starlink tail, ~3 departures a day on this route have confirmed
-        Starlink tails — a same-day change (free with Gold+, else $75, waived to standby) converts your ~40–60%
-        booking into near-certainty.</p>
+        <p>Swaps happen. If your flight drew a non-Starlink tail, the confirmed-departures list above shows which
+        flights on your route already have Starlink tails — a same-day change (free with Gold+, else $75, waived to
+        standby) converts a coin-flip booking into near-certainty.</p>
       </div>
     </div>
     <div class="step">
@@ -483,7 +515,7 @@
 <footer>
   <div>Data: <a href="https://unitedstarlinktracker.com" target="_blank" rel="noopener">unitedstarlinktracker.com</a>
   (independent tracker, verified against united.com — <a href="https://unitedstarlinktracker.com/methodology" target="_blank" rel="noopener">methodology</a>)
-  · schedule context from FlightConnections · refreshed daily on the mini · last refresh <span class="updated" id="updated">…</span></div>
+  · live per-route queries + daily snapshot · last snapshot <span class="updated" id="updated">…</span></div>
   <div style="margin-top:6px">Probabilities are historical estimates, not guarantees — tail assignments change until departure.
   A smithfam.ai production · <a href="https://github.com/jeremyinthebay/united-starlink-companion" target="_blank" rel="noopener">open source ↗</a> 🛰️</div>
 </footer>
@@ -508,7 +540,7 @@
     if(!still)requestAnimationFrame(draw);})();
 })();
 
-/* ── app ── */
+/* ── constants ── */
 const AIRPORTS={DEN:"Denver",SFO:"San Francisco",ORD:"Chicago O'Hare",IAH:"Houston",EWR:"Newark",
 IAD:"Washington Dulles",LAX:"Los Angeles",BOS:"Boston",SEA:"Seattle",AUS:"Austin",LAS:"Las Vegas",
 PHX:"Phoenix",SAN:"San Diego",MSP:"Minneapolis",DTW:"Detroit",PHL:"Philadelphia",DCA:"Washington National",
@@ -516,29 +548,104 @@ LGA:"New York LaGuardia",ATL:"Atlanta",MIA:"Miami",MCO:"Orlando",TPA:"Tampa",SLC
 PDX:"Portland",SNA:"Orange County",SMF:"Sacramento",STL:"St. Louis",MSY:"New Orleans",BNA:"Nashville",
 RDU:"Raleigh-Durham",CLT:"Charlotte",PIT:"Pittsburgh",CMH:"Columbus",IND:"Indianapolis",MKE:"Milwaukee",
 OMA:"Omaha",ABQ:"Albuquerque",ELP:"El Paso",SAT:"San Antonio",OKC:"Oklahoma City",TUL:"Tulsa",
-HNL:"Honolulu",ANC:"Anchorage",PSP:"Palm Springs",ASE:"Aspen",BOI:"Boise",JAC:"Jackson Hole"};
+HNL:"Honolulu",ANC:"Anchorage",PSP:"Palm Springs",ASE:"Aspen",BOI:"Boise",JAC:"Jackson Hole",
+CVG:"Cincinnati",CLE:"Cleveland",DAY:"Dayton",DSM:"Des Moines",ICT:"Wichita",MAF:"Midland",
+SDF:"Louisville",BZN:"Bozeman",FAT:"Fresno",MRY:"Monterey",RDD:"Redding",BFL:"Bakersfield",
+SUN:"Sun Valley",CLD:"Carlsbad",TUS:"Tucson",FSD:"Sioux Falls",SAF:"Santa Fe",MLI:"Moline",
+GSO:"Greensboro",GSP:"Greenville",CHS:"Charleston",JAX:"Jacksonville",MEM:"Memphis",PWM:"Portland ME",
+BUF:"Buffalo",RIC:"Richmond",LIT:"Little Rock",SHV:"Shreveport",LEX:"Lexington",TYS:"Knoxville",
+AVL:"Asheville",CHA:"Chattanooga",MTY:"Monterrey",YYZ:"Toronto",MEX:"Mexico City",PVD:"Providence",
+ATW:"Appleton",MSN:"Madison",PAH:"Paducah",FLL:"Fort Lauderdale",RSW:"Fort Myers",SJD:"Los Cabos"};
 const TRACKER="https://unitedstarlinktracker.com";
-let DATA=null,orig="DEN",dest="SFO";
+const CACHE_TTL=6*3600*1000;
+let DATA=null,orig="DEN",dest="SFO",cur={},reqSeq=0;
 
 const $=id=>document.getElementById(id);
 const pct=n=>Math.round(n)+"%";
 const probColor=p=>p>=50?"var(--gold)":p>=35?"var(--green)":p>=20?"var(--blue)":"var(--red)";
 const VTAG={best:["⭐ Best bet","v-best"],good:["Good","v-good"],ok:["OK","v-ok"],risky:["Risky","v-risky"],avoid:["⛔ Avoid","v-avoid"]};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
-function fillSelect(sel,val){
-  sel.innerHTML=Object.entries(AIRPORTS).map(([c,n])=>
-    `<option value="${c}" ${c===val?"selected":""}>${c} — ${n}</option>`).join("");
+/* ── live tracker calls ── */
+async function tfetch(url,opts){
+  const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),9000);
+  try{return await fetch(url,{...opts,signal:ctl.signal});}finally{clearTimeout(t);}
+}
+async function mcpText(name,args){
+  const r=await tfetch(TRACKER+"/mcp",{method:"POST",
+    headers:{"Content-Type":"application/json","Accept":"application/json, text/event-stream"},
+    body:JSON.stringify({jsonrpc:"2.0",id:1,method:"tools/call",params:{name,arguments:args}})});
+  const t=await r.text();
+  let j;try{j=JSON.parse(t)}catch{const m=t.match(/data: (.*)/);j=m?JSON.parse(m[1]):null;}
+  return j?.result?.content?.[0]?.text||"";
+}
+function parsePredict(text){
+  const out=[];const re=/^\s*(UA\d+)\s+\[(\w+)\]\s+\(([A-Z]{3})-([A-Z]{3})\)\s+(\d+)%\s+\((\d+) obs · (\w+) confidence\)/gm;
+  let m;while((m=re.exec(text)))out.push({fn:m[1],seg:m[2],prob:+m[5],obs:+m[6],conf:m[7]});
+  return out;
+}
+function parseSearch(text){
+  const out=[];const re=/^(UA\d+)\s+([A-Z]{3})→([A-Z]{3})\s+dep\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})Z\s+\(tail\s+(N[A-Z0-9]+)\)/gm;
+  let m;while((m=re.exec(text)))out.push({fn:m[1],date:m[4],time:m[5],tail:m[6]});
+  return out;
+}
+function lsGet(k){try{const v=JSON.parse(localStorage.getItem(k));return v&&Date.now()-v.ts<CACHE_TTL?v:null;}catch{return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch{}}
+
+async function fetchLive(o,d){
+  const key=`usl2:${o}-${d}`;
+  const hit=lsGet(key);
+  if(hit)return {...hit,source:"cache"};
+  const [plan,predict,search]=await Promise.allSettled([
+    tfetch(`${TRACKER}/api/plan-route?origin=${o}&destination=${d}`).then(r=>r.json()),
+    mcpText("predict_route_starlink",{origin:o,destination:d,limit:30}),
+    mcpText("search_starlink_flights",{origin:o,destination:d,limit:12}),
+  ]);
+  const out={ts:Date.now(),
+    itineraries:plan.status==="fulfilled"?(plan.value.itineraries||[]).slice(0,8).map(it=>({
+      via:it.via||[],joint:+(it.joint_probability*100).toFixed(1),
+      any:+(it.at_least_one_probability*100).toFixed(1),coverage:it.coverage,
+      hours:+(+it.total_flight_hours).toFixed(1),
+      legs:(it.legs||[]).map(l=>({fn:l.flight_number,route:l.route,p:Math.round(l.probability*100),obs:l.n_observations,conf:l.confidence}))})):null,
+    flights:predict.status==="fulfilled"?parsePredict(predict.value):null,
+    deps:search.status==="fulfilled"?parseSearch(search.value):null,
+    source:"live"};
+  if(out.itineraries||out.flights?.length)lsSet(key,out);
+  return out;
 }
 
-function ring(p){
-  const R=32,C=2*Math.PI*R,off=C*(1-p/100),col=probColor(p);
-  return `<div class="ring"><svg width="76" height="76" viewBox="0 0 76 76">
-    <circle cx="38" cy="38" r="${R}" fill="none" stroke="rgba(148,178,255,.12)" stroke-width="7"/>
-    <circle cx="38" cy="38" r="${R}" fill="none" stroke="${col}" stroke-width="7"
-      stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}"/>
-  </svg><div class="pct" style="color:${col}">${pct(p)}</div></div>`;
+/* ── merged model for a route ── */
+function buildModel(o,d,live){
+  const key=o+"-"+d;
+  const curated=DATA.routes[key]||null;
+  const cache=DATA.routeCache?.[key]||null;
+  let flights=[],source="none";
+  const liveFl=live?.flights;
+  if(liveFl&&liveFl.length){flights=liveFl.map(f=>({...f}));source=live.source==="cache"?"cache":"live";}
+  else if(cache?.flights?.length){flights=cache.flights.map(f=>({...f}));source="snapshot";}
+  else if(curated){flights=curated.flights.map(f=>({...f}));source="snapshot";}
+  if(curated){
+    for(const f of flights){
+      const c=curated.flights.find(x=>x.fn===f.fn);
+      if(c){f.dep=c.dep;f.tz=curated.tz;f.aircraft=c.aircraft;f.onRoute=c.onRoute;if(f.prob==null)f.prob=c.prob;}
+    }
+    for(const c of curated.flights)
+      if(!flights.some(f=>f.fn===c.fn))
+        flights.push({...c,tz:curated.tz});
+  }
+  const deps=live?.deps||[];
+  for(const f of flights)f.confirmedDep=deps.find(x=>x.fn===f.fn)||null;
+  flights.sort((a,b)=>b.prob-a.prob);
+  const maxP=flights.length?flights[0].prob:0;
+  for(const f of flights){
+    const zeroFleet=f.aircraft?/MAX|A319|A320(?!.*neo)|757/i.test(f.aircraft):false;
+    f.verdict=f.prob===maxP&&f.prob>=30?"best":f.prob>=35?"good":f.prob>=20?(zeroFleet?"risky":"ok"):"avoid";
+  }
+  const itins=(live?.itineraries&&live.itineraries.length?live.itineraries:cache?.itineraries)||[];
+  return {key,curated,flights,itins,deps,source,ts:live?.ts||(cache?Date.parse(cache.ts):null)};
 }
 
+/* ── renderers ── */
 function renderChips(){
   const f=DATA.fleet,tp=(f.equipped/f.total*100).toFixed(1);
   $("chips").innerHTML=`
@@ -547,63 +654,119 @@ function renderChips(){
     <div class="chip"><div class="n">+${f.last30}</div><div class="l">installs, last 30 days</div></div>
     <div class="chip"><div class="n">~${f.mainlinePacePerWeek}/wk</div><div class="l">mainline install pace</div></div>`;
 }
-
-function renderRoute(){
-  const key=orig+"-"+dest, r=DATA.routes[key];
-  $("rt-label").textContent=`${orig} → ${dest}`;
-  if(!r){
-    $("rt-badge").className="badge untracked";$("rt-badge").textContent="Not tracked yet";
-    $("tracked-view").classList.add("hidden");$("untracked-view").classList.remove("hidden");
-    $("untracked-copy").textContent=`${AIRPORTS[orig]||orig} → ${AIRPORTS[dest]||dest} isn't in the daily-refreshed set yet. The tracker's own planner can still rank directs and connections for it right now:`;
-    $("planner-link").href=`${TRACKER}/route-planner/${orig}/${dest}`;
-    renderCheckFlight(null);return;
+function ring(p){
+  const R=32,C=2*Math.PI*R,off=C*(1-p/100),col=probColor(p);
+  return `<div class="ring"><svg width="76" height="76" viewBox="0 0 76 76">
+    <circle cx="38" cy="38" r="${R}" fill="none" stroke="rgba(148,178,255,.12)" stroke-width="7"/>
+    <circle cx="38" cy="38" r="${R}" fill="none" stroke="${col}" stroke-width="7"
+      stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}"/>
+  </svg><div class="pct" style="color:${col}">${pct(p)}</div></div>`;
+}
+function renderBadge(m){
+  const b=$("rt-badge");b.classList.remove("hidden");
+  if(m.source==="live"){b.className="badge live";b.textContent="● live tracker data";}
+  else if(m.source==="cache"){b.className="badge cachetag";b.textContent="cached "+Math.round((Date.now()-m.ts)/36e5*10)/10+"h ago";}
+  else if(m.source==="snapshot"){b.className="badge cachetag";b.textContent="daily snapshot · "+DATA.updated;}
+  else{b.className="badge offline";b.textContent="no data yet";}
+}
+function renderFlights(m){
+  const list=$("flights");
+  $("rank-sub").textContent=m.flights.length?
+    `${m.flights.length} flight number${m.flights.length>1?"s":""} with Starlink history · ${orig} → ${dest}`:"";
+  $("route-meta").innerHTML=m.curated?
+    `<span class="meta-pill">🕑 Sweet spot: <b>${esc(m.curated.sweetSpot)}</b></span>
+     <span class="meta-pill">⚠️ <b>${esc(m.curated.avoidNote)}</b></span>`:"";
+  if(!m.flights.length){
+    list.innerHTML=`<div class="empty-state">
+      <div style="font-size:30px">🛰️</div>
+      <p style="margin-top:8px">No Starlink history for <b>${orig} → ${dest}</b> yet — either the route has no
+      United service, or its flights haven't drawn Starlink tails. If the route exists, the routings below may
+      still find covered connections.</p>
+      <div class="btns">
+        <a class="btn" href="${TRACKER}/route-planner/${orig}/${dest}" target="_blank" rel="noopener">Tracker route planner ↗</a>
+        <a class="btn ghost" href="${TRACKER}/routes" target="_blank" rel="noopener">Where Starlink flies ↗</a>
+      </div></div>`;
+    $("notimes-note").classList.add("hidden");
+    return;
   }
-  $("rt-badge").className="badge tracked";$("rt-badge").textContent="Tracked · refreshed daily";
-  $("untracked-view").classList.add("hidden");$("tracked-view").classList.remove("hidden");
-
-  const fl=[...r.flights].sort((a,b)=>b.prob-a.prob);
-  $("rank-sub").textContent=`${fl.length} daily departures · ${r.label}`;
-  $("route-meta").innerHTML=`
-    <span class="meta-pill">🕑 Sweet spot: <b>${r.sweetSpot}</b></span>
-    <span class="meta-pill">⚠️ <b>${r.avoidNote}</b></span>`;
-  $("flights").innerHTML=fl.map(f=>{
+  list.innerHTML=m.flights.map(f=>{
     const [vt,vc]=VTAG[f.verdict]||VTAG.ok;
+    const metaBits=[f.dep?`${f.dep} ${f.tz||""}`:null,f.aircraft||null,
+      `${f.obs} observation${f.obs===1?"":"s"} (${f.conf} confidence)`].filter(Boolean).join(" · ");
     return `<div class="fcard ${f.verdict==="best"?"best":""} ${f.verdict==="avoid"?"avoid":""}">
       ${ring(f.prob)}
       <div class="fmain">
         <div class="fn">${f.verdict==="best"?'<span class="star">⭐</span> ':""}${f.fn}</div>
-        <div class="meta">${f.dep} ${r.tz} · ${f.aircraft} · ${f.obs} observations (${f.conf} confidence)</div>
-        ${f.onRoute?"":'<div class="note">probability earned on other legs — not yet verified on this exact route</div>'}
+        <div class="meta">${esc(metaBits)}</div>
+        ${f.onRoute===false?'<div class="note">probability earned on other legs — not yet verified on this exact route</div>':""}
+        ${f.confirmedDep?`<span class="conf-tail">✓ confirmed Starlink tail ${f.confirmedDep.tail} · ${f.confirmedDep.date.slice(5)} ${f.confirmedDep.time}Z</span>`:""}
       </div>
       <div class="verdict"><span class="v-tag ${vc}">${vt}</span>
         <span class="conf"><a style="color:inherit" href="${TRACKER}/check-flight/${f.fn}" target="_blank" rel="noopener">history ↗</a></span>
       </div></div>`;}).join("");
-
-  $("conn-grid").innerHTML=(r.connections||[]).map(c=>
-    `<div class="conn"><span>via <b>${c.via}</b> · ${c.legs}${c.hours?` · ${c.hours} flight hrs`:""}</span><b>${c.prob}%</b></div>`).join("");
-  $("conn-details").classList.toggle("hidden",!(r.connections||[]).length);
-
-  const c48=r.confirmed48h;
-  $("confirmed").innerHTML=c48&&c48.list?.length?
-    `<div class="callout"><span>✅</span><div><b>Confirmed Starlink tails on this route (next 48h as of ${c48.asOf}):</b>
-     <div class="tails">${c48.list.map(t=>`<span class="tail">${t}</span>`).join("")}</div></div></div>`:"";
-
-  const best=fl[0],alts=fl.filter(f=>f.verdict==="good").slice(0,2).map(f=>f.fn).join(" or ");
-  $("playbook-book").innerHTML=`<b>${best.fn} (${best.dep} ${r.tz}, ${pct(best.prob)})</b> is the play${alts?`; ${alts} as backups`:""}. ${r.avoidNote}.`;
-
-  renderTrip(key,r);renderCheckFlight(r);
+  $("notimes-note").classList.toggle("hidden",!!m.curated);
 }
-
-function renderTrip(key,r){
-  const partnerKey=r.roundTripPartner,p=DATA.routes[partnerKey];
-  const tripSection=$("trip-out-sel").closest("section");
-  tripSection.classList.toggle("hidden",!p);
-  if(!p)return;
-  $("out-label").textContent=`Outbound · ${key.replace("-"," → ")}`;
-  $("ret-label").textContent=`Return · ${partnerKey.replace("-"," → ")}`;
-  const opt=(fl,tz)=>fl.map((f,i)=>`<option value="${f.prob}" ${f.verdict==="best"?"selected":""}>${f.fn} · ${f.dep} ${tz} · ${pct(f.prob)}</option>`).join("");
-  $("trip-out-sel").innerHTML=opt([...r.flights].sort((a,b)=>b.prob-a.prob),r.tz);
-  $("trip-ret-sel").innerHTML=opt([...p.flights].sort((a,b)=>b.prob-a.prob),p.tz);
+function renderItins(m){
+  const el=$("itins");
+  if(!m.itins.length){
+    el.innerHTML=`<div class="empty-state" style="padding:18px">No routings returned for this pair —
+      <a style="color:var(--sky-bright)" href="${TRACKER}/route-planner/${orig}/${dest}" target="_blank" rel="noopener">try the tracker's planner ↗</a></div>`;
+    return;
+  }
+  el.innerHTML=m.itins.slice(0,6).map((it,i)=>{
+    const direct=!it.via.length;
+    const chain=[orig,...it.via,dest].join(" → ");
+    return `<div class="icard ${i===0?"top":""}">
+      <div class="ihead">
+        <span class="rank">#${i+1}</span>
+        <span class="chain">${chain}</span>
+        <span class="cov ${direct?"direct":it.coverage==="full"?"full":"partial"}">${direct?"DIRECT":it.coverage==="full"?"full coverage":"partial coverage"}</span>
+        <span class="jp">${Math.round(it.joint)}%</span>
+      </div>
+      <div class="legs">${it.legs.map(l=>
+        `<div class="leg"><b>${l.fn}</b> ${l.route} <span class="lp">${l.p}% · ${l.obs} obs</span></div>`).join("")}</div>
+      <div class="isub">${it.hours?it.hours+" flight hrs · ":""}P(all legs Starlink) ${Math.round(it.joint)}% · P(≥1 leg) ${Math.round(it.any)}%</div>
+    </div>`;}).join("");
+}
+function renderDeps(m){
+  const el=$("confirmed");
+  if(!m.deps.length){
+    el.innerHTML=`<div class="empty-state" style="padding:16px;font-size:14px">No published Starlink tail
+      assignments for this route right now — assignments appear ~48h before departure.</div>`;
+    return;
+  }
+  el.innerHTML=m.deps.map(d=>
+    `<div class="dep"><b>${d.fn}</b> ${orig}→${dest} · ${d.date.slice(5)} ${d.time}Z<span class="tail">tail ${d.tail}</span></div>`).join("");
+}
+function renderPlaybook(m){
+  if(m.flights.length){
+    const best=m.flights[0];
+    const alts=m.flights.slice(1,3).filter(f=>f.prob>=25).map(f=>f.fn).join(" or ");
+    $("playbook-book").innerHTML=`<b>${best.fn}${best.dep?` (${best.dep} ${best.tz||""})`:""} at ${pct(best.prob)}</b> is the play for
+      ${orig} → ${dest}${alts?`; ${alts} as backups`:""}. Avoid flights that typically draw 737 MAX, A319/A320 or 757
+      equipment — those fleets have zero Starlink installs today.`;
+  }
+  const dl=$("cf-flights");
+  dl.innerHTML=m.flights.map(f=>`<option value="${f.fn}">`).join("");
+  if(m.flights.length&&!$("cf-flight").value)$("cf-flight").value=m.flights[0].fn;
+  updCheckLink();
+}
+async function renderTrip(mOut){
+  const sec=$("trip-sec");
+  $("out-label").textContent=`Outbound · ${orig} → ${dest}`;
+  $("ret-label").textContent=`Return · ${dest} → ${orig}`;
+  let mRet;
+  try{mRet=buildModel(dest,orig,await fetchLive(dest,orig));}catch{mRet=buildModel(dest,orig,null);}
+  const legOptions=m=>{
+    const opts=m.flights.map(f=>`<option value="${f.prob}">${f.fn}${f.dep?` · ${f.dep} ${f.tz||""}`:""} · ${pct(f.prob)}</option>`);
+    const bestIt=m.itins.find(it=>it.via.length&&it.coverage==="full");
+    if(bestIt)opts.push(`<option value="${bestIt.joint}">connection via ${bestIt.via.join("+")} · ${Math.round(bestIt.joint)}%</option>`);
+    return opts.join("");
+  };
+  if(!mOut.flights.length&&!mRet.flights.length){sec.classList.add("hidden");return;}
+  sec.classList.remove("hidden");
+  $("trip-out-sel").innerHTML=legOptions(mOut)||'<option value="0">no data</option>';
+  $("trip-ret-sel").innerHTML=legOptions(mRet)||'<option value="0">no data</option>';
   const upd=()=>{
     const a=+$("trip-out-sel").value/100,b=+$("trip-ret-sel").value/100;
     $("odds-any").textContent=pct((1-(1-a)*(1-b))*100);
@@ -612,34 +775,36 @@ function renderTrip(key,r){
   };
   $("trip-out-sel").onchange=upd;$("trip-ret-sel").onchange=upd;upd();
 }
-
-function renderCheckFlight(r){
-  const sel=$("cf-flight");
-  const flights=r?[...r.flights].sort((a,b)=>b.prob-a.prob):[];
-  sel.innerHTML=flights.length?flights.map(f=>`<option>${f.fn}</option>`).join(""):"<option>UA1812</option>";
-  const d=new Date(Date.now()+86400000*2);
-  $("cf-date").value=d.toISOString().slice(0,10);
-  const upd=()=>{$("cf-go").href=`${TRACKER}/check-flight/${sel.value}/${$("cf-date").value}`;};
-  sel.onchange=upd;$("cf-date").onchange=upd;upd();
+function renderLeaderboard(){
+  const lb=DATA.leaderboard||[];
+  $("lb").classList.toggle("hidden",!lb.length);
+  $("lb-chips").innerHTML=lb.slice(0,18).map(r=>
+    `<span class="lb-chip" data-route="${r.route}">${r.route.replace("-","–")} <b>${r.departures}</b></span>`).join("");
+  document.querySelectorAll(".lb-chip").forEach(ch=>ch.onclick=()=>{
+    const [o,d]=ch.dataset.route.split("-");
+    orig=o;dest=d;$("orig").value=o;$("dest").value=d;loadRoute();
+  });
 }
-
+function updCheckLink(){
+  const fn=($("cf-flight").value||"UA1").toUpperCase().replace(/\s/g,"");
+  $("cf-go").href=`${TRACKER}/check-flight/${fn}/${$("cf-date").value}`;
+}
 function renderFleet(){
   const f=DATA.fleet;
   $("type-bars").innerHTML=f.types.map(t=>{
     const p=t.total?t.equipped/t.total*100:0;
     return `<div class="tbar"><div class="tl"><span class="nm">${t.type}</span>
       <span class="val">${t.equipped}/${t.total} · ${Math.round(p)}%</span></div>
-      <div class="track"><div class="fill ${p>=90?"hot":p===0?"zero":""}" style="width:${Math.max(p,p===0?100:p)}%${p===0?";opacity:.5":""}"></div></div></div>`;}).join("");
+      <div class="track"><div class="fill ${p>=90?"hot":p===0?"zero":""}" style="width:${p===0?100:p}%${p===0?";opacity:.5":""}"></div></div></div>`;}).join("");
   const seg=(n,s)=>{const p=s.equipped/s.total*100;
     return `<div class="tbar"><div class="tl"><span class="nm">${n}</span><span class="val">${s.equipped}/${s.total} · ${Math.round(p)}%</span></div>
     <div class="track"><div class="fill ${p>=50?"hot":""}" style="width:${p}%"></div></div></div>`;};
   $("seg-bars").innerHTML=seg("Express / regional",f.express)+seg("Mainline",f.mainline);
   $("pace").innerHTML=`At <b>~${f.mainlinePacePerWeek} mainline installs/week</b> (~40–50 aircraft/month fleetwide),
     today's best-bet odds should climb several points per month. United's targets:`;
-  $("targets").innerHTML=f.targets.map(t=>`<li>${t}</li>`).join("");
+  $("targets").innerHTML=f.targets.map(t=>`<li>${esc(t)}</li>`).join("");
   drawSpark();
 }
-
 function drawSpark(){
   const cv=$("spark"),x=cv.getContext("2d");
   const w=cv.width=cv.offsetWidth*2,h=cv.height=240;cv.style.height="120px";
@@ -665,18 +830,46 @@ function drawSpark(){
   $("spark-note").textContent=`${H.length} daily snapshots · ${H[0].date} → ${last.date}`;
 }
 
+/* ── orchestration ── */
+async function loadRoute(){
+  const o=($("orig").value||"").toUpperCase(),d=($("dest").value||"").toUpperCase();
+  if(!/^[A-Z]{3}$/.test(o)||!/^[A-Z]{3}$/.test(d)||o===d)return;
+  orig=o;dest=d;
+  $("rt-label").textContent=`${o} → ${d}`;
+  const seq=++reqSeq;
+  // instant paint from snapshot while live loads
+  const snap=buildModel(o,d,null);
+  renderBadge(snap);renderFlights(snap);renderItins(snap);renderDeps(snap);renderPlaybook(snap);
+  $("loadbar").classList.add("on");
+  $("load-msg").textContent=`Querying live tracker data for ${o} → ${d}…`;
+  let live=null;
+  try{live=await fetchLive(o,d);}catch{}
+  if(seq!==reqSeq)return; // stale response — a newer route was picked
+  $("loadbar").classList.remove("on");
+  const m=buildModel(o,d,live);
+  cur=m;
+  renderBadge(m);renderFlights(m);renderItins(m);renderDeps(m);renderPlaybook(m);
+  renderTrip(m);
+}
 function bind(){
-  fillSelect($("orig"),orig);fillSelect($("dest"),dest);
-  $("orig").onchange=e=>{orig=e.target.value;renderRoute();};
-  $("dest").onchange=e=>{dest=e.target.value;renderRoute();};
-  $("swap").onclick=()=>{[orig,dest]=[dest,orig];fillSelect($("orig"),orig);fillSelect($("dest"),dest);renderRoute();};
+  const dl=$("airports");
+  dl.innerHTML=Object.entries(AIRPORTS).map(([c,n])=>`<option value="${c}">${n}</option>`).join("");
+  const onPick=()=>{const v=$("orig").value,w=$("dest").value;
+    if(/^[a-zA-Z]{3}$/.test(v)&&/^[a-zA-Z]{3}$/.test(w))loadRoute();};
+  $("orig").addEventListener("change",onPick);
+  $("dest").addEventListener("change",onPick);
+  $("swap").onclick=()=>{const t=$("orig").value;$("orig").value=$("dest").value;$("dest").value=t;loadRoute();};
+  const d=new Date(Date.now()+86400000*2);
+  $("cf-date").value=d.toISOString().slice(0,10);
+  $("cf-flight").addEventListener("input",updCheckLink);
+  $("cf-date").addEventListener("change",updCheckLink);
 }
 
 fetch(`data.json?cb=${Date.now()}`,{cache:"no-store"})
   .then(r=>r.json())
   .then(d=>{DATA=d;
     $("updated").textContent=d.updated;
-    renderChips();bind();renderRoute();renderFleet();})
+    renderChips();renderFleet();renderLeaderboard();bind();loadRoute();})
   .catch(e=>{document.body.insertAdjacentHTML("afterbegin",
     `<div style="background:#40121e;color:#ffb3bd;padding:10px 20px;font-size:14px">data.json failed to load: ${e}</div>`);});
 </script>

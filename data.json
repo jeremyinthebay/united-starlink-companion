@@ -1,93 +1,6776 @@
 {
-  "updated": "2026-07-23",
-  "source": "unitedstarlinktracker.com (API + server pages), seeded from 7/23/2026 research pull",
-  "fleet": {
-    "equipped": 478,
-    "total": 1805,
-    "last30": 49,
-    "mainline": { "equipped": 136, "total": 1136 },
-    "express": { "equipped": 342, "total": 669 },
-    "mainlinePacePerWeek": 9.3,
-    "targets": [
-      "1,000 aircraft by end of 2026 (United)",
-      "Half of all narrowbodies by end of 2026",
-      "Entire fleet by end of 2027"
-    ],
-    "types": [
-      { "type": "CRJ-550", "equipped": 93, "total": 94, "seg": "express" },
-      { "type": "E175", "equipped": 248, "total": 256, "seg": "express" },
-      { "type": "737-800", "equipped": 61, "total": 141, "seg": "mainline" },
-      { "type": "A321neo", "equipped": 30, "total": 72, "seg": "mainline" },
-      { "type": "737-900", "equipped": 43, "total": 148, "seg": "mainline" },
-      { "type": "777", "equipped": 1, "total": 96, "seg": "mainline" },
-      { "type": "737 MAX 8/9", "equipped": 0, "total": 285, "seg": "mainline" },
-      { "type": "A319 / A320", "equipped": 0, "total": 143, "seg": "mainline" },
-      { "type": "757-300", "equipped": 0, "total": 60, "seg": "mainline" }
-    ]
+ "updated": "2026-07-23",
+ "source": "unitedstarlinktracker.com (API + server pages), seeded from 7/23/2026 research pull",
+ "fleet": {
+  "equipped": 480,
+  "total": 1806,
+  "last30": 51,
+  "mainline": {
+   "equipped": 138,
+   "total": 1137
   },
-  "history": [
-    { "date": "2026-07-23", "equipped": 478, "total": 1805, "mainline": 136, "express": 342 }
+  "express": {
+   "equipped": 342,
+   "total": 669
+  },
+  "mainlinePacePerWeek": 9.3,
+  "targets": [
+   "1,000 aircraft by end of 2026 (United)",
+   "Half of all narrowbodies by end of 2026",
+   "Entire fleet by end of 2027"
   ],
-  "routes": {
-    "DEN-SFO": {
-      "label": "Denver → San Francisco",
-      "tz": "MT",
-      "sweetSpot": "~noon–6 PM departures",
-      "avoidNote": "5–6 AM bank is MAX-heavy (0% fleet); UA2633 is a 757-300 (0% fleet)",
-      "roundTripPartner": "SFO-DEN",
-      "flights": [
-        { "fn": "UA1812", "dep": "1:25 PM", "aircraft": "A321neo", "prob": 57, "obs": 11, "conf": "medium", "verdict": "best", "onRoute": true },
-        { "fn": "UA1561", "dep": "11:20 AM", "aircraft": "A321neo / 737-900", "prob": 49, "obs": 19, "conf": "medium", "verdict": "good", "onRoute": false },
-        { "fn": "UA1007", "dep": "5:54 PM", "aircraft": "A321neo", "prob": 44, "obs": 16, "conf": "high", "verdict": "good", "onRoute": true },
-        { "fn": "UA1389", "dep": "7:25 PM", "aircraft": "A321neo", "prob": 44, "obs": 16, "conf": "medium", "verdict": "good", "onRoute": false },
-        { "fn": "UA1450", "dep": "12:25 PM", "aircraft": "A321neo", "prob": 39, "obs": 13, "conf": "medium", "verdict": "good", "onRoute": true },
-        { "fn": "UA2367", "dep": "5:15 AM", "aircraft": "737 MAX 9", "prob": 34, "obs": 6, "conf": "low", "verdict": "risky", "onRoute": false },
-        { "fn": "UA2123", "dep": "9:10 PM", "aircraft": "A321neo / 737-800", "prob": 33, "obs": 20, "conf": "high", "verdict": "ok", "onRoute": true },
-        { "fn": "UA1301", "dep": "6:00 AM", "aircraft": "MAX 8 / 737-900", "prob": 31, "obs": 13, "conf": "medium", "verdict": "risky", "onRoute": false },
-        { "fn": "UA2633", "dep": "3:47 PM", "aircraft": "757-300", "prob": 20, "obs": 2, "conf": "low", "verdict": "avoid", "onRoute": false },
-        { "fn": "UA1506", "dep": "9:43 AM", "aircraft": "A321neo / A319", "prob": 19, "obs": 8, "conf": "low", "verdict": "ok", "onRoute": true }
-      ],
-      "connections": [
-        { "via": "ASE (Aspen)", "legs": "UA5779 + UA5745", "prob": 97.6, "hours": 3.7 },
-        { "via": "SLC (Salt Lake City)", "legs": "regional pair", "prob": 97.7, "hours": null },
-        { "via": "CLD (Carlsbad)", "legs": "regional pair", "prob": 98.2, "hours": null },
-        { "via": "BOI (Boise)", "legs": "regional pair", "prob": 97.5, "hours": null }
-      ],
-      "confirmed48h": {
-        "asOf": "2026-07-23",
-        "note": "Confirmed Starlink tails on this route in the next 48h at last refresh",
-        "list": [
-          "UA2123 · Jul 23 · N54570",
-          "UA1450 · Jul 24 · N54552 (A321neo)",
-          "UA1812 · Jul 24 · N14557 (A321neo)",
-          "UA1506 · Jul 25 · N94556",
-          "UA1812 · Jul 25 · N14517",
-          "UA1007 · Jul 25 · N14549"
-        ]
-      }
-    },
-    "SFO-DEN": {
-      "label": "San Francisco → Denver",
-      "tz": "PT",
-      "sweetSpot": "~4–7 PM departures",
-      "avoidNote": "UA1671, UA1479 and UA301 draw non-Starlink tails; early bank is weak",
-      "roundTripPartner": "DEN-SFO",
-      "flights": [
-        { "fn": "UA1214", "dep": "5:30 PM", "aircraft": "A321neo", "prob": 60, "obs": 9, "conf": "medium", "verdict": "best", "onRoute": true },
-        { "fn": "UA1430", "dep": "4:10 PM", "aircraft": "737 / MAX mix", "prob": 40, "obs": 13, "conf": "medium", "verdict": "good", "onRoute": true },
-        { "fn": "UA2019", "dep": "7:56 PM", "aircraft": "737-800 / MAX mix", "prob": 39, "obs": 21, "conf": "high", "verdict": "good", "onRoute": true },
-        { "fn": "UA2436", "dep": "6:56 PM", "aircraft": "narrowbody mix", "prob": 35, "obs": 20, "conf": "medium", "verdict": "ok", "onRoute": true },
-        { "fn": "UA540", "dep": "12:43 PM", "aircraft": "A321neo (mixed WiFi)", "prob": 27, "obs": 11, "conf": "medium", "verdict": "ok", "onRoute": true },
-        { "fn": "UA1233", "dep": "6:15 AM", "aircraft": "narrowbody mix", "prob": 24, "obs": 10, "conf": "medium", "verdict": "risky", "onRoute": true },
-        { "fn": "UA301", "dep": "9:08 PM", "aircraft": "narrowbody mix", "prob": 12, "obs": 14, "conf": "medium", "verdict": "avoid", "onRoute": true },
-        { "fn": "UA1479", "dep": "5:00 AM", "aircraft": "narrowbody mix", "prob": 7, "obs": 5, "conf": "low", "verdict": "avoid", "onRoute": true },
-        { "fn": "UA1671", "dep": "12:00 PM", "aircraft": "narrowbody mix", "prob": 0, "obs": 2, "conf": "low", "verdict": "avoid", "onRoute": true }
-      ],
-      "connections": [
-        { "via": "CLD (Carlsbad)", "legs": "regional pair", "prob": 97.8, "hours": null },
-        { "via": "PSP (Palm Springs)", "legs": "regional pair", "prob": 97.8, "hours": null }
-      ],
-      "confirmed48h": null
-    }
+  "types": [
+   {
+    "type": "CRJ-550",
+    "equipped": 93,
+    "total": 94,
+    "seg": "express"
+   },
+   {
+    "type": "E175",
+    "equipped": 248,
+    "total": 256,
+    "seg": "express"
+   },
+   {
+    "type": "737-800",
+    "equipped": 61,
+    "total": 141,
+    "seg": "mainline"
+   },
+   {
+    "type": "A321neo",
+    "equipped": 31,
+    "total": 72,
+    "seg": "mainline"
+   },
+   {
+    "type": "737-900",
+    "equipped": 44,
+    "total": 148,
+    "seg": "mainline"
+   },
+   {
+    "type": "777",
+    "equipped": 1,
+    "total": 96,
+    "seg": "mainline"
+   },
+   {
+    "type": "737 MAX 8/9",
+    "equipped": 0,
+    "total": 285,
+    "seg": "mainline"
+   },
+   {
+    "type": "A319 / A320",
+    "equipped": 0,
+    "total": 143,
+    "seg": "mainline"
+   },
+   {
+    "type": "757-300",
+    "equipped": 0,
+    "total": 60,
+    "seg": "mainline"
+   }
+  ]
+ },
+ "history": [
+  {
+   "date": "2026-07-23",
+   "equipped": 478,
+   "total": 1805,
+   "mainline": 136,
+   "express": 342
   }
+ ],
+ "leaderboard": [
+  {
+   "route": "ORD-DEN",
+   "departures": 13,
+   "next": "23m"
+  },
+  {
+   "route": "LGA-ORD",
+   "departures": 13,
+   "next": "3h"
+  },
+  {
+   "route": "DEN-ORD",
+   "departures": 12,
+   "next": "4m"
+  },
+  {
+   "route": "DCA-EWR",
+   "departures": 12,
+   "next": "5h"
+  },
+  {
+   "route": "IND-ORD",
+   "departures": 11,
+   "next": "7h"
+  },
+  {
+   "route": "ORD-IAH",
+   "departures": 11,
+   "next": "4h"
+  },
+  {
+   "route": "ORD-LGA",
+   "departures": 11,
+   "next": "2h"
+  },
+  {
+   "route": "ORD-STL",
+   "departures": 11,
+   "next": "4h"
+  },
+  {
+   "route": "CMH-EWR",
+   "departures": 10,
+   "next": "5h"
+  },
+  {
+   "route": "IAH-ORD",
+   "departures": 10,
+   "next": "8h"
+  },
+  {
+   "route": "ORD-IND",
+   "departures": 10,
+   "next": "7h"
+  },
+  {
+   "route": "ASE-DEN",
+   "departures": 10,
+   "next": "6h"
+  },
+  {
+   "route": "MAF-IAH",
+   "departures": 10,
+   "next": "9h"
+  },
+  {
+   "route": "SDF-ORD",
+   "departures": 10,
+   "next": "8h"
+  },
+  {
+   "route": "PIT-EWR",
+   "departures": 10,
+   "next": "4h"
+  },
+  {
+   "route": "STL-ORD",
+   "departures": 10,
+   "next": "21h"
+  },
+  {
+   "route": "CVG-ORD",
+   "departures": 9,
+   "next": "7h"
+  },
+  {
+   "route": "DEN-ICT",
+   "departures": 9,
+   "next": "6h"
+  },
+  {
+   "route": "EWR-DCA",
+   "departures": 9,
+   "next": "2h"
+  },
+  {
+   "route": "ORD-SDF",
+   "departures": 9,
+   "next": "6h"
+  },
+  {
+   "route": "DTW-EWR",
+   "departures": 9,
+   "next": "4h"
+  },
+  {
+   "route": "EWR-PIT",
+   "departures": 9,
+   "next": "2h"
+  },
+  {
+   "route": "IND-EWR",
+   "departures": 9,
+   "next": "5h"
+  },
+  {
+   "route": "OKC-IAH",
+   "departures": 9,
+   "next": "7h"
+  },
+  {
+   "route": "BOS-IAD",
+   "departures": 8,
+   "next": "7h"
+  },
+  {
+   "route": "DEN-ASE",
+   "departures": 8,
+   "next": "24h"
+  },
+  {
+   "route": "DEN-IAD",
+   "departures": 8,
+   "next": "3h"
+  },
+  {
+   "route": "EWR-DTW",
+   "departures": 8,
+   "next": "5h"
+  },
+  {
+   "route": "EWR-IND",
+   "departures": 8,
+   "next": "7h"
+  },
+  {
+   "route": "IAH-MAF",
+   "departures": 8,
+   "next": "12h"
+  },
+  {
+   "route": "IAH-TUL",
+   "departures": 8,
+   "next": "1h"
+  },
+  {
+   "route": "ICT-DEN",
+   "departures": 8,
+   "next": "8h"
+  },
+  {
+   "route": "ORD-CVG",
+   "departures": 8,
+   "next": "4h"
+  },
+  {
+   "route": "ORD-MSN",
+   "departures": 8,
+   "next": "7h"
+  },
+  {
+   "route": "TUL-IAH",
+   "departures": 8,
+   "next": "5h"
+  },
+  {
+   "route": "MSN-ORD",
+   "departures": 8,
+   "next": "2h"
+  },
+  {
+   "route": "ORD-BOS",
+   "departures": 8,
+   "next": "2h"
+  },
+  {
+   "route": "STL-IAH",
+   "departures": 8,
+   "next": "39m"
+  },
+  {
+   "route": "SAF-DEN",
+   "departures": 8,
+   "next": "59m"
+  },
+  {
+   "route": "BOS-DEN",
+   "departures": 7,
+   "next": "4h"
+  },
+  {
+   "route": "CMH-ORD",
+   "departures": 7,
+   "next": "3h"
+  },
+  {
+   "route": "DEN-IAH",
+   "departures": 7,
+   "next": "2h"
+  },
+  {
+   "route": "DEN-SAF",
+   "departures": 7,
+   "next": "4h"
+  },
+  {
+   "route": "DEN-TUL",
+   "departures": 7,
+   "next": "6h"
+  },
+  {
+   "route": "EWR-CMH",
+   "departures": 7,
+   "next": "21h"
+  },
+  {
+   "route": "EWR-CVG",
+   "departures": 7,
+   "next": "8h"
+  },
+  {
+   "route": "FSD-DEN",
+   "departures": 7,
+   "next": "1h"
+  },
+  {
+   "route": "IAH-MTY",
+   "departures": 7,
+   "next": "6h"
+  },
+  {
+   "route": "IAH-OKC",
+   "departures": 7,
+   "next": "6h"
+  },
+  {
+   "route": "IAH-STL",
+   "departures": 7,
+   "next": "1h"
+  },
+  {
+   "route": "MLI-ORD",
+   "departures": 7,
+   "next": "3h"
+  },
+  {
+   "route": "ORD-DTW",
+   "departures": 7,
+   "next": "4h"
+  },
+  {
+   "route": "ORD-EWR",
+   "departures": 7,
+   "next": "2h"
+  },
+  {
+   "route": "PVD-IAD",
+   "departures": 7,
+   "next": "8h"
+  },
+  {
+   "route": "SFO-SAN",
+   "departures": 7,
+   "next": "12h"
+  },
+  {
+   "route": "SLC-DEN",
+   "departures": 7,
+   "next": "8h"
+  },
+  {
+   "route": "BNA-ORD",
+   "departures": 7,
+   "next": "44m"
+  },
+  {
+   "route": "CHA-ORD",
+   "departures": 7,
+   "next": "8h"
+  },
+  {
+   "route": "DAY-ORD",
+   "departures": 7,
+   "next": "18h"
+  },
+  {
+   "route": "DEN-FSD",
+   "departures": 7,
+   "next": "24m"
+  }
+ ],
+ "routeCache": {
+  "DEN-SFO": {
+   "ts": "2026-07-23T15:30:34.716Z",
+   "flights": [
+    {
+     "fn": "UA1812",
+     "seg": "Mainline",
+     "prob": 57,
+     "obs": 11,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1007",
+     "seg": "Mainline",
+     "prob": 39,
+     "obs": 17,
+     "conf": "high"
+    },
+    {
+     "fn": "UA1450",
+     "seg": "Mainline",
+     "prob": 39,
+     "obs": 13,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2123",
+     "seg": "Mainline",
+     "prob": 33,
+     "obs": 20,
+     "conf": "high"
+    },
+    {
+     "fn": "UA1506",
+     "seg": "Mainline",
+     "prob": 19,
+     "obs": 8,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 57.2,
+     "any": 57.2,
+     "coverage": "full",
+     "hours": 2.7,
+     "legs": [
+      {
+       "fn": "UA1812",
+       "route": "DEN-SFO",
+       "p": 57,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SUN"
+     ],
+     "joint": 97.7,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.3,
+     "legs": [
+      {
+       "fn": "UA5734",
+       "route": "DEN-SUN",
+       "p": 99,
+       "obs": 12,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5423",
+       "route": "SUN-SFO",
+       "p": 99,
+       "obs": 9,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "PSP"
+     ],
+     "joint": 97.3,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA4787",
+       "route": "DEN-PSP",
+       "p": 99,
+       "obs": 15,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4786",
+       "route": "PSP-SFO",
+       "p": 98,
+       "obs": 7,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "BOI"
+     ],
+     "joint": 97.7,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA5923",
+       "route": "DEN-BOI",
+       "p": 99,
+       "obs": 16,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4678",
+       "route": "BOI-SFO",
+       "p": 99,
+       "obs": 17,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SLC"
+     ],
+     "joint": 97.7,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.1,
+     "legs": [
+      {
+       "fn": "UA5762",
+       "route": "DEN-SLC",
+       "p": 99,
+       "obs": 22,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5970",
+       "route": "SLC-SFO",
+       "p": 99,
+       "obs": 21,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "CLD"
+     ],
+     "joint": 98.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4,
+     "legs": [
+      {
+       "fn": "UA5529",
+       "route": "DEN-CLD",
+       "p": 99,
+       "obs": 18,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5519",
+       "route": "CLD-SFO",
+       "p": 99,
+       "obs": 28,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  },
+  "SFO-DEN": {
+   "ts": "2026-07-23T15:30:35.193Z",
+   "flights": [
+    {
+     "fn": "UA1214",
+     "seg": "Mainline",
+     "prob": 60,
+     "obs": 9,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1430",
+     "seg": "Mainline",
+     "prob": 40,
+     "obs": 13,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2019",
+     "seg": "Mainline",
+     "prob": 35,
+     "obs": 22,
+     "conf": "high"
+    },
+    {
+     "fn": "UA1758",
+     "seg": "Mainline",
+     "prob": 32,
+     "obs": 12,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA540",
+     "seg": "Mainline",
+     "prob": 27,
+     "obs": 11,
+     "conf": "medium"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 60.4,
+     "any": 60.4,
+     "coverage": "full",
+     "hours": 3,
+     "legs": [
+      {
+       "fn": "UA1214",
+       "route": "SFO-DEN",
+       "p": 60,
+       "obs": 9,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MSO"
+     ],
+     "joint": 96,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.6,
+     "legs": [
+      {
+       "fn": "UA5422",
+       "route": "SFO-MSO",
+       "p": 97,
+       "obs": 2,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5484",
+       "route": "MSO-DEN",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ABQ"
+     ],
+     "joint": 96.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.4,
+     "legs": [
+      {
+       "fn": "UA5401",
+       "route": "SFO-ABQ",
+       "p": 98,
+       "obs": 6,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4652",
+       "route": "ABQ-DEN",
+       "p": 99,
+       "obs": 6,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ACV"
+     ],
+     "joint": 95,
+     "any": 99.9,
+     "coverage": "full",
+     "hours": 4.3,
+     "legs": [
+      {
+       "fn": "UA5567",
+       "route": "SFO-ACV",
+       "p": 97,
+       "obs": 6,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5966",
+       "route": "ACV-DEN",
+       "p": 98,
+       "obs": 7,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "CLD"
+     ],
+     "joint": 97.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA5508",
+       "route": "SFO-CLD",
+       "p": 99,
+       "obs": 16,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5520",
+       "route": "CLD-DEN",
+       "p": 99,
+       "obs": 25,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "PSP"
+     ],
+     "joint": 97.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA5705",
+       "route": "SFO-PSP",
+       "p": 99,
+       "obs": 21,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5411",
+       "route": "PSP-DEN",
+       "p": 99,
+       "obs": 18,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  },
+  "ORD-DEN": {
+   "ts": "2026-07-23T15:30:35.664Z",
+   "flights": [
+    {
+     "fn": "UA767",
+     "seg": "Mainline",
+     "prob": 70,
+     "obs": 16,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1974",
+     "seg": "Mainline",
+     "prob": 66,
+     "obs": 10,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2806",
+     "seg": "Mainline",
+     "prob": 55,
+     "obs": 1,
+     "conf": "low"
+    },
+    {
+     "fn": "UA526",
+     "seg": "Mainline",
+     "prob": 47,
+     "obs": 4,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2802",
+     "seg": "Mainline",
+     "prob": 47,
+     "obs": 3,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2769",
+     "seg": "Mainline",
+     "prob": 43,
+     "obs": 7,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA377",
+     "seg": "Mainline",
+     "prob": 39,
+     "obs": 10,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA581",
+     "seg": "Mainline",
+     "prob": 37,
+     "obs": 7,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2803",
+     "seg": "Mainline",
+     "prob": 34,
+     "obs": 3,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2666",
+     "seg": "Mainline",
+     "prob": 30,
+     "obs": 3,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 69.5,
+     "any": 69.5,
+     "coverage": "full",
+     "hours": 3,
+     "legs": [
+      {
+       "fn": "UA767",
+       "route": "ORD-DEN",
+       "p": 70,
+       "obs": 16,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MTJ"
+     ],
+     "joint": 96.3,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5,
+     "legs": [
+      {
+       "fn": "UA5905",
+       "route": "ORD-MTJ",
+       "p": 98,
+       "obs": 6,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5673",
+       "route": "MTJ-DEN",
+       "p": 98,
+       "obs": 19,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "LIT"
+     ],
+     "joint": 98.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.7,
+     "legs": [
+      {
+       "fn": "UA4512",
+       "route": "ORD-LIT",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5429",
+       "route": "LIT-DEN",
+       "p": 99,
+       "obs": 18,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "FAR"
+     ],
+     "joint": 99.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.4,
+     "legs": [
+      {
+       "fn": "UA4605",
+       "route": "ORD-FAR",
+       "p": 100,
+       "obs": 19,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5462",
+       "route": "FAR-DEN",
+       "p": 100,
+       "obs": 23,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ASE"
+     ],
+     "joint": 97.7,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.4,
+     "legs": [
+      {
+       "fn": "UA5254",
+       "route": "ORD-ASE",
+       "p": 99,
+       "obs": 12,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5772",
+       "route": "ASE-DEN",
+       "p": 99,
+       "obs": 15,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "OKC"
+     ],
+     "joint": 97.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.4,
+     "legs": [
+      {
+       "fn": "UA5392",
+       "route": "ORD-OKC",
+       "p": 99,
+       "obs": 31,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4751",
+       "route": "OKC-DEN",
+       "p": 99,
+       "obs": 29,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "DEN-ORD": {
+   "ts": "2026-07-23T15:30:36.130Z",
+   "flights": [
+    {
+     "fn": "UA617",
+     "seg": "Mainline",
+     "prob": 69,
+     "obs": 14,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2085",
+     "seg": "Mainline",
+     "prob": 62,
+     "obs": 14,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2329",
+     "seg": "Mainline",
+     "prob": 56,
+     "obs": 12,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA352",
+     "seg": "Mainline",
+     "prob": 46,
+     "obs": 10,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA675",
+     "seg": "Mainline",
+     "prob": 41,
+     "obs": 13,
+     "conf": "high"
+    },
+    {
+     "fn": "UA1411",
+     "seg": "Mainline",
+     "prob": 37,
+     "obs": 25,
+     "conf": "high"
+    },
+    {
+     "fn": "UA1377",
+     "seg": "Mainline",
+     "prob": 36,
+     "obs": 6,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2649",
+     "seg": "Mainline",
+     "prob": 35,
+     "obs": 16,
+     "conf": "high"
+    },
+    {
+     "fn": "UA1023",
+     "seg": "Mainline",
+     "prob": 33,
+     "obs": 10,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2865",
+     "seg": "Mainline",
+     "prob": 30,
+     "obs": 31,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2315",
+     "seg": "Mainline",
+     "prob": 26,
+     "obs": 4,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 69.4,
+     "any": 69.4,
+     "coverage": "full",
+     "hours": 2.7,
+     "legs": [
+      {
+       "fn": "UA617",
+       "route": "DEN-ORD",
+       "p": 69,
+       "obs": 14,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MTJ"
+     ],
+     "joint": 95.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.6,
+     "legs": [
+      {
+       "fn": "UA5616",
+       "route": "DEN-MTJ",
+       "p": 98,
+       "obs": 6,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5937",
+       "route": "MTJ-ORD",
+       "p": 98,
+       "obs": 12,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "LIT"
+     ],
+     "joint": 97.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.4,
+     "legs": [
+      {
+       "fn": "UA5760",
+       "route": "DEN-LIT",
+       "p": 98,
+       "obs": 9,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4410",
+       "route": "LIT-ORD",
+       "p": 100,
+       "obs": 16,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "OKC"
+     ],
+     "joint": 97.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.4,
+     "legs": [
+      {
+       "fn": "UA5324",
+       "route": "DEN-OKC",
+       "p": 98,
+       "obs": 14,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5823",
+       "route": "OKC-ORD",
+       "p": 99,
+       "obs": 19,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "XNA"
+     ],
+     "joint": 98.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA5269",
+       "route": "DEN-XNA",
+       "p": 99,
+       "obs": 10,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5639",
+       "route": "XNA-ORD",
+       "p": 99,
+       "obs": 22,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ASE"
+     ],
+     "joint": 97.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.1,
+     "legs": [
+      {
+       "fn": "UA5779",
+       "route": "DEN-ASE",
+       "p": 99,
+       "obs": 22,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5956",
+       "route": "ASE-ORD",
+       "p": 98,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "EWR-ORD": {
+   "ts": "2026-07-23T15:30:36.606Z",
+   "flights": [
+    {
+     "fn": "UA1875",
+     "seg": "Mainline",
+     "prob": 50,
+     "obs": 14,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA530",
+     "seg": "Mainline",
+     "prob": 47,
+     "obs": 7,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA546",
+     "seg": "Mainline",
+     "prob": 42,
+     "obs": 21,
+     "conf": "high"
+    },
+    {
+     "fn": "UA254",
+     "seg": "Mainline",
+     "prob": 37,
+     "obs": 12,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1525",
+     "seg": "Mainline",
+     "prob": 27,
+     "obs": 7,
+     "conf": "low"
+    },
+    {
+     "fn": "UA1998",
+     "seg": "Mainline",
+     "prob": 27,
+     "obs": 10,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2800",
+     "seg": "Mainline",
+     "prob": 0,
+     "obs": 1,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 50.1,
+     "any": 50.1,
+     "coverage": "full",
+     "hours": 2.7,
+     "legs": [
+      {
+       "fn": "UA1875",
+       "route": "EWR-ORD",
+       "p": 50,
+       "obs": 14,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "RDU"
+     ],
+     "joint": 97.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.4,
+     "legs": [
+      {
+       "fn": "UA3631",
+       "route": "EWR-RDU",
+       "p": 99,
+       "obs": 19,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5732",
+       "route": "RDU-ORD",
+       "p": 98,
+       "obs": 14,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SDF"
+     ],
+     "joint": 98.6,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA3415",
+       "route": "EWR-SDF",
+       "p": 99,
+       "obs": 31,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4563",
+       "route": "SDF-ORD",
+       "p": 99,
+       "obs": 7,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ORF"
+     ],
+     "joint": 98.3,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA4448",
+       "route": "EWR-ORF",
+       "p": 99,
+       "obs": 10,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5690",
+       "route": "ORF-ORD",
+       "p": 99,
+       "obs": 19,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "GSO"
+     ],
+     "joint": 99.3,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.1,
+     "legs": [
+      {
+       "fn": "UA4520",
+       "route": "EWR-GSO",
+       "p": 100,
+       "obs": 15,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4451",
+       "route": "GSO-ORD",
+       "p": 100,
+       "obs": 12,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "DCA"
+     ],
+     "joint": 98.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.1,
+     "legs": [
+      {
+       "fn": "UA4457",
+       "route": "EWR-DCA",
+       "p": 100,
+       "obs": 17,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5450",
+       "route": "DCA-ORD",
+       "p": 99,
+       "obs": 10,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "ORD-EWR": {
+   "ts": "2026-07-23T15:30:37.087Z",
+   "flights": [
+    {
+     "fn": "UA2329",
+     "seg": "Mainline",
+     "prob": 56,
+     "obs": 12,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA485",
+     "seg": "Mainline",
+     "prob": 49,
+     "obs": 11,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA606",
+     "seg": "Mainline",
+     "prob": 47,
+     "obs": 5,
+     "conf": "low"
+    },
+    {
+     "fn": "UA1856",
+     "seg": "Mainline",
+     "prob": 44,
+     "obs": 1,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2295",
+     "seg": "Mainline",
+     "prob": 41,
+     "obs": 4,
+     "conf": "low"
+    },
+    {
+     "fn": "UA534",
+     "seg": "Mainline",
+     "prob": 39,
+     "obs": 19,
+     "conf": "high"
+    },
+    {
+     "fn": "UA1209",
+     "seg": "Mainline",
+     "prob": 38,
+     "obs": 23,
+     "conf": "high"
+    },
+    {
+     "fn": "UA759",
+     "seg": "Mainline",
+     "prob": 24,
+     "obs": 13,
+     "conf": "medium"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 56.5,
+     "any": 56.5,
+     "coverage": "full",
+     "hours": 2.6,
+     "legs": [
+      {
+       "fn": "UA2329",
+       "route": "ORD-EWR",
+       "p": 56,
+       "obs": 12,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "RDU"
+     ],
+     "joint": 97,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.3,
+     "legs": [
+      {
+       "fn": "UA5326",
+       "route": "ORD-RDU",
+       "p": 98,
+       "obs": 13,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3443",
+       "route": "RDU-EWR",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ORF"
+     ],
+     "joint": 98.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.1,
+     "legs": [
+      {
+       "fn": "UA5686",
+       "route": "ORD-ORF",
+       "p": 99,
+       "obs": 10,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4531",
+       "route": "ORF-EWR",
+       "p": 99,
+       "obs": 6,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SDF"
+     ],
+     "joint": 98,
+     "any": 100,
+     "coverage": "full",
+     "hours": 3.9,
+     "legs": [
+      {
+       "fn": "UA3659",
+       "route": "ORD-SDF",
+       "p": 99,
+       "obs": 27,
+       "conf": "high"
+      },
+      {
+       "fn": "UA3694",
+       "route": "SDF-EWR",
+       "p": 99,
+       "obs": 12,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "GSO"
+     ],
+     "joint": 99.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 3.9,
+     "legs": [
+      {
+       "fn": "UA4553",
+       "route": "ORD-GSO",
+       "p": 100,
+       "obs": 23,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4608",
+       "route": "GSO-EWR",
+       "p": 99,
+       "obs": 17,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "DCA"
+     ],
+     "joint": 97.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 3.8,
+     "legs": [
+      {
+       "fn": "UA5552",
+       "route": "ORD-DCA",
+       "p": 98,
+       "obs": 9,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4174",
+       "route": "DCA-EWR",
+       "p": 100,
+       "obs": 14,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  },
+  "IAH-DEN": {
+   "ts": "2026-07-23T15:30:37.566Z",
+   "flights": [
+    {
+     "fn": "UA1409",
+     "seg": "Mainline",
+     "prob": 57,
+     "obs": 3,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2339",
+     "seg": "Mainline",
+     "prob": 48,
+     "obs": 12,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1450",
+     "seg": "Mainline",
+     "prob": 39,
+     "obs": 13,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA484",
+     "seg": "Mainline",
+     "prob": 35,
+     "obs": 15,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1066",
+     "seg": "Mainline",
+     "prob": 26,
+     "obs": 14,
+     "conf": "medium"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 57,
+     "any": 57,
+     "coverage": "full",
+     "hours": 2.6,
+     "legs": [
+      {
+       "fn": "UA1409",
+       "route": "IAH-DEN",
+       "p": 57,
+       "obs": 3,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "LIT"
+     ],
+     "joint": 97.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.5,
+     "legs": [
+      {
+       "fn": "UA6150",
+       "route": "IAH-LIT",
+       "p": 98,
+       "obs": 17,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5429",
+       "route": "LIT-DEN",
+       "p": 99,
+       "obs": 18,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "HDN"
+     ],
+     "joint": 97,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.4,
+     "legs": [
+      {
+       "fn": "UA5359",
+       "route": "IAH-HDN",
+       "p": 99,
+       "obs": 15,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5788",
+       "route": "HDN-DEN",
+       "p": 98,
+       "obs": 10,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI"
+     ],
+     "joint": 96.3,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.4,
+     "legs": [
+      {
+       "fn": "UA3987",
+       "route": "IAH-MCI",
+       "p": 98,
+       "obs": 8,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5503",
+       "route": "MCI-DEN",
+       "p": 99,
+       "obs": 12,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SGF"
+     ],
+     "joint": 98.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.1,
+     "legs": [
+      {
+       "fn": "UA4569",
+       "route": "IAH-SGF",
+       "p": 99,
+       "obs": 2,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5898",
+       "route": "SGF-DEN",
+       "p": 99,
+       "obs": 25,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MTJ"
+     ],
+     "joint": 96.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA6147",
+       "route": "IAH-MTJ",
+       "p": 98,
+       "obs": 7,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5673",
+       "route": "MTJ-DEN",
+       "p": 98,
+       "obs": 19,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "DEN-IAH": {
+   "ts": "2026-07-23T15:30:38.047Z",
+   "flights": [
+    {
+     "fn": "UA1585",
+     "seg": "Mainline",
+     "prob": 76,
+     "obs": 13,
+     "conf": "high"
+    },
+    {
+     "fn": "UA475",
+     "seg": "Mainline",
+     "prob": 44,
+     "obs": 24,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA489",
+     "seg": "Mainline",
+     "prob": 36,
+     "obs": 5,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1599",
+     "seg": "Mainline",
+     "prob": 28,
+     "obs": 7,
+     "conf": "low"
+    },
+    {
+     "fn": "UA588",
+     "seg": "Mainline",
+     "prob": 25,
+     "obs": 12,
+     "conf": "medium"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 75.8,
+     "any": 75.8,
+     "coverage": "full",
+     "hours": 2.6,
+     "legs": [
+      {
+       "fn": "UA1585",
+       "route": "DEN-IAH",
+       "p": 76,
+       "obs": 13,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "LIT"
+     ],
+     "joint": 96.6,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA5760",
+       "route": "DEN-LIT",
+       "p": 98,
+       "obs": 9,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4066",
+       "route": "LIT-IAH",
+       "p": 99,
+       "obs": 17,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI"
+     ],
+     "joint": 96.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA5385",
+       "route": "DEN-MCI",
+       "p": 98,
+       "obs": 7,
+       "conf": "low"
+      },
+      {
+       "fn": "UA6124",
+       "route": "MCI-IAH",
+       "p": 98,
+       "obs": 6,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "HDN"
+     ],
+     "joint": 96.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.1,
+     "legs": [
+      {
+       "fn": "UA5789",
+       "route": "DEN-HDN",
+       "p": 98,
+       "obs": 5,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5332",
+       "route": "HDN-IAH",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SGF"
+     ],
+     "joint": 98.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4,
+     "legs": [
+      {
+       "fn": "UA5687",
+       "route": "DEN-SGF",
+       "p": 99,
+       "obs": 16,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4574",
+       "route": "SGF-IAH",
+       "p": 99,
+       "obs": 11,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "XNA"
+     ],
+     "joint": 97.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4,
+     "legs": [
+      {
+       "fn": "UA5269",
+       "route": "DEN-XNA",
+       "p": 99,
+       "obs": 10,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4051",
+       "route": "XNA-IAH",
+       "p": 99,
+       "obs": 20,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  },
+  "EWR-SFO": {
+   "ts": "2026-07-23T15:30:38.559Z",
+   "flights": [],
+   "itineraries": [
+    {
+     "via": [
+      "IAD",
+      "SAT"
+     ],
+     "joint": 95.7,
+     "any": 100,
+     "coverage": "full",
+     "hours": 9.3,
+     "legs": [
+      {
+       "fn": "UA3511",
+       "route": "EWR-IAD",
+       "p": 98,
+       "obs": 14,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4015",
+       "route": "IAD-SAT",
+       "p": 98,
+       "obs": 12,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5479",
+       "route": "SAT-SFO",
+       "p": 99,
+       "obs": 20,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "AUS",
+      "LAX"
+     ],
+     "joint": 94.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 9.3,
+     "legs": [
+      {
+       "fn": "UA3431",
+       "route": "EWR-AUS",
+       "p": 99,
+       "obs": 14,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5841",
+       "route": "AUS-LAX",
+       "p": 99,
+       "obs": 14,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5424",
+       "route": "LAX-SFO",
+       "p": 97,
+       "obs": 3,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI",
+      "LAX"
+     ],
+     "joint": 94.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 8.6,
+     "legs": [
+      {
+       "fn": "UA3436",
+       "route": "EWR-MCI",
+       "p": 98,
+       "obs": 4,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5489",
+       "route": "MCI-LAX",
+       "p": 99,
+       "obs": 17,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5424",
+       "route": "LAX-SFO",
+       "p": 97,
+       "obs": 3,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI",
+      "DEN"
+     ],
+     "joint": 55.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 8.2,
+     "legs": [
+      {
+       "fn": "UA3436",
+       "route": "EWR-MCI",
+       "p": 98,
+       "obs": 4,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5503",
+       "route": "MCI-DEN",
+       "p": 99,
+       "obs": 12,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA1812",
+       "route": "DEN-SFO",
+       "p": 57,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MKE",
+      "DEN"
+     ],
+     "joint": 56.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 8.1,
+     "legs": [
+      {
+       "fn": "UA3564",
+       "route": "EWR-MKE",
+       "p": 99,
+       "obs": 15,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5536",
+       "route": "MKE-DEN",
+       "p": 99,
+       "obs": 20,
+       "conf": "high"
+      },
+      {
+       "fn": "UA1812",
+       "route": "DEN-SFO",
+       "p": 57,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MSN",
+      "DEN"
+     ],
+     "joint": 54.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 8.1,
+     "legs": [
+      {
+       "fn": "UA3620",
+       "route": "EWR-MSN",
+       "p": 99,
+       "obs": 29,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5545",
+       "route": "MSN-DEN",
+       "p": 96,
+       "obs": 18,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA1812",
+       "route": "DEN-SFO",
+       "p": 57,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "SFO-EWR": {
+   "ts": "2026-07-23T15:30:39.051Z",
+   "flights": [],
+   "itineraries": [
+    {
+     "via": [
+      "LAX",
+      "AUS"
+     ],
+     "joint": 91.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 9.1,
+     "legs": [
+      {
+       "fn": "UA5685",
+       "route": "SFO-LAX",
+       "p": 100,
+       "obs": 34,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5456",
+       "route": "LAX-AUS",
+       "p": 94,
+       "obs": 10,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3400",
+       "route": "AUS-EWR",
+       "p": 98,
+       "obs": 8,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "LAX",
+      "MCI"
+     ],
+     "joint": 95.5,
+     "any": 100,
+     "coverage": "full",
+     "hours": 8.4,
+     "legs": [
+      {
+       "fn": "UA5685",
+       "route": "SFO-LAX",
+       "p": 100,
+       "obs": 34,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5426",
+       "route": "LAX-MCI",
+       "p": 98,
+       "obs": 16,
+       "conf": "low"
+      },
+      {
+       "fn": "UA3522",
+       "route": "MCI-EWR",
+       "p": 98,
+       "obs": 12,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ORD",
+      "YHZ"
+     ],
+     "joint": 68.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 10.3,
+     "legs": [
+      {
+       "fn": "UA1568",
+       "route": "SFO-ORD",
+       "p": 71,
+       "obs": 21,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5574",
+       "route": "ORD-YHZ",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3471",
+       "route": "YHZ-EWR",
+       "p": 98,
+       "obs": 5,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ORD",
+      "JAX"
+     ],
+     "joint": 68.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 9.9,
+     "legs": [
+      {
+       "fn": "UA1568",
+       "route": "SFO-ORD",
+       "p": 71,
+       "obs": 21,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4672",
+       "route": "ORD-JAX",
+       "p": 99,
+       "obs": 20,
+       "conf": "high"
+      },
+      {
+       "fn": "UA3530",
+       "route": "JAX-EWR",
+       "p": 99,
+       "obs": 18,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ORD",
+      "BGR"
+     ],
+     "joint": 68.7,
+     "any": 100,
+     "coverage": "full",
+     "hours": 9.1,
+     "legs": [
+      {
+       "fn": "UA1568",
+       "route": "SFO-ORD",
+       "p": 71,
+       "obs": 21,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5681",
+       "route": "ORD-BGR",
+       "p": 99,
+       "obs": 19,
+       "conf": "high"
+      },
+      {
+       "fn": "UA3474",
+       "route": "BGR-EWR",
+       "p": 98,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ORD",
+      "CHA"
+     ],
+     "joint": 69.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 8.9,
+     "legs": [
+      {
+       "fn": "UA1568",
+       "route": "SFO-ORD",
+       "p": 71,
+       "obs": 21,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4507",
+       "route": "ORD-CHA",
+       "p": 100,
+       "obs": 16,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4413",
+       "route": "CHA-EWR",
+       "p": 99,
+       "obs": 8,
+       "conf": "low"
+      }
+     ]
+    }
+   ]
+  },
+  "ORD-SFO": {
+   "ts": "2026-07-23T15:30:39.513Z",
+   "flights": [
+    {
+     "fn": "UA2106",
+     "seg": "Mainline",
+     "prob": 51,
+     "obs": 31,
+     "conf": "high"
+    },
+    {
+     "fn": "UA511",
+     "seg": "Mainline",
+     "prob": 20,
+     "obs": 9,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2251",
+     "seg": "Mainline",
+     "prob": 16,
+     "obs": 4,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 51.3,
+     "any": 51.3,
+     "coverage": "full",
+     "hours": 5,
+     "legs": [
+      {
+       "fn": "UA2106",
+       "route": "ORD-SFO",
+       "p": 51,
+       "obs": 31,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "GEG"
+     ],
+     "joint": 97.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 6.8,
+     "legs": [
+      {
+       "fn": "UA5612",
+       "route": "ORD-GEG",
+       "p": 99,
+       "obs": 13,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5217",
+       "route": "GEG-SFO",
+       "p": 99,
+       "obs": 15,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "FCA"
+     ],
+     "joint": 96.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 6.8,
+     "legs": [
+      {
+       "fn": "UA6021",
+       "route": "ORD-FCA",
+       "p": 98,
+       "obs": 7,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5936",
+       "route": "FCA-SFO",
+       "p": 98,
+       "obs": 4,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "TUS"
+     ],
+     "joint": 95.3,
+     "any": 99.9,
+     "coverage": "full",
+     "hours": 6.8,
+     "legs": [
+      {
+       "fn": "UA5719",
+       "route": "ORD-TUS",
+       "p": 97,
+       "obs": 15,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5583",
+       "route": "TUS-SFO",
+       "p": 98,
+       "obs": 11,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MSO"
+     ],
+     "joint": 97.3,
+     "any": 100,
+     "coverage": "full",
+     "hours": 6.6,
+     "legs": [
+      {
+       "fn": "UA6021",
+       "route": "ORD-MSO",
+       "p": 98,
+       "obs": 7,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5417",
+       "route": "MSO-SFO",
+       "p": 99,
+       "obs": 15,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "BOI"
+     ],
+     "joint": 97.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 6.2,
+     "legs": [
+      {
+       "fn": "UA5290",
+       "route": "ORD-BOI",
+       "p": 99,
+       "obs": 28,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4678",
+       "route": "BOI-SFO",
+       "p": 99,
+       "obs": 17,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "SFO-ORD": {
+   "ts": "2026-07-23T15:30:39.976Z",
+   "flights": [
+    {
+     "fn": "UA1568",
+     "seg": "Mainline",
+     "prob": 71,
+     "obs": 21,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2091",
+     "seg": "Mainline",
+     "prob": 61,
+     "obs": 11,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1482",
+     "seg": "Mainline",
+     "prob": 43,
+     "obs": 14,
+     "conf": "medium"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 70.6,
+     "any": 70.6,
+     "coverage": "full",
+     "hours": 4.6,
+     "legs": [
+      {
+       "fn": "UA1568",
+       "route": "SFO-ORD",
+       "p": 71,
+       "obs": 21,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "GEG"
+     ],
+     "joint": 96.5,
+     "any": 100,
+     "coverage": "full",
+     "hours": 6.2,
+     "legs": [
+      {
+       "fn": "UA5693",
+       "route": "SFO-GEG",
+       "p": 99,
+       "obs": 18,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5623",
+       "route": "GEG-ORD",
+       "p": 98,
+       "obs": 10,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "TUS"
+     ],
+     "joint": 93.7,
+     "any": 99.9,
+     "coverage": "full",
+     "hours": 6.2,
+     "legs": [
+      {
+       "fn": "UA6023",
+       "route": "SFO-TUS",
+       "p": 98,
+       "obs": 2,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5266",
+       "route": "TUS-ORD",
+       "p": 96,
+       "obs": 17,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ABQ"
+     ],
+     "joint": 96.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.9,
+     "legs": [
+      {
+       "fn": "UA5401",
+       "route": "SFO-ABQ",
+       "p": 98,
+       "obs": 6,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4648",
+       "route": "ABQ-ORD",
+       "p": 98,
+       "obs": 2,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "BOI"
+     ],
+     "joint": 96.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.7,
+     "legs": [
+      {
+       "fn": "UA5644",
+       "route": "SFO-BOI",
+       "p": 97,
+       "obs": 19,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5386",
+       "route": "BOI-ORD",
+       "p": 99,
+       "obs": 37,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "LAX",
+      "BOI"
+     ],
+     "joint": 97.5,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7.7,
+     "legs": [
+      {
+       "fn": "UA5685",
+       "route": "SFO-LAX",
+       "p": 100,
+       "obs": 34,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5363",
+       "route": "LAX-BOI",
+       "p": 99,
+       "obs": 17,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5386",
+       "route": "BOI-ORD",
+       "p": 99,
+       "obs": 37,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  },
+  "IAH-ORD": {
+   "ts": "2026-07-23T15:30:40.453Z",
+   "flights": [
+    {
+     "fn": "UA1617",
+     "seg": "Mainline",
+     "prob": 61,
+     "obs": 10,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2135",
+     "seg": "Mainline",
+     "prob": 60,
+     "obs": 16,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2197",
+     "seg": "Mainline",
+     "prob": 57,
+     "obs": 19,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2124",
+     "seg": "Mainline",
+     "prob": 46,
+     "obs": 7,
+     "conf": "low"
+    },
+    {
+     "fn": "UA1752",
+     "seg": "Mainline",
+     "prob": 37,
+     "obs": 15,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2616",
+     "seg": "Mainline",
+     "prob": 36,
+     "obs": 7,
+     "conf": "low"
+    },
+    {
+     "fn": "UA787",
+     "seg": "Mainline",
+     "prob": 30,
+     "obs": 23,
+     "conf": "high"
+    },
+    {
+     "fn": "UA699",
+     "seg": "Mainline",
+     "prob": 22,
+     "obs": 5,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2827",
+     "seg": "Mainline",
+     "prob": 12,
+     "obs": 3,
+     "conf": "medium"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 60.7,
+     "any": 60.7,
+     "coverage": "full",
+     "hours": 3,
+     "legs": [
+      {
+       "fn": "UA1617",
+       "route": "IAH-ORD",
+       "p": 61,
+       "obs": 10,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "TVC"
+     ],
+     "joint": 97.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.7,
+     "legs": [
+      {
+       "fn": "UA5300",
+       "route": "IAH-TVC",
+       "p": 99,
+       "obs": 24,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5686",
+       "route": "TVC-ORD",
+       "p": 99,
+       "obs": 10,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ECP"
+     ],
+     "joint": 97.5,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.7,
+     "legs": [
+      {
+       "fn": "UA4043",
+       "route": "IAH-ECP",
+       "p": 99,
+       "obs": 14,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5654",
+       "route": "ECP-ORD",
+       "p": 98,
+       "obs": 10,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "DTW"
+     ],
+     "joint": 96.5,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.6,
+     "legs": [
+      {
+       "fn": "UA6131",
+       "route": "IAH-DTW",
+       "p": 98,
+       "obs": 3,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5483",
+       "route": "DTW-ORD",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "TYS"
+     ],
+     "joint": 98.5,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.5,
+     "legs": [
+      {
+       "fn": "UA6206",
+       "route": "IAH-TYS",
+       "p": 99,
+       "obs": 18,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4584",
+       "route": "TYS-ORD",
+       "p": 100,
+       "obs": 9,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "BHM"
+     ],
+     "joint": 98.6,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.3,
+     "legs": [
+      {
+       "fn": "UA4022",
+       "route": "IAH-BHM",
+       "p": 99,
+       "obs": 19,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4449",
+       "route": "BHM-ORD",
+       "p": 100,
+       "obs": 23,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  },
+  "ORD-IAH": {
+   "ts": "2026-07-23T15:30:40.929Z",
+   "flights": [
+    {
+     "fn": "UA1231",
+     "seg": "Mainline",
+     "prob": 70,
+     "obs": 8,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2813",
+     "seg": "Mainline",
+     "prob": 54,
+     "obs": 8,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2665",
+     "seg": "Mainline",
+     "prob": 51,
+     "obs": 17,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2638",
+     "seg": "Mainline",
+     "prob": 42,
+     "obs": 15,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1799",
+     "seg": "Mainline",
+     "prob": 41,
+     "obs": 8,
+     "conf": "low"
+    },
+    {
+     "fn": "UA1448",
+     "seg": "Mainline",
+     "prob": 40,
+     "obs": 11,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1954",
+     "seg": "Mainline",
+     "prob": 38,
+     "obs": 15,
+     "conf": "high"
+    },
+    {
+     "fn": "UA714",
+     "seg": "Mainline",
+     "prob": 37,
+     "obs": 8,
+     "conf": "low"
+    },
+    {
+     "fn": "UA1475",
+     "seg": "Mainline",
+     "prob": 29,
+     "obs": 12,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2451",
+     "seg": "Mainline",
+     "prob": 4,
+     "obs": 9,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 70.2,
+     "any": 70.2,
+     "coverage": "full",
+     "hours": 3,
+     "legs": [
+      {
+       "fn": "UA1231",
+       "route": "ORD-IAH",
+       "p": 70,
+       "obs": 8,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "TVC"
+     ],
+     "joint": 96.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.9,
+     "legs": [
+      {
+       "fn": "UA5504",
+       "route": "ORD-TVC",
+       "p": 99,
+       "obs": 6,
+       "conf": "low"
+      },
+      {
+       "fn": "UA6164",
+       "route": "TVC-IAH",
+       "p": 98,
+       "obs": 9,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "CMH"
+     ],
+     "joint": 97.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.7,
+     "legs": [
+      {
+       "fn": "UA3674",
+       "route": "ORD-CMH",
+       "p": 99,
+       "obs": 18,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4074",
+       "route": "CMH-IAH",
+       "p": 98,
+       "obs": 10,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "DTW"
+     ],
+     "joint": 98.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.7,
+     "legs": [
+      {
+       "fn": "UA5232",
+       "route": "ORD-DTW",
+       "p": 99,
+       "obs": 22,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA6251",
+       "route": "DTW-IAH",
+       "p": 99,
+       "obs": 18,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ECP"
+     ],
+     "joint": 98,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.6,
+     "legs": [
+      {
+       "fn": "UA5473",
+       "route": "ORD-ECP",
+       "p": 99,
+       "obs": 4,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4034",
+       "route": "ECP-IAH",
+       "p": 99,
+       "obs": 32,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "OMA"
+     ],
+     "joint": 96.6,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.3,
+     "legs": [
+      {
+       "fn": "UA5777",
+       "route": "ORD-OMA",
+       "p": 98,
+       "obs": 5,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA6259",
+       "route": "OMA-IAH",
+       "p": 98,
+       "obs": 5,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "EWR-IAD": {
+   "ts": "2026-07-23T15:30:41.397Z",
+   "flights": [],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 98,
+     "any": 98,
+     "coverage": "full",
+     "hours": 1.7,
+     "legs": [
+      {
+       "fn": "UA3511",
+       "route": "EWR-IAD",
+       "p": 98,
+       "obs": 14,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ORF"
+     ],
+     "joint": 97.6,
+     "any": 100,
+     "coverage": "full",
+     "hours": 2.8,
+     "legs": [
+      {
+       "fn": "UA4448",
+       "route": "EWR-ORF",
+       "p": 99,
+       "obs": 10,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4023",
+       "route": "ORF-IAD",
+       "p": 98,
+       "obs": 13,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "RIC"
+     ],
+     "joint": 99.3,
+     "any": 100,
+     "coverage": "full",
+     "hours": 2.8,
+     "legs": [
+      {
+       "fn": "UA4176",
+       "route": "EWR-RIC",
+       "p": 100,
+       "obs": 17,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4485",
+       "route": "RIC-IAD",
+       "p": 100,
+       "obs": 13,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  },
+  "IAD-EWR": {
+   "ts": "2026-07-23T15:30:41.874Z",
+   "flights": [
+    {
+     "fn": "UA2147",
+     "seg": "Mainline",
+     "prob": 0,
+     "obs": 7,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [
+      "ORF"
+     ],
+     "joint": 96.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 2.8,
+     "legs": [
+      {
+       "fn": "UA6313",
+       "route": "IAD-ORF",
+       "p": 97,
+       "obs": 1,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4531",
+       "route": "ORF-EWR",
+       "p": 99,
+       "obs": 6,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "RIC"
+     ],
+     "joint": 99.3,
+     "any": 100,
+     "coverage": "full",
+     "hours": 2.6,
+     "legs": [
+      {
+       "fn": "UA4473",
+       "route": "IAD-RIC",
+       "p": 100,
+       "obs": 18,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4604",
+       "route": "RIC-EWR",
+       "p": 100,
+       "obs": 13,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "BDL"
+     ],
+     "joint": 2,
+     "any": 98.3,
+     "coverage": "partial",
+     "hours": 0,
+     "legs": [
+      {
+       "fn": "UA4059",
+       "route": "IAD-BDL",
+       "p": 98,
+       "obs": 19,
+       "conf": "medium"
+      },
+      {
+       "fn": "(any)",
+       "route": "BDL-EWR",
+       "p": 2,
+       "obs": 0,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "PHL"
+     ],
+     "joint": 2,
+     "any": 99,
+     "coverage": "partial",
+     "hours": 0,
+     "legs": [
+      {
+       "fn": "UA4534",
+       "route": "IAD-PHL",
+       "p": 99,
+       "obs": 3,
+       "conf": "low"
+      },
+      {
+       "fn": "(any)",
+       "route": "PHL-EWR",
+       "p": 2,
+       "obs": 0,
+       "conf": "low"
+      }
+     ]
+    }
+   ]
+  },
+  "DEN-LAX": {
+   "ts": "2026-07-23T15:30:42.341Z",
+   "flights": [
+    {
+     "fn": "UA405",
+     "seg": "Mainline",
+     "prob": 73,
+     "obs": 5,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1638",
+     "seg": "Mainline",
+     "prob": 59,
+     "obs": 5,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1262",
+     "seg": "Mainline",
+     "prob": 57,
+     "obs": 7,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1013",
+     "seg": "Mainline",
+     "prob": 41,
+     "obs": 3,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2240",
+     "seg": "Mainline",
+     "prob": 21,
+     "obs": 12,
+     "conf": "medium"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 73.4,
+     "any": 73.4,
+     "coverage": "full",
+     "hours": 2.5,
+     "legs": [
+      {
+       "fn": "UA405",
+       "route": "DEN-LAX",
+       "p": 73,
+       "obs": 5,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SUN"
+     ],
+     "joint": 97.6,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.6,
+     "legs": [
+      {
+       "fn": "UA5734",
+       "route": "DEN-SUN",
+       "p": 99,
+       "obs": 12,
+       "conf": "high"
+      },
+      {
+       "fn": "UA6008",
+       "route": "SUN-LAX",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MRY"
+     ],
+     "joint": 96.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.6,
+     "legs": [
+      {
+       "fn": "UA5438",
+       "route": "DEN-MRY",
+       "p": 98,
+       "obs": 10,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5523",
+       "route": "MRY-LAX",
+       "p": 99,
+       "obs": 17,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SLC"
+     ],
+     "joint": 98.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA5762",
+       "route": "DEN-SLC",
+       "p": 99,
+       "obs": 22,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5408",
+       "route": "SLC-LAX",
+       "p": 99,
+       "obs": 20,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "FAT"
+     ],
+     "joint": 96,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA5655",
+       "route": "DEN-FAT",
+       "p": 97,
+       "obs": 5,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5307",
+       "route": "FAT-LAX",
+       "p": 99,
+       "obs": 14,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MTJ"
+     ],
+     "joint": 95.4,
+     "any": 99.9,
+     "coverage": "full",
+     "hours": 3.9,
+     "legs": [
+      {
+       "fn": "UA5616",
+       "route": "DEN-MTJ",
+       "p": 98,
+       "obs": 6,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4653",
+       "route": "MTJ-LAX",
+       "p": 98,
+       "obs": 8,
+       "conf": "low"
+      }
+     ]
+    }
+   ]
+  },
+  "LAX-DEN": {
+   "ts": "2026-07-23T15:30:42.817Z",
+   "flights": [
+    {
+     "fn": "UA2829",
+     "seg": "Mainline",
+     "prob": 60,
+     "obs": 11,
+     "conf": "high"
+    },
+    {
+     "fn": "UA360",
+     "seg": "Mainline",
+     "prob": 59,
+     "obs": 23,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1010",
+     "seg": "Mainline",
+     "prob": 59,
+     "obs": 9,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2061",
+     "seg": "Mainline",
+     "prob": 52,
+     "obs": 1,
+     "conf": "low"
+    },
+    {
+     "fn": "UA703",
+     "seg": "Mainline",
+     "prob": 28,
+     "obs": 5,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 59.7,
+     "any": 59.7,
+     "coverage": "full",
+     "hours": 2.5,
+     "legs": [
+      {
+       "fn": "UA2829",
+       "route": "LAX-DEN",
+       "p": 60,
+       "obs": 11,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SUN"
+     ],
+     "joint": 96.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.4,
+     "legs": [
+      {
+       "fn": "UA6043",
+       "route": "LAX-SUN",
+       "p": 98,
+       "obs": 5,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5268",
+       "route": "SUN-DEN",
+       "p": 98,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MRY"
+     ],
+     "joint": 94.8,
+     "any": 99.9,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA5241",
+       "route": "LAX-MRY",
+       "p": 97,
+       "obs": 5,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4713",
+       "route": "MRY-DEN",
+       "p": 98,
+       "obs": 9,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SLC"
+     ],
+     "joint": 98,
+     "any": 100,
+     "coverage": "full",
+     "hours": 3.8,
+     "legs": [
+      {
+       "fn": "UA5744",
+       "route": "LAX-SLC",
+       "p": 99,
+       "obs": 18,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5718",
+       "route": "SLC-DEN",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "PSP"
+     ],
+     "joint": 98,
+     "any": 100,
+     "coverage": "full",
+     "hours": 3.4,
+     "legs": [
+      {
+       "fn": "UA5461",
+       "route": "LAX-PSP",
+       "p": 99,
+       "obs": 19,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5411",
+       "route": "PSP-DEN",
+       "p": 99,
+       "obs": 18,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "FAT"
+     ],
+     "joint": 94.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 3.8,
+     "legs": [
+      {
+       "fn": "UA5329",
+       "route": "LAX-FAT",
+       "p": 99,
+       "obs": 21,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5787",
+       "route": "FAT-DEN",
+       "p": 95,
+       "obs": 23,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "SFO-LAX": {
+   "ts": "2026-07-23T15:30:43.283Z",
+   "flights": [
+    {
+     "fn": "UA2367",
+     "seg": "Mainline",
+     "prob": 34,
+     "obs": 6,
+     "conf": "low"
+    },
+    {
+     "fn": "UA1427",
+     "seg": "Mainline",
+     "prob": 32,
+     "obs": 5,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2610",
+     "seg": "Mainline",
+     "prob": 31,
+     "obs": 11,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2850",
+     "seg": "Mainline",
+     "prob": 29,
+     "obs": 3,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2127",
+     "seg": "Mainline",
+     "prob": 21,
+     "obs": 11,
+     "conf": "medium"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 99.5,
+     "any": 99.5,
+     "coverage": "full",
+     "hours": 1.8,
+     "legs": [
+      {
+       "fn": "UA5685",
+       "route": "SFO-LAX",
+       "p": 100,
+       "obs": 34,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "RNO"
+     ],
+     "joint": 96.7,
+     "any": 100,
+     "coverage": "full",
+     "hours": 3.2,
+     "legs": [
+      {
+       "fn": "UA5983",
+       "route": "SFO-RNO",
+       "p": 98,
+       "obs": 5,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5908",
+       "route": "RNO-LAX",
+       "p": 99,
+       "obs": 7,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "PSP"
+     ],
+     "joint": 93.4,
+     "any": 99.9,
+     "coverage": "full",
+     "hours": 2.9,
+     "legs": [
+      {
+       "fn": "UA5705",
+       "route": "SFO-PSP",
+       "p": 99,
+       "obs": 21,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5542",
+       "route": "PSP-LAX",
+       "p": 95,
+       "obs": 16,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SBA"
+     ],
+     "joint": 97,
+     "any": 100,
+     "coverage": "full",
+     "hours": 2.5,
+     "legs": [
+      {
+       "fn": "UA5962",
+       "route": "SFO-SBA",
+       "p": 98,
+       "obs": 8,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4649",
+       "route": "SBA-LAX",
+       "p": 99,
+       "obs": 23,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SMF"
+     ],
+     "joint": 86.3,
+     "any": 99.8,
+     "coverage": "full",
+     "hours": 3,
+     "legs": [
+      {
+       "fn": "UA5220",
+       "route": "SFO-SMF",
+       "p": 88,
+       "obs": 6,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5628",
+       "route": "SMF-LAX",
+       "p": 98,
+       "obs": 5,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "FAT"
+     ],
+     "joint": 73.8,
+     "any": 99.7,
+     "coverage": "full",
+     "hours": 2.7,
+     "legs": [
+      {
+       "fn": "UA5652",
+       "route": "SFO-FAT",
+       "p": 75,
+       "obs": 9,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5307",
+       "route": "FAT-LAX",
+       "p": 99,
+       "obs": 14,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "LAX-SFO": {
+   "ts": "2026-07-23T15:30:43.747Z",
+   "flights": [
+    {
+     "fn": "UA1195",
+     "seg": "Mainline",
+     "prob": 50,
+     "obs": 22,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2056",
+     "seg": "Mainline",
+     "prob": 44,
+     "obs": 11,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA433",
+     "seg": "Mainline",
+     "prob": 38,
+     "obs": 7,
+     "conf": "low"
+    },
+    {
+     "fn": "UA372",
+     "seg": "Mainline",
+     "prob": 35,
+     "obs": 6,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2019",
+     "seg": "Mainline",
+     "prob": 35,
+     "obs": 22,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2647",
+     "seg": "Mainline",
+     "prob": 21,
+     "obs": 4,
+     "conf": "low"
+    },
+    {
+     "fn": "UA520",
+     "seg": "Mainline",
+     "prob": 1,
+     "obs": 14,
+     "conf": "medium"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 97.1,
+     "any": 97.1,
+     "coverage": "full",
+     "hours": 1.6,
+     "legs": [
+      {
+       "fn": "UA5424",
+       "route": "LAX-SFO",
+       "p": 97,
+       "obs": 3,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "RNO"
+     ],
+     "joint": 97,
+     "any": 100,
+     "coverage": "full",
+     "hours": 3,
+     "legs": [
+      {
+       "fn": "UA5722",
+       "route": "LAX-RNO",
+       "p": 98,
+       "obs": 15,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5899",
+       "route": "RNO-SFO",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "PSP"
+     ],
+     "joint": 97.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 2.8,
+     "legs": [
+      {
+       "fn": "UA5461",
+       "route": "LAX-PSP",
+       "p": 99,
+       "obs": 19,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4786",
+       "route": "PSP-SFO",
+       "p": 98,
+       "obs": 7,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SBA"
+     ],
+     "joint": 97,
+     "any": 100,
+     "coverage": "full",
+     "hours": 2.4,
+     "legs": [
+      {
+       "fn": "UA4796",
+       "route": "LAX-SBA",
+       "p": 98,
+       "obs": 12,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4715",
+       "route": "SBA-SFO",
+       "p": 99,
+       "obs": 14,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "FAT"
+     ],
+     "joint": 97.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 2.3,
+     "legs": [
+      {
+       "fn": "UA5329",
+       "route": "LAX-FAT",
+       "p": 99,
+       "obs": 21,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5349",
+       "route": "FAT-SFO",
+       "p": 98,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SAN"
+     ],
+     "joint": 59.5,
+     "any": 99,
+     "coverage": "full",
+     "hours": 2.9,
+     "legs": [
+      {
+       "fn": "UA4643",
+       "route": "LAX-SAN",
+       "p": 97,
+       "obs": 5,
+       "conf": "low"
+      },
+      {
+       "fn": "UA1113",
+       "route": "SAN-SFO",
+       "p": 61,
+       "obs": 4,
+       "conf": "low"
+      }
+     ]
+    }
+   ]
+  },
+  "EWR-LAX": {
+   "ts": "2026-07-23T15:30:44.225Z",
+   "flights": [
+    {
+     "fn": "UA712",
+     "seg": "Mainline",
+     "prob": 0,
+     "obs": 18,
+     "conf": "medium"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [
+      "AUS"
+     ],
+     "joint": 97.7,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7.7,
+     "legs": [
+      {
+       "fn": "UA3431",
+       "route": "EWR-AUS",
+       "p": 99,
+       "obs": 14,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5841",
+       "route": "AUS-LAX",
+       "p": 99,
+       "obs": 14,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI"
+     ],
+     "joint": 96.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7,
+     "legs": [
+      {
+       "fn": "UA3436",
+       "route": "EWR-MCI",
+       "p": 98,
+       "obs": 4,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5489",
+       "route": "MCI-LAX",
+       "p": 99,
+       "obs": 17,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "IAD",
+      "AUS"
+     ],
+     "joint": 95.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 8.8,
+     "legs": [
+      {
+       "fn": "UA3511",
+       "route": "EWR-IAD",
+       "p": 98,
+       "obs": 14,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4068",
+       "route": "IAD-AUS",
+       "p": 98,
+       "obs": 5,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5841",
+       "route": "AUS-LAX",
+       "p": 99,
+       "obs": 14,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "IAD",
+      "MCI"
+     ],
+     "joint": 94.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 8.2,
+     "legs": [
+      {
+       "fn": "UA3511",
+       "route": "EWR-IAD",
+       "p": 98,
+       "obs": 14,
+       "conf": "low"
+      },
+      {
+       "fn": "UA3528",
+       "route": "IAD-MCI",
+       "p": 97,
+       "obs": 2,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5489",
+       "route": "MCI-LAX",
+       "p": 99,
+       "obs": 17,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI",
+      "DEN"
+     ],
+     "joint": 70.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 8,
+     "legs": [
+      {
+       "fn": "UA3436",
+       "route": "EWR-MCI",
+       "p": 98,
+       "obs": 4,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5503",
+       "route": "MCI-DEN",
+       "p": 99,
+       "obs": 12,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA405",
+       "route": "DEN-LAX",
+       "p": 73,
+       "obs": 5,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MKE",
+      "DEN"
+     ],
+     "joint": 71.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7.9,
+     "legs": [
+      {
+       "fn": "UA3564",
+       "route": "EWR-MKE",
+       "p": 99,
+       "obs": 15,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5536",
+       "route": "MKE-DEN",
+       "p": 99,
+       "obs": 20,
+       "conf": "high"
+      },
+      {
+       "fn": "UA405",
+       "route": "DEN-LAX",
+       "p": 73,
+       "obs": 5,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "LAX-EWR": {
+   "ts": "2026-07-23T15:30:44.716Z",
+   "flights": [],
+   "itineraries": [
+    {
+     "via": [
+      "AUS"
+     ],
+     "joint": 91.9,
+     "any": 99.9,
+     "coverage": "full",
+     "hours": 7.3,
+     "legs": [
+      {
+       "fn": "UA5456",
+       "route": "LAX-AUS",
+       "p": 94,
+       "obs": 10,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3400",
+       "route": "AUS-EWR",
+       "p": 98,
+       "obs": 8,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI"
+     ],
+     "joint": 95.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 6.6,
+     "legs": [
+      {
+       "fn": "UA5426",
+       "route": "LAX-MCI",
+       "p": 98,
+       "obs": 16,
+       "conf": "low"
+      },
+      {
+       "fn": "UA3522",
+       "route": "MCI-EWR",
+       "p": 98,
+       "obs": 12,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCN",
+      "STL"
+     ],
+     "joint": 96.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 9.9,
+     "legs": [
+      {
+       "fn": "UA6083",
+       "route": "LAX-MCN",
+       "p": 98,
+       "obs": 3,
+       "conf": "low"
+      },
+      {
+       "fn": "UA3395",
+       "route": "MCN-STL",
+       "p": 100,
+       "obs": 8,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3564",
+       "route": "STL-EWR",
+       "p": 99,
+       "obs": 15,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SFO",
+      "AUS"
+     ],
+     "joint": 65.5,
+     "any": 100,
+     "coverage": "full",
+     "hours": 9.7,
+     "legs": [
+      {
+       "fn": "UA5424",
+       "route": "LAX-SFO",
+       "p": 97,
+       "obs": 3,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5480",
+       "route": "SFO-AUS",
+       "p": 69,
+       "obs": 10,
+       "conf": "low"
+      },
+      {
+       "fn": "UA3400",
+       "route": "AUS-EWR",
+       "p": 98,
+       "obs": 8,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "BOI",
+      "ORD"
+     ],
+     "joint": 55.3,
+     "any": 100,
+     "coverage": "full",
+     "hours": 8.5,
+     "legs": [
+      {
+       "fn": "UA5363",
+       "route": "LAX-BOI",
+       "p": 99,
+       "obs": 17,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5386",
+       "route": "BOI-ORD",
+       "p": 99,
+       "obs": 37,
+       "conf": "high"
+      },
+      {
+       "fn": "UA2329",
+       "route": "ORD-EWR",
+       "p": 56,
+       "obs": 12,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SUN",
+      "ORD"
+     ],
+     "joint": 52.3,
+     "any": 100,
+     "coverage": "full",
+     "hours": 8.4,
+     "legs": [
+      {
+       "fn": "UA6043",
+       "route": "LAX-SUN",
+       "p": 98,
+       "obs": 5,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4788",
+       "route": "SUN-ORD",
+       "p": 94,
+       "obs": 9,
+       "conf": "high"
+      },
+      {
+       "fn": "UA2329",
+       "route": "ORD-EWR",
+       "p": 56,
+       "obs": 12,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "ORD-LAX": {
+   "ts": "2026-07-23T15:30:45.191Z",
+   "flights": [
+    {
+     "fn": "UA1363",
+     "seg": "Mainline",
+     "prob": 65,
+     "obs": 15,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2361",
+     "seg": "Mainline",
+     "prob": 54,
+     "obs": 8,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2373",
+     "seg": "Mainline",
+     "prob": 35,
+     "obs": 8,
+     "conf": "low"
+    },
+    {
+     "fn": "UA661",
+     "seg": "Mainline",
+     "prob": 31,
+     "obs": 12,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2499",
+     "seg": "Mainline",
+     "prob": 14,
+     "obs": 9,
+     "conf": "low"
+    },
+    {
+     "fn": "UA576",
+     "seg": "Mainline",
+     "prob": 12,
+     "obs": 20,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1044",
+     "seg": "Mainline",
+     "prob": 5,
+     "obs": 7,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 64.9,
+     "any": 64.9,
+     "coverage": "full",
+     "hours": 4.6,
+     "legs": [
+      {
+       "fn": "UA1363",
+       "route": "ORD-LAX",
+       "p": 65,
+       "obs": 15,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "FCA"
+     ],
+     "joint": 96.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7.2,
+     "legs": [
+      {
+       "fn": "UA6021",
+       "route": "ORD-FCA",
+       "p": 98,
+       "obs": 7,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5427",
+       "route": "FCA-LAX",
+       "p": 98,
+       "obs": 5,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MSO"
+     ],
+     "joint": 97.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7.1,
+     "legs": [
+      {
+       "fn": "UA6021",
+       "route": "ORD-MSO",
+       "p": 98,
+       "obs": 7,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4741",
+       "route": "MSO-LAX",
+       "p": 99,
+       "obs": 23,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "BOI"
+     ],
+     "joint": 98.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 6.7,
+     "legs": [
+      {
+       "fn": "UA5290",
+       "route": "ORD-BOI",
+       "p": 99,
+       "obs": 28,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4730",
+       "route": "BOI-LAX",
+       "p": 99,
+       "obs": 28,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MTJ"
+     ],
+     "joint": 95.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 6.2,
+     "legs": [
+      {
+       "fn": "UA5905",
+       "route": "ORD-MTJ",
+       "p": 98,
+       "obs": 6,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4653",
+       "route": "MTJ-LAX",
+       "p": 98,
+       "obs": 8,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ASE"
+     ],
+     "joint": 97.5,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.7,
+     "legs": [
+      {
+       "fn": "UA5254",
+       "route": "ORD-ASE",
+       "p": 99,
+       "obs": 12,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5940",
+       "route": "ASE-LAX",
+       "p": 98,
+       "obs": 12,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "LAX-ORD": {
+   "ts": "2026-07-23T15:30:45.676Z",
+   "flights": [
+    {
+     "fn": "UA2487",
+     "seg": "Mainline",
+     "prob": 47,
+     "obs": 12,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA729",
+     "seg": "Mainline",
+     "prob": 45,
+     "obs": 6,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA212",
+     "seg": "Mainline",
+     "prob": 42,
+     "obs": 19,
+     "conf": "high"
+    },
+    {
+     "fn": "UA353",
+     "seg": "Mainline",
+     "prob": 30,
+     "obs": 36,
+     "conf": "high"
+    },
+    {
+     "fn": "UA1946",
+     "seg": "Mainline",
+     "prob": 10,
+     "obs": 23,
+     "conf": "high"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 47,
+     "any": 47,
+     "coverage": "full",
+     "hours": 4.2,
+     "legs": [
+      {
+       "fn": "UA2487",
+       "route": "LAX-ORD",
+       "p": 47,
+       "obs": 12,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "BOI"
+     ],
+     "joint": 98,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.9,
+     "legs": [
+      {
+       "fn": "UA5363",
+       "route": "LAX-BOI",
+       "p": 99,
+       "obs": 17,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5386",
+       "route": "BOI-ORD",
+       "p": 99,
+       "obs": 37,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI"
+     ],
+     "joint": 96.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.5,
+     "legs": [
+      {
+       "fn": "UA5426",
+       "route": "LAX-MCI",
+       "p": 98,
+       "obs": 16,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5504",
+       "route": "MCI-ORD",
+       "p": 99,
+       "obs": 6,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ASE"
+     ],
+     "joint": 96.5,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.3,
+     "legs": [
+      {
+       "fn": "UA5764",
+       "route": "LAX-ASE",
+       "p": 98,
+       "obs": 7,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5956",
+       "route": "ASE-ORD",
+       "p": 98,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SFO",
+      "GEG"
+     ],
+     "joint": 93.7,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7.8,
+     "legs": [
+      {
+       "fn": "UA5424",
+       "route": "LAX-SFO",
+       "p": 97,
+       "obs": 3,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5693",
+       "route": "SFO-GEG",
+       "p": 99,
+       "obs": 18,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5623",
+       "route": "GEG-ORD",
+       "p": 98,
+       "obs": 10,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SFO",
+      "TUS"
+     ],
+     "joint": 91,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7.8,
+     "legs": [
+      {
+       "fn": "UA5424",
+       "route": "LAX-SFO",
+       "p": 97,
+       "obs": 3,
+       "conf": "low"
+      },
+      {
+       "fn": "UA6023",
+       "route": "SFO-TUS",
+       "p": 98,
+       "obs": 2,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5266",
+       "route": "TUS-ORD",
+       "p": 96,
+       "obs": 17,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "IAD-DEN": {
+   "ts": "2026-07-23T15:30:46.160Z",
+   "flights": [
+    {
+     "fn": "UA2031",
+     "seg": "Mainline",
+     "prob": 62,
+     "obs": 5,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1126",
+     "seg": "Mainline",
+     "prob": 42,
+     "obs": 17,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2667",
+     "seg": "Mainline",
+     "prob": 31,
+     "obs": 11,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA495",
+     "seg": "Mainline",
+     "prob": 26,
+     "obs": 22,
+     "conf": "high"
+    },
+    {
+     "fn": "UA792",
+     "seg": "Mainline",
+     "prob": 0,
+     "obs": 1,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 62,
+     "any": 62,
+     "coverage": "full",
+     "hours": 3.9,
+     "legs": [
+      {
+       "fn": "UA2031",
+       "route": "IAD-DEN",
+       "p": 62,
+       "obs": 5,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI"
+     ],
+     "joint": 95.6,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.1,
+     "legs": [
+      {
+       "fn": "UA3528",
+       "route": "IAD-MCI",
+       "p": 97,
+       "obs": 2,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5503",
+       "route": "MCI-DEN",
+       "p": 99,
+       "obs": 12,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ORD",
+      "HSV"
+     ],
+     "joint": 74.5,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7.7,
+     "legs": [
+      {
+       "fn": "UA1775",
+       "route": "IAD-ORD",
+       "p": 76,
+       "obs": 7,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4500",
+       "route": "ORD-HSV",
+       "p": 100,
+       "obs": 21,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4640",
+       "route": "HSV-DEN",
+       "p": 99,
+       "obs": 21,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ORD",
+      "YWG"
+     ],
+     "joint": 73.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7.7,
+     "legs": [
+      {
+       "fn": "UA1775",
+       "route": "IAD-ORD",
+       "p": 76,
+       "obs": 7,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5645",
+       "route": "ORD-YWG",
+       "p": 99,
+       "obs": 15,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5486",
+       "route": "YWG-DEN",
+       "p": 99,
+       "obs": 24,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ORD",
+      "ABQ"
+     ],
+     "joint": 74.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7.6,
+     "legs": [
+      {
+       "fn": "UA1775",
+       "route": "IAD-ORD",
+       "p": 76,
+       "obs": 7,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3640",
+       "route": "ORD-ABQ",
+       "p": 99,
+       "obs": 20,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4652",
+       "route": "ABQ-DEN",
+       "p": 99,
+       "obs": 6,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ORD",
+      "MTJ"
+     ],
+     "joint": 72.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7.3,
+     "legs": [
+      {
+       "fn": "UA1775",
+       "route": "IAD-ORD",
+       "p": 76,
+       "obs": 7,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA5905",
+       "route": "ORD-MTJ",
+       "p": 98,
+       "obs": 6,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5673",
+       "route": "MTJ-DEN",
+       "p": 98,
+       "obs": 19,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "DEN-IAD": {
+   "ts": "2026-07-23T15:30:46.625Z",
+   "flights": [
+    {
+     "fn": "UA2853",
+     "seg": "Mainline",
+     "prob": 73,
+     "obs": 7,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1101",
+     "seg": "Mainline",
+     "prob": 60,
+     "obs": 9,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA421",
+     "seg": "Mainline",
+     "prob": 54,
+     "obs": 13,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1924",
+     "seg": "Mainline",
+     "prob": 44,
+     "obs": 14,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2408",
+     "seg": "Mainline",
+     "prob": 34,
+     "obs": 19,
+     "conf": "high"
+    },
+    {
+     "fn": "UA1279",
+     "seg": "Mainline",
+     "prob": 34,
+     "obs": 6,
+     "conf": "low"
+    },
+    {
+     "fn": "UA1412",
+     "seg": "Mainline",
+     "prob": 34,
+     "obs": 4,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 72.8,
+     "any": 72.8,
+     "coverage": "full",
+     "hours": 3.5,
+     "legs": [
+      {
+       "fn": "UA2853",
+       "route": "DEN-IAD",
+       "p": 73,
+       "obs": 7,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI"
+     ],
+     "joint": 96.3,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.5,
+     "legs": [
+      {
+       "fn": "UA5385",
+       "route": "DEN-MCI",
+       "p": 98,
+       "obs": 7,
+       "conf": "low"
+      },
+      {
+       "fn": "UA3628",
+       "route": "MCI-IAD",
+       "p": 98,
+       "obs": 13,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "CHA",
+      "EWR"
+     ],
+     "joint": 96,
+     "any": 100,
+     "coverage": "full",
+     "hours": 7.1,
+     "legs": [
+      {
+       "fn": "UA5990",
+       "route": "DEN-CHA",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4413",
+       "route": "CHA-EWR",
+       "p": 99,
+       "obs": 8,
+       "conf": "low"
+      },
+      {
+       "fn": "UA3511",
+       "route": "EWR-IAD",
+       "p": 98,
+       "obs": 14,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MKE",
+      "EWR"
+     ],
+     "joint": 96.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 6.6,
+     "legs": [
+      {
+       "fn": "UA4774",
+       "route": "DEN-MKE",
+       "p": 99,
+       "obs": 23,
+       "conf": "high"
+      },
+      {
+       "fn": "UA3510",
+       "route": "MKE-EWR",
+       "p": 99,
+       "obs": 23,
+       "conf": "high"
+      },
+      {
+       "fn": "UA3511",
+       "route": "EWR-IAD",
+       "p": 98,
+       "obs": 14,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI",
+      "EWR"
+     ],
+     "joint": 93.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 6.6,
+     "legs": [
+      {
+       "fn": "UA5385",
+       "route": "DEN-MCI",
+       "p": 98,
+       "obs": 7,
+       "conf": "low"
+      },
+      {
+       "fn": "UA3522",
+       "route": "MCI-EWR",
+       "p": 98,
+       "obs": 12,
+       "conf": "low"
+      },
+      {
+       "fn": "UA3511",
+       "route": "EWR-IAD",
+       "p": 98,
+       "obs": 14,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MSN",
+      "EWR"
+     ],
+     "joint": 95.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 6.4,
+     "legs": [
+      {
+       "fn": "UA5214",
+       "route": "DEN-MSN",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3482",
+       "route": "MSN-EWR",
+       "p": 99,
+       "obs": 12,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3511",
+       "route": "EWR-IAD",
+       "p": 98,
+       "obs": 14,
+       "conf": "low"
+      }
+     ]
+    }
+   ]
+  },
+  "EWR-DEN": {
+   "ts": "2026-07-23T15:30:47.101Z",
+   "flights": [
+    {
+     "fn": "UA2455",
+     "seg": "Mainline",
+     "prob": 57,
+     "obs": 6,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1792",
+     "seg": "Mainline",
+     "prob": 49,
+     "obs": 12,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA407",
+     "seg": "Mainline",
+     "prob": 43,
+     "obs": 10,
+     "conf": "high"
+    },
+    {
+     "fn": "UA1701",
+     "seg": "Mainline",
+     "prob": 31,
+     "obs": 6,
+     "conf": "low"
+    },
+    {
+     "fn": "UA577",
+     "seg": "Mainline",
+     "prob": 15,
+     "obs": 2,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 57.4,
+     "any": 57.4,
+     "coverage": "full",
+     "hours": 4.3,
+     "legs": [
+      {
+       "fn": "UA2455",
+       "route": "EWR-DEN",
+       "p": 57,
+       "obs": 6,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI"
+     ],
+     "joint": 96.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.5,
+     "legs": [
+      {
+       "fn": "UA3436",
+       "route": "EWR-MCI",
+       "p": 98,
+       "obs": 4,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5503",
+       "route": "MCI-DEN",
+       "p": 99,
+       "obs": 12,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MKE"
+     ],
+     "joint": 98,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.4,
+     "legs": [
+      {
+       "fn": "UA3564",
+       "route": "EWR-MKE",
+       "p": 99,
+       "obs": 15,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5536",
+       "route": "MKE-DEN",
+       "p": 99,
+       "obs": 20,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MSN"
+     ],
+     "joint": 94.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.4,
+     "legs": [
+      {
+       "fn": "UA3620",
+       "route": "EWR-MSN",
+       "p": 99,
+       "obs": 29,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5545",
+       "route": "MSN-DEN",
+       "p": 96,
+       "obs": 18,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "IAD",
+      "MCI"
+     ],
+     "joint": 93.7,
+     "any": 100,
+     "coverage": "full",
+     "hours": 6.7,
+     "legs": [
+      {
+       "fn": "UA3511",
+       "route": "EWR-IAD",
+       "p": 98,
+       "obs": 14,
+       "conf": "low"
+      },
+      {
+       "fn": "UA3528",
+       "route": "IAD-MCI",
+       "p": 97,
+       "obs": 2,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5503",
+       "route": "MCI-DEN",
+       "p": 99,
+       "obs": 12,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "CHA"
+     ],
+     "joint": 87.2,
+     "any": 99.9,
+     "coverage": "full",
+     "hours": 5.8,
+     "legs": [
+      {
+       "fn": "UA4419",
+       "route": "EWR-CHA",
+       "p": 99,
+       "obs": 8,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4743",
+       "route": "CHA-DEN",
+       "p": 88,
+       "obs": 6,
+       "conf": "low"
+      }
+     ]
+    }
+   ]
+  },
+  "DEN-EWR": {
+   "ts": "2026-07-23T15:30:47.589Z",
+   "flights": [
+    {
+     "fn": "UA1505",
+     "seg": "Mainline",
+     "prob": 41,
+     "obs": 13,
+     "conf": "low"
+    },
+    {
+     "fn": "UA1745",
+     "seg": "Mainline",
+     "prob": 41,
+     "obs": 12,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2613",
+     "seg": "Mainline",
+     "prob": 36,
+     "obs": 6,
+     "conf": "low"
+    },
+    {
+     "fn": "UA1233",
+     "seg": "Mainline",
+     "prob": 24,
+     "obs": 10,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2345",
+     "seg": "Mainline",
+     "prob": 0,
+     "obs": 5,
+     "conf": "low"
+    },
+    {
+     "fn": "UA1283",
+     "seg": "Mainline",
+     "prob": 0,
+     "obs": 4,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 41.5,
+     "any": 41.5,
+     "coverage": "full",
+     "hours": 3.9,
+     "legs": [
+      {
+       "fn": "UA1505",
+       "route": "DEN-EWR",
+       "p": 41,
+       "obs": 13,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "CHA"
+     ],
+     "joint": 97.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.4,
+     "legs": [
+      {
+       "fn": "UA5990",
+       "route": "DEN-CHA",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4413",
+       "route": "CHA-EWR",
+       "p": 99,
+       "obs": 8,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MKE"
+     ],
+     "joint": 98.1,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5,
+     "legs": [
+      {
+       "fn": "UA4774",
+       "route": "DEN-MKE",
+       "p": 99,
+       "obs": 23,
+       "conf": "high"
+      },
+      {
+       "fn": "UA3510",
+       "route": "MKE-EWR",
+       "p": 99,
+       "obs": 23,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MCI"
+     ],
+     "joint": 95.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.9,
+     "legs": [
+      {
+       "fn": "UA5385",
+       "route": "DEN-MCI",
+       "p": 98,
+       "obs": 7,
+       "conf": "low"
+      },
+      {
+       "fn": "UA3522",
+       "route": "MCI-EWR",
+       "p": 98,
+       "obs": 12,
+       "conf": "low"
+      }
+     ]
+    },
+    {
+     "via": [
+      "MSN"
+     ],
+     "joint": 97.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.8,
+     "legs": [
+      {
+       "fn": "UA5214",
+       "route": "DEN-MSN",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3482",
+       "route": "MSN-EWR",
+       "p": 99,
+       "obs": 12,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "JAX"
+     ],
+     "joint": 89.8,
+     "any": 99.9,
+     "coverage": "full",
+     "hours": 5.7,
+     "legs": [
+      {
+       "fn": "UA5191",
+       "route": "DEN-JAX",
+       "p": 91,
+       "obs": 9,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3530",
+       "route": "JAX-EWR",
+       "p": 99,
+       "obs": 18,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "LGA-ORD": {
+   "ts": "2026-07-23T15:30:48.069Z",
+   "flights": [
+    {
+     "fn": "UA1098",
+     "seg": "Mainline",
+     "prob": 69,
+     "obs": 3,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1156",
+     "seg": "Mainline",
+     "prob": 67,
+     "obs": 22,
+     "conf": "high"
+    },
+    {
+     "fn": "UA2446",
+     "seg": "Mainline",
+     "prob": 54,
+     "obs": 8,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2199",
+     "seg": "Mainline",
+     "prob": 50,
+     "obs": 7,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1830",
+     "seg": "Mainline",
+     "prob": 49,
+     "obs": 6,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA623",
+     "seg": "Mainline",
+     "prob": 49,
+     "obs": 7,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2768",
+     "seg": "Mainline",
+     "prob": 41,
+     "obs": 2,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2389",
+     "seg": "Mainline",
+     "prob": 31,
+     "obs": 6,
+     "conf": "low"
+    },
+    {
+     "fn": "UA1310",
+     "seg": "Mainline",
+     "prob": 29,
+     "obs": 4,
+     "conf": "low"
+    },
+    {
+     "fn": "UA1504",
+     "seg": "Mainline",
+     "prob": 26,
+     "obs": 10,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA602",
+     "seg": "Mainline",
+     "prob": 25,
+     "obs": 11,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1057",
+     "seg": "Mainline",
+     "prob": 22,
+     "obs": 10,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 68.8,
+     "any": 68.8,
+     "coverage": "full",
+     "hours": 2.8,
+     "legs": [
+      {
+       "fn": "UA1098",
+       "route": "LGA-ORD",
+       "p": 69,
+       "obs": 3,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "IAD",
+      "YYZ"
+     ],
+     "joint": 96.6,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.5,
+     "legs": [
+      {
+       "fn": "UA3688",
+       "route": "LGA-IAD",
+       "p": 99,
+       "obs": 9,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3515",
+       "route": "IAD-YYZ",
+       "p": 99,
+       "obs": 14,
+       "conf": "high"
+      },
+      {
+       "fn": "UA5934",
+       "route": "YYZ-ORD",
+       "p": 99,
+       "obs": 11,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "IAD",
+      "TVC"
+     ],
+     "joint": 95.4,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.4,
+     "legs": [
+      {
+       "fn": "UA3688",
+       "route": "LGA-IAD",
+       "p": 99,
+       "obs": 9,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA6125",
+       "route": "IAD-TVC",
+       "p": 98,
+       "obs": 4,
+       "conf": "low"
+      },
+      {
+       "fn": "UA5686",
+       "route": "TVC-ORD",
+       "p": 99,
+       "obs": 10,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "IAD",
+      "ROC"
+     ],
+     "joint": 97.3,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.4,
+     "legs": [
+      {
+       "fn": "UA3688",
+       "route": "LGA-IAD",
+       "p": 99,
+       "obs": 9,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4485",
+       "route": "IAD-ROC",
+       "p": 100,
+       "obs": 13,
+       "conf": "high"
+      },
+      {
+       "fn": "UA6034",
+       "route": "ROC-ORD",
+       "p": 99,
+       "obs": 5,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "IAD",
+      "SDF"
+     ],
+     "joint": 97.2,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.4,
+     "legs": [
+      {
+       "fn": "UA3688",
+       "route": "LGA-IAD",
+       "p": 99,
+       "obs": 9,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3538",
+       "route": "IAD-SDF",
+       "p": 99,
+       "obs": 18,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4563",
+       "route": "SDF-ORD",
+       "p": 99,
+       "obs": 7,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "IAD",
+      "RIC"
+     ],
+     "joint": 97.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.3,
+     "legs": [
+      {
+       "fn": "UA3688",
+       "route": "LGA-IAD",
+       "p": 99,
+       "obs": 9,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4473",
+       "route": "IAD-RIC",
+       "p": 100,
+       "obs": 18,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4547",
+       "route": "RIC-ORD",
+       "p": 99,
+       "obs": 9,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "DCA-EWR": {
+   "ts": "2026-07-23T15:30:48.547Z",
+   "flights": [],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 99.6,
+     "any": 99.6,
+     "coverage": "full",
+     "hours": 1.6,
+     "legs": [
+      {
+       "fn": "UA4174",
+       "route": "DCA-EWR",
+       "p": 100,
+       "obs": 14,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  },
+  "IND-ORD": {
+   "ts": "2026-07-23T15:30:49.031Z",
+   "flights": [],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 98.7,
+     "any": 98.7,
+     "coverage": "full",
+     "hours": 1.4,
+     "legs": [
+      {
+       "fn": "UA3539",
+       "route": "IND-ORD",
+       "p": 99,
+       "obs": 11,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "ORD-LGA": {
+   "ts": "2026-07-23T15:30:49.495Z",
+   "flights": [
+    {
+     "fn": "UA1775",
+     "seg": "Mainline",
+     "prob": 76,
+     "obs": 7,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2306",
+     "seg": "Mainline",
+     "prob": 64,
+     "obs": 8,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2617",
+     "seg": "Mainline",
+     "prob": 57,
+     "obs": 16,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA1655",
+     "seg": "Mainline",
+     "prob": 54,
+     "obs": 10,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2189",
+     "seg": "Mainline",
+     "prob": 46,
+     "obs": 10,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2809",
+     "seg": "Mainline",
+     "prob": 34,
+     "obs": 1,
+     "conf": "low"
+    },
+    {
+     "fn": "UA2605",
+     "seg": "Mainline",
+     "prob": 34,
+     "obs": 11,
+     "conf": "high"
+    },
+    {
+     "fn": "UA1623",
+     "seg": "Mainline",
+     "prob": 33,
+     "obs": 6,
+     "conf": "medium"
+    },
+    {
+     "fn": "UA2229",
+     "seg": "Mainline",
+     "prob": 18,
+     "obs": 7,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 75.6,
+     "any": 75.6,
+     "coverage": "full",
+     "hours": 2.4,
+     "legs": [
+      {
+       "fn": "UA1775",
+       "route": "ORD-LGA",
+       "p": 76,
+       "obs": 7,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "YYZ",
+      "IAD"
+     ],
+     "joint": 96.5,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5.1,
+     "legs": [
+      {
+       "fn": "UA3601",
+       "route": "ORD-YYZ",
+       "p": 99,
+       "obs": 18,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA3636",
+       "route": "YYZ-IAD",
+       "p": 99,
+       "obs": 27,
+       "conf": "high"
+      },
+      {
+       "fn": "UA6116",
+       "route": "IAD-LGA",
+       "p": 99,
+       "obs": 25,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "TVC",
+      "IAD"
+     ],
+     "joint": 95,
+     "any": 100,
+     "coverage": "full",
+     "hours": 5,
+     "legs": [
+      {
+       "fn": "UA5504",
+       "route": "ORD-TVC",
+       "p": 99,
+       "obs": 6,
+       "conf": "low"
+      },
+      {
+       "fn": "UA6129",
+       "route": "TVC-IAD",
+       "p": 97,
+       "obs": 7,
+       "conf": "low"
+      },
+      {
+       "fn": "UA6116",
+       "route": "IAD-LGA",
+       "p": 99,
+       "obs": 25,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "RIC",
+      "IAD"
+     ],
+     "joint": 97.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.9,
+     "legs": [
+      {
+       "fn": "UA4427",
+       "route": "ORD-RIC",
+       "p": 99,
+       "obs": 13,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4485",
+       "route": "RIC-IAD",
+       "p": 100,
+       "obs": 13,
+       "conf": "high"
+      },
+      {
+       "fn": "UA6116",
+       "route": "IAD-LGA",
+       "p": 99,
+       "obs": 25,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "ROA",
+      "IAD"
+     ],
+     "joint": 97.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.8,
+     "legs": [
+      {
+       "fn": "UA4186",
+       "route": "ORD-ROA",
+       "p": 99,
+       "obs": 9,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4418",
+       "route": "ROA-IAD",
+       "p": 100,
+       "obs": 14,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA6116",
+       "route": "IAD-LGA",
+       "p": 99,
+       "obs": 25,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "SDF",
+      "IAD"
+     ],
+     "joint": 96.9,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4.7,
+     "legs": [
+      {
+       "fn": "UA3659",
+       "route": "ORD-SDF",
+       "p": 99,
+       "obs": 27,
+       "conf": "high"
+      },
+      {
+       "fn": "UA3717",
+       "route": "SDF-IAD",
+       "p": 99,
+       "obs": 17,
+       "conf": "high"
+      },
+      {
+       "fn": "UA6116",
+       "route": "IAD-LGA",
+       "p": 99,
+       "obs": 25,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  },
+  "ORD-STL": {
+   "ts": "2026-07-23T15:30:49.963Z",
+   "flights": [
+    {
+     "fn": "UA2000",
+     "seg": "Mainline",
+     "prob": 40,
+     "obs": 5,
+     "conf": "low"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 99.6,
+     "any": 99.6,
+     "coverage": "full",
+     "hours": 1.5,
+     "legs": [
+      {
+       "fn": "UA4576",
+       "route": "ORD-STL",
+       "p": 100,
+       "obs": 21,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  },
+  "CMH-EWR": {
+   "ts": "2026-07-23T15:30:50.441Z",
+   "flights": [],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 99.5,
+     "any": 99.5,
+     "coverage": "full",
+     "hours": 2,
+     "legs": [
+      {
+       "fn": "UA4567",
+       "route": "CMH-EWR",
+       "p": 100,
+       "obs": 17,
+       "conf": "medium"
+      }
+     ]
+    },
+    {
+     "via": [
+      "IAD",
+      "RIC"
+     ],
+     "joint": 98.8,
+     "any": 100,
+     "coverage": "full",
+     "hours": 4,
+     "legs": [
+      {
+       "fn": "UA4387",
+       "route": "CMH-IAD",
+       "p": 100,
+       "obs": 9,
+       "conf": "medium"
+      },
+      {
+       "fn": "UA4473",
+       "route": "IAD-RIC",
+       "p": 100,
+       "obs": 18,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4604",
+       "route": "RIC-EWR",
+       "p": 100,
+       "obs": 13,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "ORD-IND": {
+   "ts": "2026-07-23T15:30:53.041Z",
+   "flights": [],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 99.2,
+     "any": 99.2,
+     "coverage": "full",
+     "hours": 1.3,
+     "legs": [
+      {
+       "fn": "UA3707",
+       "route": "ORD-IND",
+       "p": 99,
+       "obs": 26,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  },
+  "ASE-DEN": {
+   "ts": "2026-07-23T15:30:53.513Z",
+   "flights": [],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 98.7,
+     "any": 98.7,
+     "coverage": "full",
+     "hours": 1.2,
+     "legs": [
+      {
+       "fn": "UA5772",
+       "route": "ASE-DEN",
+       "p": 99,
+       "obs": 15,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "MAF-IAH": {
+   "ts": "2026-07-23T15:30:53.993Z",
+   "flights": [
+    {
+     "fn": "UA2281",
+     "seg": "Mainline",
+     "prob": 62,
+     "obs": 4,
+     "conf": "medium"
+    }
+   ],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 98.8,
+     "any": 98.8,
+     "coverage": "full",
+     "hours": 1.7,
+     "legs": [
+      {
+       "fn": "UA4001",
+       "route": "MAF-IAH",
+       "p": 99,
+       "obs": 17,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  },
+  "SDF-ORD": {
+   "ts": "2026-07-23T15:30:54.464Z",
+   "flights": [],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 99.4,
+     "any": 99.4,
+     "coverage": "full",
+     "hours": 1.8,
+     "legs": [
+      {
+       "fn": "UA4563",
+       "route": "SDF-ORD",
+       "p": 99,
+       "obs": 7,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "PIT-EWR": {
+   "ts": "2026-07-23T15:30:54.924Z",
+   "flights": [],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 99.7,
+     "any": 99.7,
+     "coverage": "full",
+     "hours": 1.8,
+     "legs": [
+      {
+       "fn": "UA4457",
+       "route": "PIT-EWR",
+       "p": 100,
+       "obs": 17,
+       "conf": "high"
+      }
+     ]
+    },
+    {
+     "via": [
+      "IAD",
+      "RIC"
+     ],
+     "joint": 98.6,
+     "any": 100,
+     "coverage": "full",
+     "hours": 3.9,
+     "legs": [
+      {
+       "fn": "UA4550",
+       "route": "PIT-IAD",
+       "p": 99,
+       "obs": 14,
+       "conf": "low"
+      },
+      {
+       "fn": "UA4473",
+       "route": "IAD-RIC",
+       "p": 100,
+       "obs": 18,
+       "conf": "high"
+      },
+      {
+       "fn": "UA4604",
+       "route": "RIC-EWR",
+       "p": 100,
+       "obs": 13,
+       "conf": "medium"
+      }
+     ]
+    }
+   ]
+  },
+  "STL-ORD": {
+   "ts": "2026-07-23T15:30:55.390Z",
+   "flights": [],
+   "itineraries": [
+    {
+     "via": [],
+     "joint": 99.7,
+     "any": 99.7,
+     "coverage": "full",
+     "hours": 1.6,
+     "legs": [
+      {
+       "fn": "UA4183",
+       "route": "STL-ORD",
+       "p": 100,
+       "obs": 19,
+       "conf": "high"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "routes": {
+  "DEN-SFO": {
+   "label": "Denver → San Francisco",
+   "tz": "MT",
+   "sweetSpot": "~noon–6 PM departures",
+   "avoidNote": "5–6 AM bank is MAX-heavy (0% fleet); UA2633 is a 757-300 (0% fleet)",
+   "roundTripPartner": "SFO-DEN",
+   "flights": [
+    {
+     "fn": "UA1812",
+     "dep": "1:25 PM",
+     "aircraft": "A321neo",
+     "prob": 57,
+     "obs": 11,
+     "conf": "medium",
+     "verdict": "best",
+     "onRoute": true
+    },
+    {
+     "fn": "UA1561",
+     "dep": "11:20 AM",
+     "aircraft": "A321neo / 737-900",
+     "prob": 49,
+     "obs": 19,
+     "conf": "medium",
+     "verdict": "good",
+     "onRoute": false
+    },
+    {
+     "fn": "UA1007",
+     "dep": "5:54 PM",
+     "aircraft": "A321neo",
+     "prob": 39,
+     "obs": 17,
+     "conf": "high",
+     "verdict": "good",
+     "onRoute": true
+    },
+    {
+     "fn": "UA1389",
+     "dep": "7:25 PM",
+     "aircraft": "A321neo",
+     "prob": 44,
+     "obs": 16,
+     "conf": "medium",
+     "verdict": "good",
+     "onRoute": false
+    },
+    {
+     "fn": "UA1450",
+     "dep": "12:25 PM",
+     "aircraft": "A321neo",
+     "prob": 39,
+     "obs": 13,
+     "conf": "medium",
+     "verdict": "good",
+     "onRoute": true
+    },
+    {
+     "fn": "UA2367",
+     "dep": "5:15 AM",
+     "aircraft": "737 MAX 9",
+     "prob": 34,
+     "obs": 6,
+     "conf": "low",
+     "verdict": "risky",
+     "onRoute": false
+    },
+    {
+     "fn": "UA2123",
+     "dep": "9:10 PM",
+     "aircraft": "A321neo / 737-800",
+     "prob": 33,
+     "obs": 20,
+     "conf": "high",
+     "verdict": "ok",
+     "onRoute": true
+    },
+    {
+     "fn": "UA1301",
+     "dep": "6:00 AM",
+     "aircraft": "MAX 8 / 737-900",
+     "prob": 31,
+     "obs": 13,
+     "conf": "medium",
+     "verdict": "risky",
+     "onRoute": false
+    },
+    {
+     "fn": "UA2633",
+     "dep": "3:47 PM",
+     "aircraft": "757-300",
+     "prob": 20,
+     "obs": 2,
+     "conf": "low",
+     "verdict": "risky",
+     "onRoute": false
+    },
+    {
+     "fn": "UA1506",
+     "dep": "9:43 AM",
+     "aircraft": "A321neo / A319",
+     "prob": 19,
+     "obs": 8,
+     "conf": "low",
+     "verdict": "avoid",
+     "onRoute": true
+    }
+   ],
+   "connections": [
+    {
+     "via": "ASE (Aspen)",
+     "legs": "UA5779 + UA5745",
+     "prob": 97.6,
+     "hours": 3.7
+    },
+    {
+     "via": "SLC (Salt Lake City)",
+     "legs": "regional pair",
+     "prob": 97.7,
+     "hours": null
+    },
+    {
+     "via": "CLD (Carlsbad)",
+     "legs": "regional pair",
+     "prob": 98.2,
+     "hours": null
+    },
+    {
+     "via": "BOI (Boise)",
+     "legs": "regional pair",
+     "prob": 97.5,
+     "hours": null
+    }
+   ],
+   "confirmed48h": {
+    "asOf": "2026-07-23",
+    "note": "Confirmed Starlink tails on this route in the next 48h at last refresh",
+    "list": [
+     "UA2123 · Jul 23 · N54570",
+     "UA1450 · Jul 24 · N54552 (A321neo)",
+     "UA1812 · Jul 24 · N14557 (A321neo)",
+     "UA1506 · Jul 25 · N94556",
+     "UA1812 · Jul 25 · N14517",
+     "UA1007 · Jul 25 · N14549"
+    ]
+   }
+  },
+  "SFO-DEN": {
+   "label": "San Francisco → Denver",
+   "tz": "PT",
+   "sweetSpot": "~4–7 PM departures",
+   "avoidNote": "UA1671, UA1479 and UA301 draw non-Starlink tails; early bank is weak",
+   "roundTripPartner": "DEN-SFO",
+   "flights": [
+    {
+     "fn": "UA1214",
+     "dep": "5:30 PM",
+     "aircraft": "A321neo",
+     "prob": 60,
+     "obs": 9,
+     "conf": "medium",
+     "verdict": "best",
+     "onRoute": true
+    },
+    {
+     "fn": "UA1430",
+     "dep": "4:10 PM",
+     "aircraft": "737 / MAX mix",
+     "prob": 40,
+     "obs": 13,
+     "conf": "medium",
+     "verdict": "good",
+     "onRoute": true
+    },
+    {
+     "fn": "UA2019",
+     "dep": "7:56 PM",
+     "aircraft": "737-800 / MAX mix",
+     "prob": 35,
+     "obs": 22,
+     "conf": "high",
+     "verdict": "good",
+     "onRoute": true
+    },
+    {
+     "fn": "UA2436",
+     "dep": "6:56 PM",
+     "aircraft": "narrowbody mix",
+     "prob": 35,
+     "obs": 20,
+     "conf": "medium",
+     "verdict": "good",
+     "onRoute": true
+    },
+    {
+     "fn": "UA540",
+     "dep": "12:43 PM",
+     "aircraft": "A321neo (mixed WiFi)",
+     "prob": 27,
+     "obs": 11,
+     "conf": "medium",
+     "verdict": "ok",
+     "onRoute": true
+    },
+    {
+     "fn": "UA1233",
+     "dep": "6:15 AM",
+     "aircraft": "narrowbody mix",
+     "prob": 24,
+     "obs": 10,
+     "conf": "medium",
+     "verdict": "ok",
+     "onRoute": true
+    },
+    {
+     "fn": "UA301",
+     "dep": "9:08 PM",
+     "aircraft": "narrowbody mix",
+     "prob": 12,
+     "obs": 14,
+     "conf": "medium",
+     "verdict": "avoid",
+     "onRoute": true
+    },
+    {
+     "fn": "UA1479",
+     "dep": "5:00 AM",
+     "aircraft": "narrowbody mix",
+     "prob": 7,
+     "obs": 5,
+     "conf": "low",
+     "verdict": "avoid",
+     "onRoute": true
+    },
+    {
+     "fn": "UA1671",
+     "dep": "12:00 PM",
+     "aircraft": "narrowbody mix",
+     "prob": 0,
+     "obs": 2,
+     "conf": "low",
+     "verdict": "avoid",
+     "onRoute": true
+    }
+   ],
+   "connections": [
+    {
+     "via": "CLD (Carlsbad)",
+     "legs": "regional pair",
+     "prob": 97.8,
+     "hours": null
+    },
+    {
+     "via": "PSP (Palm Springs)",
+     "legs": "regional pair",
+     "prob": 97.8,
+     "hours": null
+    }
+   ],
+   "confirmed48h": null
+  }
+ }
 }
