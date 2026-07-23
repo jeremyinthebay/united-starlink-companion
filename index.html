@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>United ✕ Starlink Route Optimizer</title>
+<meta name="description" content="Pick your United route and get the best plan to land a Starlink-equipped plane — flight-by-flight odds, a booking playbook, and live fleet data refreshed daily. DEN⇄SFO deep dive.">
+<!-- Open Graph / Twitter — auto-injected by lib/og.js. This is what iMessage/Slack
+     build the link preview from. Delete the og:title line to have it regenerated;
+     hand-write your own og: tags and this block is left alone. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="The Smiths">
+<meta property="og:title" content="United ✕ Starlink Route Optimizer">
+<meta property="og:description" content="Pick your United route and get the best plan to land a Starlink-equipped plane — flight-by-flight odds, a booking playbo">
+<meta property="og:url" content="https://smithfamai.com/unitedstarlink/">
+<meta property="og:image" content="https://smithfamai.com/unitedstarlink/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="United ✕ Starlink Route Optimizer">
+<meta name="twitter:description" content="Pick your United route and get the best plan to land a Starlink-equipped plane — flight-by-flight odds, a booking playbo">
+<meta name="twitter:image" content="https://smithfamai.com/unitedstarlink/og.png">
+<style>
+  :root{
+    --united:#0033A0;
+    --united-deep:#001A57;
+    --sky:#69B3E7;
+    --sky-bright:#8ecdff;
+    --ink:#e8eefb;
+    --dim:#93a1c0;
+    --faint:#5c688a;
+    --bg:#040816;
+    --card:rgba(148,178,255,.055);
+    --card-edge:rgba(148,178,255,.14);
+    --gold:#ffd166;
+    --green:#35d07f;
+    --blue:#4da6ff;
+    --amber:#ffb020;
+    --red:#ff5a6e;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth;overflow-x:hidden}
+  body{
+    background:radial-gradient(1200px 700px at 75% -10%, #0b1b4d 0%, transparent 55%),
+               radial-gradient(900px 600px at 10% 110%, #071233 0%, transparent 60%),
+               var(--bg);
+    color:var(--ink);
+    font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    min-height:100vh; overflow-x:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #stars{position:fixed;inset:0;z-index:-1;pointer-events:none}
+  .wrap{max-width:1060px;margin:0 auto;
+    padding:0 max(20px,env(safe-area-inset-right)) 0 max(20px,env(safe-area-inset-left))}
+
+  /* ── credit strip ───────────────────────── */
+  .credit{
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+    margin-top:16px;padding:13px 18px;border-radius:14px;text-decoration:none;
+    background:linear-gradient(90deg,rgba(14,165,233,.14),rgba(0,51,160,.18));
+    border:1px solid rgba(105,179,231,.35);color:var(--dim);font-size:14px;
+    transition:.2s;
+  }
+  .credit:hover{border-color:var(--sky);background:linear-gradient(90deg,rgba(14,165,233,.2),rgba(0,51,160,.26))}
+  .credit .cb{
+    flex:none;font-size:10.5px;font-weight:800;letter-spacing:1.2px;color:#0ea5e9;
+    border:1px solid rgba(14,165,233,.5);border-radius:99px;padding:4px 10px;background:rgba(14,165,233,.08);
+  }
+  .credit b{color:var(--sky-bright)}
+
+  /* ── header ─────────────────────────────── */
+  header{padding:34px 0 8px}
+  .brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .globe{
+    width:52px;height:52px;border-radius:12px;flex:none;
+    background:linear-gradient(135deg,var(--united) 0%,#0a4fd6 100%);
+    display:grid;place-items:center;box-shadow:0 0 24px rgba(10,79,214,.55);
+  }
+  .globe svg{width:32px;height:32px}
+  .brand h1{font-size:clamp(22px,4vw,34px);font-weight:800;letter-spacing:.5px}
+  .brand h1 .x{color:var(--faint);font-weight:300;padding:0 6px}
+  .brand h1 .sl{background:linear-gradient(90deg,#fff,var(--sky-bright));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .tagline{color:var(--dim);margin-top:6px;font-size:15px}
+  .satline{position:relative;height:26px;margin-top:14px;overflow:hidden}
+  .satpath{position:absolute;left:0;right:0;top:13px;border-top:1px dashed rgba(148,178,255,.22)}
+  .sat{position:absolute;top:1px;font-size:15px;animation:orbit 26s linear infinite}
+  @keyframes orbit{from{left:-4%}to{left:102%}}
+
+  /* ── stat chips ─────────────────────────── */
+  .chips{display:flex;gap:12px;flex-wrap:wrap;margin:22px 0 8px}
+  .chip{
+    background:var(--card);border:1px solid var(--card-edge);border-radius:14px;
+    padding:12px 18px;min-width:150px;flex:1;
+  }
+  .chip .n{font-size:24px;font-weight:800;font-family:var(--mono)}
+  .chip .l{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+  .chip.glow .n{color:var(--sky-bright)}
+
+  /* ── section frame ──────────────────────── */
+  section{margin:38px 0}
+  .sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
+  .sec-h h2{font-size:21px;font-weight:800;letter-spacing:.3px}
+  .sec-h .sub{color:var(--faint);font-size:13px}
+
+  /* ── route picker ───────────────────────── */
+  .picker{
+    background:linear-gradient(135deg,rgba(0,51,160,.28),rgba(105,179,231,.07));
+    border:1px solid rgba(105,179,231,.25);border-radius:20px;padding:26px;
+  }
+  .picker-row{display:flex;gap:14px;align-items:end;flex-wrap:wrap}
+  .field{flex:1;min-width:180px}
+  .field label{display:block;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+  .field select{
+    width:100%;padding:13px 14px;border-radius:12px;font-size:16px;font-weight:600;
+    background:#0a122e;color:var(--ink);border:1px solid var(--card-edge);
+    appearance:auto;cursor:pointer;
+  }
+  .swap{
+    flex:none;width:48px;height:48px;border-radius:50%;border:1px solid var(--card-edge);
+    background:var(--card);color:var(--sky-bright);font-size:20px;cursor:pointer;transition:.2s;
+  }
+  .swap:hover{background:var(--united);color:#fff;transform:rotate(180deg)}
+  .route-strip{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .route-strip .rt{font-family:var(--mono);font-size:26px;font-weight:800;letter-spacing:2px}
+  .badge{font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:99px;border:1px solid}
+  .badge.tracked{color:var(--green);border-color:rgba(53,208,127,.4);background:rgba(53,208,127,.08)}
+  .badge.untracked{color:var(--amber);border-color:rgba(255,176,32,.4);background:rgba(255,176,32,.08)}
+
+  /* ── flight cards ───────────────────────── */
+  .meta-row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 18px}
+  .meta-pill{font-size:13px;color:var(--dim);background:var(--card);border:1px solid var(--card-edge);border-radius:99px;padding:6px 14px}
+  .meta-pill b{color:var(--ink)}
+  .flights{display:grid;gap:12px}
+  .fcard{
+    display:grid;grid-template-columns:86px 1fr auto;gap:16px;align-items:center;
+    background:var(--card);border:1px solid var(--card-edge);border-radius:16px;padding:16px 18px;
+    transition:.2s;position:relative;
+  }
+  .fcard:hover{border-color:rgba(148,178,255,.35);transform:translateY(-1px)}
+  .fcard.best{
+    border-color:rgba(255,209,102,.55);
+    background:linear-gradient(135deg,rgba(255,209,102,.09),var(--card));
+    box-shadow:0 0 26px rgba(255,209,102,.12);
+  }
+  .fcard.avoid{opacity:.62}
+  .ring{position:relative;width:76px;height:76px}
+  .ring svg{transform:rotate(-90deg);width:100%;height:100%;display:block}
+  .ring .pct{
+    position:absolute;inset:0;display:grid;place-items:center;
+    font-family:var(--mono);font-weight:800;font-size:19px;
+  }
+  .fmain .fn{font-family:var(--mono);font-weight:800;font-size:19px;letter-spacing:1px}
+  .fmain .star{color:var(--gold)}
+  .fmain .meta{color:var(--dim);font-size:13.5px;margin-top:3px}
+  .fmain .note{color:var(--faint);font-size:12px;margin-top:4px;font-style:italic}
+  .verdict{justify-self:end;text-align:right}
+  .v-tag{font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;padding:6px 13px;border-radius:99px;border:1px solid;white-space:nowrap}
+  .v-best{color:var(--gold);border-color:rgba(255,209,102,.5);background:rgba(255,209,102,.1)}
+  .v-good{color:var(--green);border-color:rgba(53,208,127,.4);background:rgba(53,208,127,.08)}
+  .v-ok{color:var(--blue);border-color:rgba(77,166,255,.4);background:rgba(77,166,255,.08)}
+  .v-risky{color:var(--amber);border-color:rgba(255,176,32,.4);background:rgba(255,176,32,.08)}
+  .v-avoid{color:var(--red);border-color:rgba(255,90,110,.4);background:rgba(255,90,110,.08)}
+  .verdict .conf{display:block;color:var(--faint);font-size:11.5px;margin-top:6px}
+
+  /* ── trip builder ───────────────────────── */
+  .trip{
+    background:linear-gradient(135deg,rgba(0,51,160,.32),rgba(4,8,22,.4));
+    border:1px solid rgba(105,179,231,.3);border-radius:20px;padding:24px;
+  }
+  .trip-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:640px){.trip-grid{grid-template-columns:1fr}}
+  .trip-col label{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);display:block;margin-bottom:6px}
+  .trip-col select{width:100%;padding:11px 12px;border-radius:10px;background:#0a122e;color:var(--ink);border:1px solid var(--card-edge);font-size:16px}
+  .trip-out{display:flex;gap:26px;flex-wrap:wrap;margin-top:20px;align-items:center}
+  .trip-big{font-family:var(--mono)}
+  .trip-big .v{font-size:42px;font-weight:800;color:var(--sky-bright)}
+  .trip-big .l{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--dim)}
+
+  /* ── playbook ───────────────────────────── */
+  .steps{display:grid;gap:0;position:relative}
+  .step{display:grid;grid-template-columns:52px 1fr;gap:16px;padding:16px 0;position:relative}
+  .step:not(:last-child):before{
+    content:"";position:absolute;left:25px;top:60px;bottom:-8px;width:2px;
+    background:linear-gradient(rgba(105,179,231,.5),rgba(105,179,231,.08));
+  }
+  .step .dot{
+    width:52px;height:52px;border-radius:50%;background:var(--united-deep);
+    border:1px solid rgba(105,179,231,.4);display:grid;place-items:center;
+    font-family:var(--mono);font-weight:800;font-size:12px;color:var(--sky-bright);z-index:1;
+  }
+  .step h3{font-size:16.5px;margin-bottom:4px}
+  .step p{color:var(--dim);font-size:14.5px;max-width:70ch}
+  .step a{color:var(--sky-bright)}
+  .checkbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center}
+  .checkbar select,.checkbar input{
+    padding:9px 12px;border-radius:10px;background:#0a122e;color:var(--ink);
+    border:1px solid var(--card-edge);font-size:16px;font-family:var(--mono);
+  }
+  .btn{
+    display:inline-block;padding:10px 18px;border-radius:10px;font-weight:700;font-size:14px;
+    background:var(--united);color:#fff;text-decoration:none;border:none;cursor:pointer;transition:.2s;
+  }
+  .btn:hover{background:#0a4fd6;box-shadow:0 0 18px rgba(10,79,214,.5)}
+  .btn.ghost{background:transparent;border:1px solid var(--card-edge);color:var(--sky-bright)}
+  .btn.ghost:hover{border-color:var(--sky);box-shadow:none}
+
+  /* ── connections / details ──────────────── */
+  details{background:var(--card);border:1px solid var(--card-edge);border-radius:14px;padding:0 18px;margin-top:14px}
+  details summary{cursor:pointer;padding:15px 0;font-weight:700;color:var(--sky-bright);list-style:none}
+  details summary::-webkit-details-marker{display:none}
+  details summary:before{content:"▸ ";transition:.2s}
+  details[open] summary:before{content:"▾ "}
+  details .inner{padding:0 0 16px;color:var(--dim);font-size:14.5px}
+  .conn-grid{display:grid;gap:8px;margin-top:10px}
+  .conn{display:flex;justify-content:space-between;gap:12px;background:rgba(53,208,127,.06);border:1px solid rgba(53,208,127,.2);border-radius:10px;padding:10px 14px;font-size:14px}
+  .conn b{color:var(--green);font-family:var(--mono)}
+
+  /* ── fleet ──────────────────────────────── */
+  .fleet-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  @media(max-width:760px){.fleet-grid{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--card-edge);border-radius:16px;padding:20px}
+  .panel h3{font-size:15px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:14px}
+  .tbar{margin-bottom:12px}
+  .tbar .tl{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:4px}
+  .tbar .tl .nm{font-weight:700}
+  .tbar .tl .val{font-family:var(--mono);color:var(--dim)}
+  .track{height:9px;background:rgba(148,178,255,.09);border-radius:99px;overflow:hidden}
+  .fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--united),var(--sky));transition:width 1s ease}
+  .fill.hot{background:linear-gradient(90deg,#0a8a4d,var(--green))}
+  .fill.zero{background:rgba(255,90,110,.35)}
+  .pace{color:var(--dim);font-size:14px;margin-top:14px;border-top:1px solid var(--card-edge);padding-top:12px}
+  .pace b{color:var(--sky-bright)}
+  #spark{width:100%;height:120px}
+  .targets{margin-top:10px}
+  .targets li{color:var(--dim);font-size:13.5px;margin-left:18px;margin-top:4px}
+
+  /* ── confirmed / untracked / footer ─────── */
+  .confirmed{margin-top:16px}
+  .tails{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .tail{font-family:var(--mono);font-size:13px;background:rgba(53,208,127,.08);border:1px solid rgba(53,208,127,.25);color:var(--green);border-radius:8px;padding:6px 11px}
+  .untracked-box{background:var(--card);border:1px dashed rgba(255,176,32,.4);border-radius:16px;padding:24px;text-align:center}
+  .untracked-box p{color:var(--dim);max-width:60ch;margin:8px auto 16px}
+  .callout{
+    display:flex;gap:12px;align-items:flex-start;background:rgba(105,179,231,.07);
+    border-left:3px solid var(--sky);border-radius:0 12px 12px 0;padding:14px 16px;margin-top:16px;
+    color:var(--dim);font-size:14.5px;
+  }
+  /* ── mobile ─────────────────────────────── */
+  @media(max-width:620px){
+    header{padding-top:24px}
+    .picker{padding:18px}
+    .picker-row{flex-direction:column;align-items:stretch;gap:10px}
+    .field{min-width:0}
+    .swap{align-self:center;transform:rotate(90deg)}
+    .swap:hover{transform:rotate(90deg)}
+    .route-strip .rt{font-size:21px;letter-spacing:1px}
+    .fcard{grid-template-columns:60px 1fr;gap:12px;padding:14px}
+    .ring{width:60px;height:60px}
+    .ring .pct{font-size:15px}
+    .fmain .fn{font-size:17px}
+    .fmain .meta{font-size:13px}
+    .verdict{
+      grid-column:1/-1;justify-self:stretch;text-align:left;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      border-top:1px solid var(--card-edge);padding-top:10px;
+    }
+    .verdict .conf{margin-top:0}
+    .trip{padding:18px}
+    .trip-big .v{font-size:32px}
+    .step{grid-template-columns:40px 1fr;gap:12px}
+    .step .dot{width:40px;height:40px;font-size:10px}
+    .step:not(:last-child):before{left:19px;top:48px}
+    .btn{padding:12px 18px}
+    .checkbar{width:100%}
+    .checkbar select,.checkbar input{flex:1;min-width:130px}
+    .checkbar .btn{flex-basis:100%;text-align:center}
+    .conn{flex-wrap:wrap}
+    .panel{padding:16px}
+    .untracked-box{padding:18px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .sat{animation:none}
+    .swap,.fcard,.fill{transition:none}
+    html{scroll-behavior:auto}
+  }
+  footer{margin:60px 0 40px;border-top:1px solid var(--card-edge);padding-top:22px;color:var(--faint);font-size:13.5px}
+  footer a{color:var(--dim)}
+  .updated{font-family:var(--mono);color:var(--sky-bright)}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="wrap">
+
+<header>
+  <div class="brand">
+    <div class="globe" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6">
+        <circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="9" ry="3.6"/>
+        <path d="M12 3a17 17 0 0 1 0 18M12 3a17 17 0 0 0 0 18"/>
+      </svg>
+    </div>
+    <div>
+      <h1>UNITED<span class="x">✕</span><span class="sl">STARLINK</span> Route Optimizer</h1>
+      <div class="tagline">Stack the deck on getting a Starlink-equipped plane. Built for DEN ⇄ SFO, works for any route.</div>
+    </div>
+  </div>
+  <a class="credit" href="https://unitedstarlinktracker.com" target="_blank" rel="noopener">
+    <span class="cb">DATA &amp; INSPIRATION</span>
+    <span>Powered by <b>UnitedStarlinkTracker.com</b> — the independent community tracker (by
+    <b>@martinamps</b>) that verifies every United tail against united.com. This page is a companion
+    built on their work; visit them for live per-tail status, the full route planner, and much more ↗</span>
+  </a>
+  <div class="satline"><div class="satpath"></div><div class="sat">🛰️</div></div>
+</header>
+
+<div class="chips" id="chips"></div>
+
+<!-- ROUTE PICKER -->
+<section>
+  <div class="picker">
+    <div class="picker-row">
+      <div class="field">
+        <label for="orig">From</label>
+        <select id="orig"></select>
+      </div>
+      <button class="swap" id="swap" title="Swap direction">⇄</button>
+      <div class="field">
+        <label for="dest">To</label>
+        <select id="dest"></select>
+      </div>
+    </div>
+    <div class="route-strip">
+      <span class="rt" id="rt-label">DEN → SFO</span>
+      <span class="badge tracked" id="rt-badge">Tracked · daily plan</span>
+    </div>
+  </div>
+</section>
+
+<!-- TRACKED ROUTE RESULTS -->
+<div id="tracked-view">
+  <section>
+    <div class="sec-h">
+      <h2>Every flight, ranked</h2>
+      <span class="sub" id="rank-sub"></span>
+    </div>
+    <div class="meta-row" id="route-meta"></div>
+    <div class="flights" id="flights"></div>
+    <div class="callout" id="onroute-note">
+      <span>ℹ️</span>
+      <span><b>Italic notes</b> mark flight numbers whose probability comes from other legs they fly — no Starlink tail has been verified on this exact leg yet. Treat them more cautiously than flights with confirmed history on the route.</span>
+    </div>
+    <details id="conn-details">
+      <summary>The ~98% near-guarantee: connect over a regional-jet hub</summary>
+      <div class="inner">
+        E175s and CRJ-550s are 97–99% Starlink-equipped. When a working flight is mission-critical,
+        a one-stop routing where <b>both</b> legs are regional jets trades ~1.5–2 extra hours for near-certain
+        coverage every airborne minute.
+        <div class="conn-grid" id="conn-grid"></div>
+      </div>
+    </details>
+    <div class="confirmed" id="confirmed"></div>
+  </section>
+
+  <!-- TRIP BUILDER -->
+  <section>
+    <div class="sec-h"><h2>Round-trip builder</h2><span class="sub">pick both legs, see your combined odds</span></div>
+    <div class="trip">
+      <div class="trip-grid">
+        <div class="trip-col">
+          <label id="out-label">Outbound</label>
+          <select id="trip-out-sel"></select>
+        </div>
+        <div class="trip-col">
+          <label id="ret-label">Return</label>
+          <select id="trip-ret-sel"></select>
+        </div>
+      </div>
+      <div class="trip-out">
+        <div class="trip-big"><div class="v" id="odds-any">–</div><div class="l">Starlink on ≥ 1 leg</div></div>
+        <div class="trip-big"><div class="v" id="odds-both">–</div><div class="l">Starlink on both legs</div></div>
+        <div style="color:var(--dim);font-size:14px;max-width:34ch" id="odds-note"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- UNTRACKED ROUTE FALLBACK -->
+<div id="untracked-view" class="hidden">
+  <section>
+    <div class="untracked-box">
+      <div style="font-size:34px">🛰️</div>
+      <h2 style="margin-top:8px">No deep plan for this route yet</h2>
+      <p id="untracked-copy"></p>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <a class="btn" id="planner-link" href="#" target="_blank" rel="noopener">Open the Route Planner for this pair ↗</a>
+        <a class="btn ghost" href="https://unitedstarlinktracker.com/routes" target="_blank" rel="noopener">Where Starlink is flying (48h) ↗</a>
+      </div>
+      <div class="callout" style="text-align:left">
+        <span>🧠</span>
+        <span><b>Generic strategy that works on any United route:</b> favor midday/afternoon flights on
+        <b>737-800, A321neo or 737-900</b> (the only mainline types with installs); avoid anything scheduled as a
+        <b>737 MAX, A319/A320 or 757</b> (0% installed); regional E175/CRJ-550 legs are a near-lock (97–99%).
+        Then confirm the assigned tail ~48h out. Want this route tracked with a daily-refreshed plan like DEN⇄SFO?
+        Ask Claude to add it — the updater does the rest.</span>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- PLAYBOOK -->
+<section>
+  <div class="sec-h"><h2>The playbook</h2><span class="sub">four moves from booking to boarding</span></div>
+  <div class="steps">
+    <div class="step">
+      <div class="dot">BOOK</div>
+      <div>
+        <h3>Book the high-probability bank</h3>
+        <p id="playbook-book">Book the starred flight; keep the runners-up as backups. Avoid the flagged flights and the early-morning MAX-heavy bank entirely.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="dot">T-48h</div>
+      <div>
+        <h3>Verify your actual tail — the single highest-leverage move</h3>
+        <p>Aircraft assignments publish ~2 days out. Check your flight for a firm yes/no, or open the United app →
+        flight status → <b>inflight amenities</b> (equipped flights list "Starlink Wi-Fi").</p>
+        <div class="checkbar">
+          <select id="cf-flight"></select>
+          <input type="date" id="cf-date">
+          <a class="btn" id="cf-go" href="#" target="_blank" rel="noopener">Check this flight ↗</a>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="dot">T-24h</div>
+      <div>
+        <h3>Re-check, and switch if you drew a dud</h3>
+        <p>Swaps happen. If your flight drew a non-Starlink tail, ~3 departures a day on this route have confirmed
+        Starlink tails — a same-day change (free with Gold+, else $75, waived to standby) converts your ~40–60%
+        booking into near-certainty.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="dot">FLY</div>
+      <div>
+        <h3>Connect free via MileagePlus</h3>
+        <p>Starlink is free but you sign in with your MileagePlus account — make sure everyone traveling has one.
+        Gate-to-gate, ~100–250 Mbps, VPN and video calls work. While you shop, the
+        <a href="https://chromewebstore.google.com/detail/google-flights-starlink-i/jjfljoifenkfdbldliakmmjhdkbhehoi" target="_blank" rel="noopener">Google Flights Starlink extension</a>
+        badges equipped flights inline.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FLEET PULSE -->
+<section>
+  <div class="sec-h"><h2>Fleet pulse</h2><span class="sub">why your odds improve every month</span></div>
+  <div class="fleet-grid">
+    <div class="panel">
+      <h3>Rollout by aircraft type</h3>
+      <div id="type-bars"></div>
+    </div>
+    <div>
+      <div class="panel">
+        <h3>Mainline vs Express</h3>
+        <div id="seg-bars"></div>
+        <div class="pace" id="pace"></div>
+        <ul class="targets" id="targets"></ul>
+      </div>
+      <div class="panel" style="margin-top:22px">
+        <h3>Fleet equipped over time</h3>
+        <canvas id="spark"></canvas>
+        <div style="color:var(--faint);font-size:12.5px;margin-top:6px" id="spark-note"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>Data: <a href="https://unitedstarlinktracker.com" target="_blank" rel="noopener">unitedstarlinktracker.com</a>
+  (independent tracker, verified against united.com — <a href="https://unitedstarlinktracker.com/methodology" target="_blank" rel="noopener">methodology</a>)
+  · schedule context from FlightConnections · refreshed daily on the mini · last refresh <span class="updated" id="updated">…</span></div>
+  <div style="margin-top:6px">Probabilities are historical estimates, not guarantees — tail assignments change until departure.
+  A smithfam.ai production · <a href="https://github.com/jeremyinthebay/united-starlink-companion" target="_blank" rel="noopener">open source ↗</a> 🛰️</div>
+</footer>
+
+</div>
+
+<script>
+/* ── starfield ── */
+(function(){
+  const c=document.getElementById('stars'),x=c.getContext('2d');let stars=[];
+  function size(){c.width=innerWidth;c.height=innerHeight;
+    stars=Array.from({length:Math.min(190,innerWidth/6)},()=>({
+      x:Math.random()*c.width,y:Math.random()*c.height,
+      r:Math.random()*1.3+.2,p:Math.random()*Math.PI*2,s:.008+Math.random()*.02}));}
+  size();addEventListener('resize',size);
+  const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  (function draw(){
+    x.clearRect(0,0,c.width,c.height);
+    for(const s of stars){s.p+=s.s;
+      x.globalAlpha=.35+.6*Math.abs(Math.sin(s.p));
+      x.fillStyle='#cfe1ff';x.beginPath();x.arc(s.x,s.y,s.r,0,7);x.fill();}
+    if(!still)requestAnimationFrame(draw);})();
+})();
+
+/* ── app ── */
+const AIRPORTS={DEN:"Denver",SFO:"San Francisco",ORD:"Chicago O'Hare",IAH:"Houston",EWR:"Newark",
+IAD:"Washington Dulles",LAX:"Los Angeles",BOS:"Boston",SEA:"Seattle",AUS:"Austin",LAS:"Las Vegas",
+PHX:"Phoenix",SAN:"San Diego",MSP:"Minneapolis",DTW:"Detroit",PHL:"Philadelphia",DCA:"Washington National",
+LGA:"New York LaGuardia",ATL:"Atlanta",MIA:"Miami",MCO:"Orlando",TPA:"Tampa",SLC:"Salt Lake City",
+PDX:"Portland",SNA:"Orange County",SMF:"Sacramento",STL:"St. Louis",MSY:"New Orleans",BNA:"Nashville",
+RDU:"Raleigh-Durham",CLT:"Charlotte",PIT:"Pittsburgh",CMH:"Columbus",IND:"Indianapolis",MKE:"Milwaukee",
+OMA:"Omaha",ABQ:"Albuquerque",ELP:"El Paso",SAT:"San Antonio",OKC:"Oklahoma City",TUL:"Tulsa",
+HNL:"Honolulu",ANC:"Anchorage",PSP:"Palm Springs",ASE:"Aspen",BOI:"Boise",JAC:"Jackson Hole"};
+const TRACKER="https://unitedstarlinktracker.com";
+let DATA=null,orig="DEN",dest="SFO";
+
+const $=id=>document.getElementById(id);
+const pct=n=>Math.round(n)+"%";
+const probColor=p=>p>=50?"var(--gold)":p>=35?"var(--green)":p>=20?"var(--blue)":"var(--red)";
+const VTAG={best:["⭐ Best bet","v-best"],good:["Good","v-good"],ok:["OK","v-ok"],risky:["Risky","v-risky"],avoid:["⛔ Avoid","v-avoid"]};
+
+function fillSelect(sel,val){
+  sel.innerHTML=Object.entries(AIRPORTS).map(([c,n])=>
+    `<option value="${c}" ${c===val?"selected":""}>${c} — ${n}</option>`).join("");
+}
+
+function ring(p){
+  const R=32,C=2*Math.PI*R,off=C*(1-p/100),col=probColor(p);
+  return `<div class="ring"><svg width="76" height="76" viewBox="0 0 76 76">
+    <circle cx="38" cy="38" r="${R}" fill="none" stroke="rgba(148,178,255,.12)" stroke-width="7"/>
+    <circle cx="38" cy="38" r="${R}" fill="none" stroke="${col}" stroke-width="7"
+      stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}"/>
+  </svg><div class="pct" style="color:${col}">${pct(p)}</div></div>`;
+}
+
+function renderChips(){
+  const f=DATA.fleet,tp=(f.equipped/f.total*100).toFixed(1);
+  $("chips").innerHTML=`
+    <div class="chip glow"><div class="n">${f.equipped} / ${f.total}</div><div class="l">United aircraft with Starlink</div></div>
+    <div class="chip"><div class="n">${tp}%</div><div class="l">of the fleet</div></div>
+    <div class="chip"><div class="n">+${f.last30}</div><div class="l">installs, last 30 days</div></div>
+    <div class="chip"><div class="n">~${f.mainlinePacePerWeek}/wk</div><div class="l">mainline install pace</div></div>`;
+}
+
+function renderRoute(){
+  const key=orig+"-"+dest, r=DATA.routes[key];
+  $("rt-label").textContent=`${orig} → ${dest}`;
+  if(!r){
+    $("rt-badge").className="badge untracked";$("rt-badge").textContent="Not tracked yet";
+    $("tracked-view").classList.add("hidden");$("untracked-view").classList.remove("hidden");
+    $("untracked-copy").textContent=`${AIRPORTS[orig]||orig} → ${AIRPORTS[dest]||dest} isn't in the daily-refreshed set yet. The tracker's own planner can still rank directs and connections for it right now:`;
+    $("planner-link").href=`${TRACKER}/route-planner/${orig}/${dest}`;
+    renderCheckFlight(null);return;
+  }
+  $("rt-badge").className="badge tracked";$("rt-badge").textContent="Tracked · refreshed daily";
+  $("untracked-view").classList.add("hidden");$("tracked-view").classList.remove("hidden");
+
+  const fl=[...r.flights].sort((a,b)=>b.prob-a.prob);
+  $("rank-sub").textContent=`${fl.length} daily departures · ${r.label}`;
+  $("route-meta").innerHTML=`
+    <span class="meta-pill">🕑 Sweet spot: <b>${r.sweetSpot}</b></span>
+    <span class="meta-pill">⚠️ <b>${r.avoidNote}</b></span>`;
+  $("flights").innerHTML=fl.map(f=>{
+    const [vt,vc]=VTAG[f.verdict]||VTAG.ok;
+    return `<div class="fcard ${f.verdict==="best"?"best":""} ${f.verdict==="avoid"?"avoid":""}">
+      ${ring(f.prob)}
+      <div class="fmain">
+        <div class="fn">${f.verdict==="best"?'<span class="star">⭐</span> ':""}${f.fn}</div>
+        <div class="meta">${f.dep} ${r.tz} · ${f.aircraft} · ${f.obs} observations (${f.conf} confidence)</div>
+        ${f.onRoute?"":'<div class="note">probability earned on other legs — not yet verified on this exact route</div>'}
+      </div>
+      <div class="verdict"><span class="v-tag ${vc}">${vt}</span>
+        <span class="conf"><a style="color:inherit" href="${TRACKER}/check-flight/${f.fn}" target="_blank" rel="noopener">history ↗</a></span>
+      </div></div>`;}).join("");
+
+  $("conn-grid").innerHTML=(r.connections||[]).map(c=>
+    `<div class="conn"><span>via <b>${c.via}</b> · ${c.legs}${c.hours?` · ${c.hours} flight hrs`:""}</span><b>${c.prob}%</b></div>`).join("");
+  $("conn-details").classList.toggle("hidden",!(r.connections||[]).length);
+
+  const c48=r.confirmed48h;
+  $("confirmed").innerHTML=c48&&c48.list?.length?
+    `<div class="callout"><span>✅</span><div><b>Confirmed Starlink tails on this route (next 48h as of ${c48.asOf}):</b>
+     <div class="tails">${c48.list.map(t=>`<span class="tail">${t}</span>`).join("")}</div></div></div>`:"";
+
+  const best=fl[0],alts=fl.filter(f=>f.verdict==="good").slice(0,2).map(f=>f.fn).join(" or ");
+  $("playbook-book").innerHTML=`<b>${best.fn} (${best.dep} ${r.tz}, ${pct(best.prob)})</b> is the play${alts?`; ${alts} as backups`:""}. ${r.avoidNote}.`;
+
+  renderTrip(key,r);renderCheckFlight(r);
+}
+
+function renderTrip(key,r){
+  const partnerKey=r.roundTripPartner,p=DATA.routes[partnerKey];
+  const tripSection=$("trip-out-sel").closest("section");
+  tripSection.classList.toggle("hidden",!p);
+  if(!p)return;
+  $("out-label").textContent=`Outbound · ${key.replace("-"," → ")}`;
+  $("ret-label").textContent=`Return · ${partnerKey.replace("-"," → ")}`;
+  const opt=(fl,tz)=>fl.map((f,i)=>`<option value="${f.prob}" ${f.verdict==="best"?"selected":""}>${f.fn} · ${f.dep} ${tz} · ${pct(f.prob)}</option>`).join("");
+  $("trip-out-sel").innerHTML=opt([...r.flights].sort((a,b)=>b.prob-a.prob),r.tz);
+  $("trip-ret-sel").innerHTML=opt([...p.flights].sort((a,b)=>b.prob-a.prob),p.tz);
+  const upd=()=>{
+    const a=+$("trip-out-sel").value/100,b=+$("trip-ret-sel").value/100;
+    $("odds-any").textContent=pct((1-(1-a)*(1-b))*100);
+    $("odds-both").textContent=pct(a*b*100);
+    $("odds-note").textContent="Before the T-48h verify-and-switch move, which pushes a flexible traveler to near-certainty.";
+  };
+  $("trip-out-sel").onchange=upd;$("trip-ret-sel").onchange=upd;upd();
+}
+
+function renderCheckFlight(r){
+  const sel=$("cf-flight");
+  const flights=r?[...r.flights].sort((a,b)=>b.prob-a.prob):[];
+  sel.innerHTML=flights.length?flights.map(f=>`<option>${f.fn}</option>`).join(""):"<option>UA1812</option>";
+  const d=new Date(Date.now()+86400000*2);
+  $("cf-date").value=d.toISOString().slice(0,10);
+  const upd=()=>{$("cf-go").href=`${TRACKER}/check-flight/${sel.value}/${$("cf-date").value}`;};
+  sel.onchange=upd;$("cf-date").onchange=upd;upd();
+}
+
+function renderFleet(){
+  const f=DATA.fleet;
+  $("type-bars").innerHTML=f.types.map(t=>{
+    const p=t.total?t.equipped/t.total*100:0;
+    return `<div class="tbar"><div class="tl"><span class="nm">${t.type}</span>
+      <span class="val">${t.equipped}/${t.total} · ${Math.round(p)}%</span></div>
+      <div class="track"><div class="fill ${p>=90?"hot":p===0?"zero":""}" style="width:${Math.max(p,p===0?100:p)}%${p===0?";opacity:.5":""}"></div></div></div>`;}).join("");
+  const seg=(n,s)=>{const p=s.equipped/s.total*100;
+    return `<div class="tbar"><div class="tl"><span class="nm">${n}</span><span class="val">${s.equipped}/${s.total} · ${Math.round(p)}%</span></div>
+    <div class="track"><div class="fill ${p>=50?"hot":""}" style="width:${p}%"></div></div></div>`;};
+  $("seg-bars").innerHTML=seg("Express / regional",f.express)+seg("Mainline",f.mainline);
+  $("pace").innerHTML=`At <b>~${f.mainlinePacePerWeek} mainline installs/week</b> (~40–50 aircraft/month fleetwide),
+    today's best-bet odds should climb several points per month. United's targets:`;
+  $("targets").innerHTML=f.targets.map(t=>`<li>${t}</li>`).join("");
+  drawSpark();
+}
+
+function drawSpark(){
+  const cv=$("spark"),x=cv.getContext("2d");
+  const w=cv.width=cv.offsetWidth*2,h=cv.height=240;cv.style.height="120px";
+  const H=DATA.history||[];
+  x.clearRect(0,0,w,h);
+  if(H.length<2){
+    x.fillStyle="#69B3E7";x.beginPath();x.arc(w/2,h/2,6,0,7);x.fill();
+    x.fillStyle="#93a1c0";x.font="24px "+getComputedStyle(document.body).fontFamily;x.textAlign="center";
+    x.fillText(`${H[0]?H[0].equipped:"—"} equipped · ${H[0]?H[0].date:""}`,w/2,h/2+40);
+    $("spark-note").textContent="One data point so far — the daily updater adds a dot every day, and a trend line grows here.";
+    return;
+  }
+  const vals=H.map(d=>d.equipped),min=Math.min(...vals)*0.98,max=Math.max(...vals)*1.02;
+  const px=i=>30+(w-60)*i/(H.length-1),py=v=>h-30-(h-70)*(v-min)/(max-min||1);
+  x.strokeStyle="#4da6ff";x.lineWidth=4;x.beginPath();
+  H.forEach((d,i)=>i?x.lineTo(px(i),py(d.equipped)):x.moveTo(px(i),py(d.equipped)));x.stroke();
+  const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,"rgba(77,166,255,.25)");g.addColorStop(1,"transparent");
+  x.lineTo(px(H.length-1),h-10);x.lineTo(px(0),h-10);x.closePath();x.fillStyle=g;x.fill();
+  const last=H[H.length-1];
+  x.fillStyle="#8ecdff";x.beginPath();x.arc(px(H.length-1),py(last.equipped),6,0,7);x.fill();
+  x.fillStyle="#93a1c0";x.font="22px "+getComputedStyle(document.body).fontFamily;x.textAlign="right";
+  x.fillText(`${last.equipped} · ${last.date}`,w-16,py(last.equipped)-14);
+  $("spark-note").textContent=`${H.length} daily snapshots · ${H[0].date} → ${last.date}`;
+}
+
+function bind(){
+  fillSelect($("orig"),orig);fillSelect($("dest"),dest);
+  $("orig").onchange=e=>{orig=e.target.value;renderRoute();};
+  $("dest").onchange=e=>{dest=e.target.value;renderRoute();};
+  $("swap").onclick=()=>{[orig,dest]=[dest,orig];fillSelect($("orig"),orig);fillSelect($("dest"),dest);renderRoute();};
+}
+
+fetch(`data.json?cb=${Date.now()}`,{cache:"no-store"})
+  .then(r=>r.json())
+  .then(d=>{DATA=d;
+    $("updated").textContent=d.updated;
+    renderChips();bind();renderRoute();renderFleet();})
+  .catch(e=>{document.body.insertAdjacentHTML("afterbegin",
+    `<div style="background:#40121e;color:#ffb3bd;padding:10px 20px;font-size:14px">data.json failed to load: ${e}</div>`);});
+</script>
+</body>
+</html>

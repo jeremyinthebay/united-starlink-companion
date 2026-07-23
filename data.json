@@ -1,0 +1,93 @@
+{
+  "updated": "2026-07-23",
+  "source": "unitedstarlinktracker.com (API + server pages), seeded from 7/23/2026 research pull",
+  "fleet": {
+    "equipped": 478,
+    "total": 1805,
+    "last30": 49,
+    "mainline": { "equipped": 136, "total": 1136 },
+    "express": { "equipped": 342, "total": 669 },
+    "mainlinePacePerWeek": 9.3,
+    "targets": [
+      "1,000 aircraft by end of 2026 (United)",
+      "Half of all narrowbodies by end of 2026",
+      "Entire fleet by end of 2027"
+    ],
+    "types": [
+      { "type": "CRJ-550", "equipped": 93, "total": 94, "seg": "express" },
+      { "type": "E175", "equipped": 248, "total": 256, "seg": "express" },
+      { "type": "737-800", "equipped": 61, "total": 141, "seg": "mainline" },
+      { "type": "A321neo", "equipped": 30, "total": 72, "seg": "mainline" },
+      { "type": "737-900", "equipped": 43, "total": 148, "seg": "mainline" },
+      { "type": "777", "equipped": 1, "total": 96, "seg": "mainline" },
+      { "type": "737 MAX 8/9", "equipped": 0, "total": 285, "seg": "mainline" },
+      { "type": "A319 / A320", "equipped": 0, "total": 143, "seg": "mainline" },
+      { "type": "757-300", "equipped": 0, "total": 60, "seg": "mainline" }
+    ]
+  },
+  "history": [
+    { "date": "2026-07-23", "equipped": 478, "total": 1805, "mainline": 136, "express": 342 }
+  ],
+  "routes": {
+    "DEN-SFO": {
+      "label": "Denver → San Francisco",
+      "tz": "MT",
+      "sweetSpot": "~noon–6 PM departures",
+      "avoidNote": "5–6 AM bank is MAX-heavy (0% fleet); UA2633 is a 757-300 (0% fleet)",
+      "roundTripPartner": "SFO-DEN",
+      "flights": [
+        { "fn": "UA1812", "dep": "1:25 PM", "aircraft": "A321neo", "prob": 57, "obs": 11, "conf": "medium", "verdict": "best", "onRoute": true },
+        { "fn": "UA1561", "dep": "11:20 AM", "aircraft": "A321neo / 737-900", "prob": 49, "obs": 19, "conf": "medium", "verdict": "good", "onRoute": false },
+        { "fn": "UA1007", "dep": "5:54 PM", "aircraft": "A321neo", "prob": 44, "obs": 16, "conf": "high", "verdict": "good", "onRoute": true },
+        { "fn": "UA1389", "dep": "7:25 PM", "aircraft": "A321neo", "prob": 44, "obs": 16, "conf": "medium", "verdict": "good", "onRoute": false },
+        { "fn": "UA1450", "dep": "12:25 PM", "aircraft": "A321neo", "prob": 39, "obs": 13, "conf": "medium", "verdict": "good", "onRoute": true },
+        { "fn": "UA2367", "dep": "5:15 AM", "aircraft": "737 MAX 9", "prob": 34, "obs": 6, "conf": "low", "verdict": "risky", "onRoute": false },
+        { "fn": "UA2123", "dep": "9:10 PM", "aircraft": "A321neo / 737-800", "prob": 33, "obs": 20, "conf": "high", "verdict": "ok", "onRoute": true },
+        { "fn": "UA1301", "dep": "6:00 AM", "aircraft": "MAX 8 / 737-900", "prob": 31, "obs": 13, "conf": "medium", "verdict": "risky", "onRoute": false },
+        { "fn": "UA2633", "dep": "3:47 PM", "aircraft": "757-300", "prob": 20, "obs": 2, "conf": "low", "verdict": "avoid", "onRoute": false },
+        { "fn": "UA1506", "dep": "9:43 AM", "aircraft": "A321neo / A319", "prob": 19, "obs": 8, "conf": "low", "verdict": "ok", "onRoute": true }
+      ],
+      "connections": [
+        { "via": "ASE (Aspen)", "legs": "UA5779 + UA5745", "prob": 97.6, "hours": 3.7 },
+        { "via": "SLC (Salt Lake City)", "legs": "regional pair", "prob": 97.7, "hours": null },
+        { "via": "CLD (Carlsbad)", "legs": "regional pair", "prob": 98.2, "hours": null },
+        { "via": "BOI (Boise)", "legs": "regional pair", "prob": 97.5, "hours": null }
+      ],
+      "confirmed48h": {
+        "asOf": "2026-07-23",
+        "note": "Confirmed Starlink tails on this route in the next 48h at last refresh",
+        "list": [
+          "UA2123 · Jul 23 · N54570",
+          "UA1450 · Jul 24 · N54552 (A321neo)",
+          "UA1812 · Jul 24 · N14557 (A321neo)",
+          "UA1506 · Jul 25 · N94556",
+          "UA1812 · Jul 25 · N14517",
+          "UA1007 · Jul 25 · N14549"
+        ]
+      }
+    },
+    "SFO-DEN": {
+      "label": "San Francisco → Denver",
+      "tz": "PT",
+      "sweetSpot": "~4–7 PM departures",
+      "avoidNote": "UA1671, UA1479 and UA301 draw non-Starlink tails; early bank is weak",
+      "roundTripPartner": "DEN-SFO",
+      "flights": [
+        { "fn": "UA1214", "dep": "5:30 PM", "aircraft": "A321neo", "prob": 60, "obs": 9, "conf": "medium", "verdict": "best", "onRoute": true },
+        { "fn": "UA1430", "dep": "4:10 PM", "aircraft": "737 / MAX mix", "prob": 40, "obs": 13, "conf": "medium", "verdict": "good", "onRoute": true },
+        { "fn": "UA2019", "dep": "7:56 PM", "aircraft": "737-800 / MAX mix", "prob": 39, "obs": 21, "conf": "high", "verdict": "good", "onRoute": true },
+        { "fn": "UA2436", "dep": "6:56 PM", "aircraft": "narrowbody mix", "prob": 35, "obs": 20, "conf": "medium", "verdict": "ok", "onRoute": true },
+        { "fn": "UA540", "dep": "12:43 PM", "aircraft": "A321neo (mixed WiFi)", "prob": 27, "obs": 11, "conf": "medium", "verdict": "ok", "onRoute": true },
+        { "fn": "UA1233", "dep": "6:15 AM", "aircraft": "narrowbody mix", "prob": 24, "obs": 10, "conf": "medium", "verdict": "risky", "onRoute": true },
+        { "fn": "UA301", "dep": "9:08 PM", "aircraft": "narrowbody mix", "prob": 12, "obs": 14, "conf": "medium", "verdict": "avoid", "onRoute": true },
+        { "fn": "UA1479", "dep": "5:00 AM", "aircraft": "narrowbody mix", "prob": 7, "obs": 5, "conf": "low", "verdict": "avoid", "onRoute": true },
+        { "fn": "UA1671", "dep": "12:00 PM", "aircraft": "narrowbody mix", "prob": 0, "obs": 2, "conf": "low", "verdict": "avoid", "onRoute": true }
+      ],
+      "connections": [
+        { "via": "CLD (Carlsbad)", "legs": "regional pair", "prob": 97.8, "hours": null },
+        { "via": "PSP (Palm Springs)", "legs": "regional pair", "prob": 97.8, "hours": null }
+      ],
+      "confirmed48h": null
+    }
+  }
+}
