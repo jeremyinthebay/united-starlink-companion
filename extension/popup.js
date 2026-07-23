@@ -1,4 +1,6 @@
 // popup.js — United x Starlink Odds popup logic (no inline scripts, MV3 CSP safe)
+// v1.1: flights are sorted by odds, show departure times found on the page, and
+// clicking a row scrolls the united.com tab to that flight.
 
 var fromEl = document.getElementById("usl-from");
 var toEl = document.getElementById("usl-to");
@@ -6,6 +8,11 @@ var formEl = document.getElementById("usl-form");
 var goEl = document.getElementById("usl-go");
 var statusEl = document.getElementById("usl-status");
 var resultsEl = document.getElementById("usl-results");
+
+var activeTab = null;      // active browser tab (if united.com with a route)
+var tabRoute = null;       // {o,d} parsed from that tab
+var pageFlights = {};      // fn -> times string, as found on the page
+var lastData = null, lastO = null, lastD = null;
 
 function pctClass(p) {
   if (p >= 50) return "usl-pct-hi";
@@ -21,29 +28,45 @@ function el(tag, className, text) {
   return e;
 }
 
-function clearResults() {
-  resultsEl.innerHTML = "";
+function clearResults() { resultsEl.innerHTML = ""; }
+function setStatus(text) { statusEl.textContent = text || ""; }
+
+function sameRoute(o, d) {
+  return tabRoute && tabRoute.o === o && tabRoute.d === d;
 }
 
-function setStatus(text) {
-  statusEl.textContent = text || "";
+function jumpTo(fn) {
+  if (!activeTab) return;
+  chrome.tabs.sendMessage(activeTab.id, { type: "gotoFlight", fn: fn }, function () {
+    void chrome.runtime.lastError;
+    window.close();
+  });
 }
 
-function renderFlights(flights) {
+function renderFlights(flights, o, d) {
   var top = flights.slice(0, 8);
   if (!top.length) return null;
+  var onPage = sameRoute(o, d) && Object.keys(pageFlights).length > 0;
   var wrap = el("div", null);
-  wrap.appendChild(el("div", "usl-section-label", "Flights"));
+  wrap.appendChild(el("div", "usl-section-label",
+    onPage ? "Flights — highest odds first · click to jump to it on the page" : "Flights — highest odds first"));
   top.forEach(function (f, i) {
     var row = el("div", "usl-flight-row");
     var left = el("div", "usl-flight-left");
     if (i === 0) left.appendChild(el("span", "usl-star", "⭐"));
     left.appendChild(el("span", null, f.fn));
+    var times = pageFlights[f.fn];
+    if (times) left.appendChild(el("span", "usl-time", times));
     var right = el("div", "usl-flight-right");
     right.appendChild(el("span", "usl-pct " + pctClass(f.prob), f.prob + "%"));
     right.appendChild(el("span", "usl-obs", f.obs + " obs"));
     row.appendChild(left);
     row.appendChild(right);
+    if (times !== undefined && onPage) {
+      row.classList.add("usl-clickable");
+      row.title = "Scroll the united.com tab to " + f.fn;
+      row.addEventListener("click", function () { jumpTo(f.fn); });
+    }
     wrap.appendChild(row);
   });
   return wrap;
@@ -78,14 +101,8 @@ function renderDeps(deps) {
 
 function renderEmpty(o, d) {
   var wrap = el("div", "usl-empty");
-  wrap.appendChild(
-    document.createTextNode("No Starlink history yet for this route. Try the ")
-  );
-  var link = el(
-    "a",
-    null,
-    "full route planner"
-  );
+  wrap.appendChild(document.createTextNode("No Starlink history yet for this route. Try the "));
+  var link = el("a", null, "full route planner");
   link.href = "https://unitedstarlinktracker.com/route-planner/" + o + "/" + d;
   link.target = "_blank";
   link.rel = "noopener";
@@ -97,24 +114,23 @@ function renderEmpty(o, d) {
 function renderResults(o, d, data) {
   clearResults();
   var any = false;
-  var flightsBlock = renderFlights(data.flights || []);
-  if (flightsBlock) {
-    resultsEl.appendChild(flightsBlock);
-    any = true;
-  }
+  var flightsBlock = renderFlights(data.flights || [], o, d);
+  if (flightsBlock) { resultsEl.appendChild(flightsBlock); any = true; }
   var itinsBlock = renderItins(data.itins || []);
-  if (itinsBlock) {
-    resultsEl.appendChild(itinsBlock);
-    any = true;
-  }
+  if (itinsBlock) { resultsEl.appendChild(itinsBlock); any = true; }
   var depsBlock = renderDeps(data.deps || []);
-  if (depsBlock) {
-    resultsEl.appendChild(depsBlock);
-    any = true;
-  }
-  if (!any) {
-    resultsEl.appendChild(renderEmpty(o, d));
-  }
+  if (depsBlock) { resultsEl.appendChild(depsBlock); any = true; }
+  if (!any) resultsEl.appendChild(renderEmpty(o, d));
+}
+
+function loadPageFlights(o, d) {
+  if (!activeTab || !sameRoute(o, d)) return;
+  chrome.tabs.sendMessage(activeTab.id, { type: "flightsOnPage" }, function (resp) {
+    if (chrome.runtime.lastError || !resp || !resp.flights) return;
+    pageFlights = {};
+    resp.flights.forEach(function (f) { pageFlights[f.fn] = f.times || ""; });
+    if (lastData) renderResults(lastO, lastD, lastData); // re-render with times + clickability
+  });
 }
 
 function loadRoute(o, d) {
@@ -136,6 +152,7 @@ function loadRoute(o, d) {
       setStatus("Could not reach the extension background page.");
       return;
     }
+    lastData = res; lastO = o; lastD = d;
     if (!res.ok) {
       setStatus(res.error ? "Error: " + res.error : "No data available yet.");
       renderResults(o, d, res);
@@ -143,6 +160,7 @@ function loadRoute(o, d) {
     }
     setStatus(res.cached ? "Cached result" : "Fresh result");
     renderResults(o, d, res);
+    loadPageFlights(o, d);
   });
 }
 
@@ -151,10 +169,8 @@ function parseUnitedUrl(url) {
     var u = new URL(url);
     if (!/(^|\.)united\.com$/.test(u.hostname)) return null;
     var params = u.searchParams;
-    var o =
-      params.get("f") || params.get("origin") || params.get("Origin");
-    var d =
-      params.get("t") || params.get("destination") || params.get("Destination");
+    var o = params.get("f") || params.get("origin") || params.get("Origin");
+    var d = params.get("t") || params.get("destination") || params.get("Destination");
     if (o && d) return { o: o.toUpperCase(), d: d.toUpperCase() };
     return null;
   } catch (e) {
@@ -179,6 +195,8 @@ function init() {
     var tab = tabs && tabs[0];
     var route = tab && tab.url ? parseUnitedUrl(tab.url) : null;
     if (route) {
+      activeTab = tab;
+      tabRoute = route;
       loadRoute(route.o, route.d);
     } else {
       setStatus("Enter a route to check Starlink odds.");

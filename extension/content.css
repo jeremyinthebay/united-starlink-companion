@@ -101,3 +101,14 @@
     width: auto;
   }
 }
+
+/* v1.1 */
+.usl-jump{cursor:pointer;border-radius:8px;margin:0 -6px;padding-left:6px;padding-right:6px}
+.usl-jump:hover{background:rgba(148,178,255,.1)}
+.usl-time{color:#93a1c0;font-size:11px}
+.usl-sortbtn{
+  width:100%;margin-top:8px;padding:8px 10px;border-radius:10px;cursor:pointer;
+  background:#0033A0;color:#fff;border:none;font-weight:700;font-size:12.5px;
+  font-family:-apple-system,sans-serif;
+}
+.usl-sortbtn:hover{background:#0a4fd6}
