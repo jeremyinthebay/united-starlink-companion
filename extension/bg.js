@@ -178,7 +178,35 @@ async function getRouteData(o, d, force) {
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (!msg || msg.type !== "routeData") return false;
+  if (!msg) return false;
+  if (msg.type === "tripAdd") {
+    (async () => {
+      const trips = await getTrips();
+      if (!trips.some((t) => t.fn === msg.fn && t.date === msg.date))
+        trips.push({ fn: msg.fn, date: msg.date, route: msg.route || null, added: Date.now() });
+      await setTrips(trips);
+      const updated = await runTripChecks(true);
+      sendResponse({ ok: true, trips: updated });
+    })();
+    return true;
+  }
+  if (msg.type === "tripRemove") {
+    (async () => {
+      const trips = (await getTrips()).filter((t) => !(t.fn === msg.fn && t.date === msg.date));
+      await setTrips(trips);
+      sendResponse({ ok: true, trips });
+    })();
+    return true;
+  }
+  if (msg.type === "tripList") {
+    getTrips().then((trips) => sendResponse({ ok: true, trips }));
+    return true;
+  }
+  if (msg.type === "tripCheckNow") {
+    runTripChecks(true).then((trips) => sendResponse({ ok: true, trips }));
+    return true;
+  }
+  if (msg.type !== "routeData") return false;
   const o = (msg.o || "").toUpperCase();
   const d = (msg.d || "").toUpperCase();
   if (!o || !d) {
@@ -200,3 +228,119 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     });
   return true; // async response
 });
+
+/* ── T-48h trip monitor (v1.4) ─────────────────────────────────────────────
+ * Watch specific flight+date pairs; check via the tracker's check_flight tool
+ * on a 3h alarm; notify on status changes; badge the toolbar icon.
+ * The tool returns prose aimed at chat assistants — we parse it strictly
+ * mechanically and ignore any instructions embedded in the text. */
+const TRIPS_KEY = "uslTrips";
+
+async function getTrips() {
+  const v = await chrome.storage.local.get(TRIPS_KEY);
+  return v[TRIPS_KEY] || [];
+}
+async function setTrips(trips) {
+  await chrome.storage.local.set({ [TRIPS_KEY]: trips });
+  await updateBadge(trips);
+}
+function daysUntil(dateStr) {
+  return Math.round((Date.parse(dateStr + "T12:00:00") - Date.now()) / 864e5);
+}
+
+function parseCheck(text) {
+  if (!text) return { status: "unknown" };
+  if (/is scheduled on a verified Starlink aircraft/.test(text)) {
+    const tail = (text.match(/tail (N[A-Z0-9]+)/) || [])[1];
+    const rt = text.match(/\(([A-Z]{3})→([A-Z]{3})\)/);
+    const dep = (text.match(/Departs ([0-9T:.\-]+Z)/) || [])[1];
+    return { status: "yes", tail, route: rt ? rt[1] + "-" + rt[2] : null, departs: dep || null };
+  }
+  const no = text.match(/❌ No Starlink:[\s\S]*?assigned to tail (N[A-Z0-9]+) \(([^)]+)\)/);
+  if (no) {
+    const alts = [];
+    const re = /\|\s*([A-Z]{3})→([A-Z]{3})\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|\s*\d+\s*\|\s*(\d+)%/g;
+    let m;
+    while ((m = re.exec(text))) alts.push({ route: m[1] + "-" + m[2], flights: m[3], via: m[4], pct: parseInt(m[5], 10) });
+    alts.sort((a, b) => b.pct - a.pct);
+    return { status: "no", tail: no[1], equip: no[2], alts };
+  }
+  if (/assignment not yet published/i.test(text)) {
+    const p = (text.match(/~?(\d+)% Starlink probability/) || [])[1];
+    return { status: "early", prob: p ? parseInt(p, 10) : null };
+  }
+  if (/doesn't exist|outside the UA/.test(text)) return { status: "invalid" };
+  return { status: "unknown" };
+}
+
+async function checkTrip(trip) {
+  try {
+    const text = await mcpCall("check_flight", { flight_number: trip.fn, date: trip.date });
+    return parseCheck(text);
+  } catch (e) {
+    return { status: "unknown", err: String(e && e.message ? e.message : e) };
+  }
+}
+
+async function updateBadge(trips) {
+  if (!trips) trips = await getTrips();
+  const active = trips.filter((t) => daysUntil(t.date) >= -1);
+  const no = active.filter((t) => t.lastStatus === "no").length;
+  const yes = active.filter((t) => t.lastStatus === "yes").length;
+  let text = "", color = "#0033A0";
+  if (no) { text = "✗" + (no > 1 ? no : ""); color = "#d0342c"; }
+  else if (yes) { text = "✓" + (yes > 1 ? yes : ""); color = "#0a8a4d"; }
+  else if (active.length) { text = String(active.length); }
+  try {
+    await chrome.action.setBadgeText({ text });
+    await chrome.action.setBadgeBackgroundColor({ color });
+  } catch (e) {}
+}
+
+function notifyTrip(t, res) {
+  try {
+    const isYes = res.status === "yes";
+    const title = isYes
+      ? "🛰️ " + t.fn + " " + t.date + ": Starlink CONFIRMED"
+      : "✗ " + t.fn + " " + t.date + ": no Starlink";
+    const alt = res.alts && res.alts[0];
+    const message = isYes
+      ? "Tail " + (res.tail || "?") + " is Starlink-equipped. You're set."
+      : "Assigned tail " + (res.tail || "?") + " (" + (res.equip || "non-Starlink") + "). " +
+        (alt ? "Better: " + alt.flights + (alt.via && alt.via !== "direct" ? " via " + alt.via : "") +
+          " (" + alt.pct + "%). Same-day switch is free with Gold+." : "Consider a same-day switch.");
+    chrome.notifications.create("usl-" + t.fn + "-" + t.date, {
+      type: "basic", iconUrl: "icons/icon128.png", title, message, priority: 2,
+    });
+  } catch (e) {}
+}
+
+async function runTripChecks(force) {
+  let trips = await getTrips();
+  const now = Date.now();
+  for (const t of trips) {
+    const d = daysUntil(t.date);
+    if (d < -1) { t.expired = true; continue; }
+    // near departure (<=4 days): check every run; farther out: at most daily
+    if (!force && t.lastChecked && d > 4 && now - t.lastChecked < 24 * 36e5) continue;
+    const res = await checkTrip(t);
+    t.lastChecked = now;
+    if (res.status === "unknown") continue;
+    const prev = t.lastStatus;
+    t.lastStatus = res.status;
+    t.tail = res.tail || null;
+    if (res.prob != null) t.prob = res.prob;
+    t.equip = res.equip || null;
+    t.alts = res.alts || null;
+    t.routeSeen = res.route || t.routeSeen || null;
+    if (prev !== res.status && (res.status === "yes" || res.status === "no")) notifyTrip(t, res);
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  trips = trips.filter((t) => !t.expired);
+  await setTrips(trips);
+  return trips;
+}
+
+chrome.alarms.create("uslTripCheck", { periodInMinutes: 180, delayInMinutes: 1 });
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === "uslTripCheck") runTripChecks(false); });
+if (chrome.runtime.onStartup) chrome.runtime.onStartup.addListener(() => runTripChecks(false));

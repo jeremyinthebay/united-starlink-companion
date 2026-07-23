@@ -215,3 +215,86 @@ function init() {
 }
 
 init();
+
+
+/* ── Trip monitor (v1.4) ── */
+var tripsEl = document.getElementById("usl-trips");
+var watchForm = document.getElementById("usl-watch-form");
+var watchFn = document.getElementById("usl-watch-fn");
+var watchDate = document.getElementById("usl-watch-date");
+var watchStatus = document.getElementById("usl-watch-status");
+var checkNowBtn = document.getElementById("usl-check-now");
+
+function tripLine(t) {
+  var d = t.date;
+  if (t.lastStatus === "yes")
+    return { cls: "usl-t-yes", txt: "✓ Starlink confirmed — tail " + (t.tail || "?") };
+  if (t.lastStatus === "no") {
+    var alt = t.alts && t.alts[0];
+    return { cls: "usl-t-no", txt: "✗ " + (t.equip || "non-Starlink tail") +
+      (alt ? " · better: " + alt.flights + " (" + alt.pct + "%)" : "") };
+  }
+  if (t.lastStatus === "early")
+    return { cls: "usl-t-early", txt: "⏳ " + (t.prob != null ? "~" + t.prob + "% · " : "") + "tail publishes ~48h out" };
+  if (t.lastStatus === "invalid")
+    return { cls: "usl-t-no", txt: "⚠ flight number not recognized" };
+  return { cls: "usl-t-early", txt: "… not checked yet" };
+}
+function renderTrips(trips) {
+  tripsEl.innerHTML = "";
+  if (!trips.length) {
+    var e = el("div", "usl-empty", "No watched flights. Add one below, or click the ☆ next to any badge on united.com.");
+    e.style.padding = "4px 2px";
+    tripsEl.appendChild(e);
+    return;
+  }
+  trips.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+  trips.forEach(function (t) {
+    var row = el("div", "usl-trip-row");
+    var left = el("div", null);
+    left.appendChild(el("div", "usl-trip-main", t.fn + " · " + t.date + (t.routeSeen || t.route ? " · " + (t.routeSeen || t.route).replace("-", "→") : "")));
+    var line = tripLine(t);
+    left.appendChild(el("div", "usl-trip-sub " + line.cls, line.txt));
+    var x = el("button", "usl-trip-x", "×");
+    x.title = "Stop watching";
+    x.addEventListener("click", function () {
+      chrome.runtime.sendMessage({ type: "tripRemove", fn: t.fn, date: t.date }, function (res) {
+        void chrome.runtime.lastError;
+        if (res && res.trips) renderTrips(res.trips);
+      });
+    });
+    row.appendChild(left);
+    row.appendChild(x);
+    tripsEl.appendChild(row);
+  });
+}
+function loadTrips() {
+  chrome.runtime.sendMessage({ type: "tripList" }, function (res) {
+    void chrome.runtime.lastError;
+    if (res && res.trips) renderTrips(res.trips);
+  });
+}
+watchForm.addEventListener("submit", function (e) {
+  e.preventDefault();
+  var fn = (watchFn.value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!/^UA\d{1,4}$/.test(fn)) { watchStatus.textContent = "Enter a flight like UA1812."; return; }
+  if (!watchDate.value) { watchStatus.textContent = "Pick a date."; return; }
+  watchStatus.textContent = "Adding + checking…";
+  chrome.runtime.sendMessage({ type: "tripAdd", fn: fn, date: watchDate.value }, function (res) {
+    void chrome.runtime.lastError;
+    watchStatus.textContent = "";
+    watchFn.value = "";
+    if (res && res.trips) renderTrips(res.trips);
+  });
+});
+checkNowBtn.addEventListener("click", function () {
+  watchStatus.textContent = "Checking all watched flights…";
+  chrome.runtime.sendMessage({ type: "tripCheckNow" }, function (res) {
+    void chrome.runtime.lastError;
+    watchStatus.textContent = "";
+    if (res && res.trips) renderTrips(res.trips);
+  });
+});
+var wd = new Date(Date.now() + 2 * 864e5);
+watchDate.value = wd.toISOString().slice(0, 10);
+loadTrips();

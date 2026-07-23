@@ -189,6 +189,13 @@
   .usl-clickable:hover{background:rgba(148,178,255,.08)}
   .usl-time{color:var(--dim,#93a1c0);font-size:11px;margin-left:6px}
   .usl-ghost{opacity:.45}
+  .usl-trip-row{display:flex;align-items:center;justify-content:space-between;background:var(--card-bg);border:1px solid var(--card-edge);border-radius:10px;padding:7px 10px;margin-bottom:6px;font-family:var(--mono);font-size:12px}
+  .usl-trip-main{font-weight:700}
+  .usl-trip-sub{color:var(--dim);font-size:10.5px;margin-top:2px;line-height:1.35}
+  .usl-t-yes{color:var(--green)} .usl-t-no{color:var(--red)} .usl-t-early{color:var(--dim)}
+  .usl-trip-x{cursor:pointer;color:var(--dim);font-size:14px;padding:2px 4px;border:none;background:none}
+  .usl-trip-x:hover{color:var(--red)}
+  .usl-check-now{font-family:var(--mono);font-size:10.5px;color:var(--sky);cursor:pointer;background:none;border:none;padding:0;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -208,6 +215,18 @@
 
     <div id="usl-status" class="usl-status"></div>
     <div id="usl-results" class="usl-results"></div>
+
+    <div class="usl-section-label" style="margin-top:14px;display:flex;justify-content:space-between;align-items:baseline">
+      <span>Trip monitor · T-48h tail watch</span>
+      <button id="usl-check-now" class="usl-check-now" type="button">check now</button>
+    </div>
+    <div id="usl-trips"></div>
+    <form id="usl-watch-form" class="usl-form" style="margin-bottom:0">
+      <input id="usl-watch-fn" class="usl-input" type="text" maxlength="6" placeholder="UA1812" autocomplete="off" />
+      <input id="usl-watch-date" class="usl-input" type="date" style="font-size:11.5px;flex:1.5;text-transform:none;letter-spacing:0" />
+      <button class="usl-go" type="submit">Watch</button>
+    </form>
+    <div id="usl-watch-status" class="usl-status" style="margin-top:4px"></div>
 
     <div class="usl-footer">Estimates from tail-assignment history — verify at T-48h.</div>
   </div>

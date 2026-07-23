@@ -1,11 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Starlink Odds for United Flights",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "See every United flight's Starlink WiFi odds while you book: badges on united.com, rankings, one-click sort. Unofficial.",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "alarms",
+    "notifications"
   ],
   "host_permissions": [
     "https://unitedstarlinktracker.com/*"

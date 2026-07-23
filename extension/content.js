@@ -19,6 +19,11 @@
   let probMap = new Map();
   let registry = new Map();
   let keepSorted = false, desiredOrder = null, lastSortTs = 0;
+  let watched = new Set(); // "UA1812|2026-07-25"
+  try { chrome.runtime.sendMessage({ type: "tripList" }, (res) => {
+    if (!chrome.runtime.lastError && res && res.trips)
+      watched = new Set(res.trips.map((t) => t.fn + "|" + t.date));
+  }); } catch {}
   try { chrome.storage.local.get("uslKeepSorted", (v) => { keepSorted = !!v.uslKeepSorted; }); } catch {}
 
   /* ── context: route + leg phase + date ── */
@@ -117,6 +122,7 @@
             " · data: unitedstarlinktracker.com";
           b.dataset.b = fn;
           el.appendChild(b);
+          if (row) addWatchStar(el, fn);
         } else if (row) {
           el.dataset.uslBadged = "na";
           const b = document.createElement("span");
@@ -125,6 +131,7 @@
           b.title = fn + ": no Starlink-assignment history for this flight number yet · data: unitedstarlinktracker.com";
           b.dataset.b = fn;
           el.appendChild(b);
+          addWatchStar(el, fn);
         } else {
           el.dataset.uslBadged = "miss";
         }
@@ -141,6 +148,27 @@
     if (scanScheduled) return;
     scanScheduled = true;
     setTimeout(scan, 700);
+  }
+
+
+  function addWatchStar(el, fn) {
+    if (!ctx || !ctx.date || el.querySelector(".usl-watch")) return;
+    const w = document.createElement("span");
+    const key = fn + "|" + ctx.date;
+    const on = watched.has(key);
+    w.className = "usl-watch" + (on ? " usl-watching" : "");
+    w.textContent = on ? "★" : "☆";
+    w.title = on ? "Watching — manage in the extension popup"
+      : "Watch " + fn + " on " + ctx.date + " — get an alert when its Starlink tail is confirmed (or not)";
+    w.addEventListener("click", (ev) => {
+      ev.stopPropagation(); ev.preventDefault();
+      if (watched.has(key)) return;
+      watched.add(key);
+      w.textContent = "★"; w.classList.add("usl-watching");
+      w.title = "Watching — manage in the extension popup";
+      try { chrome.runtime.sendMessage({ type: "tripAdd", fn, date: ctx.date, route: ctx.o + "-" + ctx.d }, () => { void chrome.runtime.lastError; }); } catch {}
+    });
+    el.appendChild(w);
   }
 
   /* ── jump ── */

@@ -48,8 +48,13 @@ account (payment) and clicking Submit.
    - Single purpose: "Displays Starlink WiFi availability odds for United Airlines flights on
      united.com search results."
    - Permission justifications:
-     - `storage` — caches route statistics locally for ~6h and stores two UI preferences.
+     - `storage` — caches route statistics locally for ~6h, stores UI preferences and the
+       user's locally-kept watched-flight list.
      - `activeTab` — lets the popup read the route of the united.com tab it is opened on.
+     - `alarms` — periodically re-checks the user's watched flights (every 3h) so the
+       T-48h tail-assignment alert can fire.
+     - `notifications` — shows a local notification when a watched flight's Starlink
+       status is confirmed or changes. No data leaves the device.
      - Host `united.com` — content script that displays the odds badges on search results.
      - Host `unitedstarlinktracker.com` — fetches route-level statistics from its public API.
    - Data usage: check **"Does not collect or use user data"**.

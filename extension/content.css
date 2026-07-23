@@ -117,3 +117,8 @@
 .usl-na{color:#93a1c0;border-color:rgba(147,161,192,.4);background:rgba(147,161,192,.08)}
 .usl-ghost{opacity:.45;cursor:default}
 .usl-ghost:hover{background:transparent}
+
+/* v1.4 trip monitor */
+.usl-watch{cursor:pointer;margin-left:5px;color:#ffd166;opacity:.55;font-size:14px;vertical-align:middle}
+.usl-watch:hover{opacity:1}
+.usl-watching{opacity:1}
