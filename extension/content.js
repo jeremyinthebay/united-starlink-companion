@@ -104,7 +104,10 @@
       const hit = probMap.get(fn);
       const row = findRow(el);
       if (!el.dataset.uslBadged) {
-        if (hit) {
+        const dup = row && row.rowEl.querySelector('.usl-badge[data-b="' + fn + '"]');
+        if (dup) {
+          el.dataset.uslBadged = "dup";
+        } else if (hit) {
           el.dataset.uslBadged = "1";
           const b = document.createElement("span");
           b.className = "usl-badge " + cls(hit.prob);
@@ -112,6 +115,7 @@
           b.title = `${fn}: gets a Starlink-equipped plane ~${hit.prob}% of the time (${hit.obs} recent departures)` +
             (hit.dep ? ` — CONFIRMED Starlink tail ${hit.dep.tail} on ${hit.dep.date}` : "") +
             " · data: unitedstarlinktracker.com";
+          b.dataset.b = fn;
           el.appendChild(b);
         } else if (row) {
           el.dataset.uslBadged = "na";
@@ -119,6 +123,7 @@
           b.className = "usl-badge usl-na";
           b.textContent = "🛰️ n/a";
           b.title = fn + ": no Starlink-assignment history for this flight number yet · data: unitedstarlinktracker.com";
+          b.dataset.b = fn;
           el.appendChild(b);
         } else {
           el.dataset.uslBadged = "miss";

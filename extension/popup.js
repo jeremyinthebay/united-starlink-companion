@@ -95,7 +95,7 @@ function renderDeps(deps) {
   var top = deps.slice(0, 4);
   if (!top.length) return null;
   var wrap = el("div", null);
-  wrap.appendChild(el("div", "usl-section-label", "Confirmed departures"));
+  wrap.appendChild(el("div", "usl-section-label", "Confirmed departures (next ~72h)"));
   top.forEach(function (d) {
     var text = d.fn + " · " + d.date + " " + d.time + "Z · " + d.tail;
     wrap.appendChild(el("div", "usl-dep-row", text));

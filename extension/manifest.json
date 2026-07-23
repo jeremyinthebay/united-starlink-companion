@@ -1,18 +1,30 @@
 {
   "manifest_version": 3,
-  "name": "United ✕ Starlink Odds",
-  "version": "1.2.0",
-  "description": "See which United flights get free Starlink WiFi, right in united.com search results. Data: unitedstarlinktracker.com",
-  "permissions": ["storage", "activeTab"],
-  "host_permissions": ["https://unitedstarlinktracker.com/*"],
+  "name": "Starlink Odds for United Flights",
+  "version": "1.3.0",
+  "description": "See every United flight's Starlink WiFi odds while you book: badges on united.com, rankings, one-click sort. Unofficial.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://unitedstarlinktracker.com/*"
+  ],
   "background": {
     "service_worker": "bg.js"
   },
   "content_scripts": [
     {
-      "matches": ["https://www.united.com/*", "https://united.com/*"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "matches": [
+        "https://www.united.com/*",
+        "https://united.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "content.css"
+      ],
       "run_at": "document_idle"
     }
   ],
@@ -28,5 +40,6 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "homepage_url": "https://github.com/jeremyinthebay/united-starlink-companion"
 }
