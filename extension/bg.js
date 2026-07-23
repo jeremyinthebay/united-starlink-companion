@@ -138,11 +138,11 @@ async function fetchDeps(o, d) {
   return parseDeps(text);
 }
 
-async function getRouteData(o, d) {
+async function getRouteData(o, d, force) {
   const key = cacheKey(o, d);
   const cached = await chrome.storage.local.get(key);
   const entry = cached[key];
-  if (entry && Date.now() - entry.ts < CACHE_TTL_MS) {
+  if (!force && entry && Date.now() - entry.ts < CACHE_TTL_MS) {
     return {
       ok: true,
       flights: entry.flights,
@@ -185,7 +185,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     sendResponse({ ok: false, flights: [], deps: [], itins: [], ts: Date.now(), cached: false });
     return true;
   }
-  getRouteData(o, d)
+  getRouteData(o, d, !!msg.force)
     .then(sendResponse)
     .catch((err) => {
       sendResponse({

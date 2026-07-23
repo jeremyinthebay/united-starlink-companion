@@ -1,54 +1,75 @@
-/* United ✕ Starlink — content script for united.com  (v1.1.1)
- * - Badges: odds pill on every flight with tracker history; gray "n/a" pill on
- *   result rows with no history (so the sort order is self-explanatory).
- * - Sort: reorders ALL flight rows in United's results container — known odds
- *   ranked first, no-history flights below in their original order.
- * - Panel: floating summary; rows jump-to-flight; flights not in today's
- *   results are dimmed and unclickable (no more orphan rows).
- * - Popup bridge: {flightsOnPage} and {gotoFlight} messages.
+/* United ✕ Starlink — content script for united.com  (v1.2.0)
+ * - Badges + n/a pills on every flight row; full-page sort by odds.
+ * - Round-trip aware: when United shows the RETURN leg, everything flips to the
+ *   reverse route automatically.
+ * - Date aware: ✓ marks and "confirmed tails" only shown when the searched date
+ *   is within ~3 days (tail assignments publish ~48h out).
+ * - Panel: jump-to-flight, ghost rows for non-operating flights, ↻ force
+ *   refresh (busts the 6h cache), optional "keep sorted" that re-asserts the
+ *   sort after United re-renders.
  * Selector-independent: keys on visible "UA ####" text. Data via service worker.
  */
 (() => {
   "use strict";
   const FN_RE = /\bUA\s?(\d{2,4})\b/;
   const TIME_RE = /\b\d{1,2}:\d{2}\s?[ap]\.?m\.?/gi;
-  let route = null, data = null, panelEl = null, scanScheduled = false;
-  let probMap = new Map();   // "UA1812" -> {prob, obs, dep|null}
-  let registry = new Map();  // "UA1812" -> {rowEl, times}
+  let ctx = null;            // {o,d,date,phase} — the ACTIVE leg
+  let ctxKey = "";
+  let data = null, panelEl = null, scanScheduled = false;
+  let probMap = new Map();
+  let registry = new Map();
+  let keepSorted = false, desiredOrder = null, lastSortTs = 0;
+  try { chrome.storage.local.get("uslKeepSorted", (v) => { keepSorted = !!v.uslKeepSorted; }); } catch {}
 
-  function detectRoute() {
+  /* ── context: route + leg phase + date ── */
+  function getContext() {
+    let o, d, dep, ret;
     try {
       const p = new URLSearchParams(location.search);
-      const o = (p.get("f") || p.get("origin") || "").toUpperCase();
-      const d = (p.get("t") || p.get("destination") || "").toUpperCase();
-      if (/^[A-Z]{3}$/.test(o) && /^[A-Z]{3}$/.test(d) && o !== d) return { o, d };
-    } catch {}
-    return null;
+      o = (p.get("f") || p.get("origin") || "").toUpperCase();
+      d = (p.get("t") || p.get("destination") || "").toUpperCase();
+      dep = p.get("d"); ret = p.get("r");
+    } catch { return null; }
+    if (!/^[A-Z]{3}$/.test(o) || !/^[A-Z]{3}$/.test(d) || o === d) return null;
+    const txt = document.body ? document.body.innerText : "";
+    const isReturn = /RETURN ON:/i.test(txt) && !/DEPART ON:/i.test(txt);
+    return isReturn
+      ? { o: d, d: o, date: ret || dep || "", phase: "return" }
+      : { o, d, date: dep || "", phase: "depart" };
   }
+  function daysOut(dateStr) {
+    if (!dateStr) return 0;
+    const t = Date.parse(dateStr + "T12:00:00");
+    return isNaN(t) ? 0 : Math.round((t - Date.now()) / 864e5);
+  }
+  function fmtDate(dateStr) {
+    const t = Date.parse(dateStr + "T12:00:00");
+    if (isNaN(t)) return "";
+    return new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+  const depsRelevant = () => ctx && daysOut(ctx.date) <= 3;
 
-  function loadData(r) {
+  function loadData(r, force) {
     return new Promise((resolve) => {
       try {
-        chrome.runtime.sendMessage({ type: "routeData", o: r.o, d: r.d }, (resp) => {
+        chrome.runtime.sendMessage({ type: "routeData", o: r.o, d: r.d, force: !!force }, (resp) => {
           if (chrome.runtime.lastError || !resp || !resp.ok) return resolve(null);
           resolve(resp);
         });
       } catch { resolve(null); }
     });
   }
-
   function indexData() {
     probMap = new Map();
     if (!data) return;
+    const rel = depsRelevant();
     for (const f of data.flights || []) {
       probMap.set(f.fn, { prob: f.prob, obs: f.obs,
-        dep: (data.deps || []).find((x) => x.fn === f.fn) || null });
+        dep: rel ? (data.deps || []).find((x) => x.fn === f.fn) || null : null });
     }
   }
-
   const cls = (p) => (p >= 50 ? "usl-hi" : p >= 35 ? "usl-mid" : p >= 20 ? "usl-low" : "usl-no");
 
-  /* Smallest ancestor whose text includes departure times = the flight "row". */
   function findRow(el) {
     let e = el;
     for (let i = 0; i < 8 && e && e !== document.body; i++, e = e.parentElement) {
@@ -81,7 +102,7 @@
       const m = n.nodeValue.match(FN_RE);
       const fn = "UA" + m[1];
       const hit = probMap.get(fn);
-      const row = findRow(el); // null unless this sits in a timed flight row
+      const row = findRow(el);
       if (!el.dataset.uslBadged) {
         if (hit) {
           el.dataset.uslBadged = "1";
@@ -93,7 +114,6 @@
             " · data: unitedstarlinktracker.com";
           el.appendChild(b);
         } else if (row) {
-          // real flight row, but no tracker history — mark it so ranking is clear
           el.dataset.uslBadged = "na";
           const b = document.createElement("span");
           b.className = "usl-badge usl-na";
@@ -110,6 +130,7 @@
       }
     }
     if (registered) { updatePanelSortBtn(); refreshPanelTimes(); }
+    maybeResort();
   }
   function scheduleScan() {
     if (scanScheduled) return;
@@ -117,7 +138,7 @@
     setTimeout(scan, 700);
   }
 
-  /* ── jump to a flight on the page ── */
+  /* ── jump ── */
   function gotoFlight(fn) {
     const r = registry.get(fn);
     if (!r || !r.rowEl.isConnected) return false;
@@ -130,7 +151,7 @@
     return true;
   }
 
-  /* ── sort ALL flight rows in the results container by odds ── */
+  /* ── sort ── */
   function findContainer() {
     const badge = document.querySelector(".usl-badge");
     if (!badge) return null;
@@ -143,6 +164,10 @@
     }
     return bestScore >= 2 ? best : null;
   }
+  function currentOrder(P) {
+    return [...P.children].map((k) => ((k.textContent || "").match(FN_RE) || [])[1])
+      .filter(Boolean).map((n) => "UA" + n);
+  }
   function sortPage() {
     const P = findContainer();
     if (!P) return { ok: false, why: "results container not found" };
@@ -151,7 +176,7 @@
     const key = (u) => {
       const m = (u.textContent || "").match(FN_RE);
       const hit = m ? probMap.get("UA" + m[1]) : null;
-      return hit ? hit.prob : -1; // no-history flights sink, keeping their order
+      return hit ? hit.prob : -1;
     };
     const sorted = flightUnits.map((u, i) => ({ u, i, k: key(u) }))
       .sort((a, b) => b.k - a.k || a.i - b.i).map((x) => x.u);
@@ -159,28 +184,44 @@
     P.insertBefore(anchor, flightUnits[0]);
     for (const u of sorted) P.insertBefore(u, anchor);
     anchor.remove();
+    desiredOrder = currentOrder(P);
+    lastSortTs = Date.now();
     return { ok: true, count: sorted.length };
   }
+  /* Re-assert the sort after United re-renders (opt-in, loop-guarded). */
+  function maybeResort() {
+    if (!keepSorted || !desiredOrder || Date.now() - lastSortTs < 1500) return;
+    const P = findContainer();
+    if (!P) return;
+    const now = currentOrder(P);
+    if (now.join(",") !== desiredOrder.join(",")) sortPage();
+  }
 
-  /* ── floating panel ── */
+  /* ── panel ── */
   function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
   function updatePanelSortBtn() {
     const btn = panelEl && panelEl.querySelector(".usl-sortbtn");
     if (!btn) return;
     const n = [...registry.values()].filter((r) => r.rowEl.isConnected).length;
     btn.style.display = n >= 1 ? "" : "none";
+    const kc = panelEl.querySelector(".usl-keep-wrap");
+    if (kc) kc.style.display = n >= 1 ? "flex" : "none";
   }
   function renderPanel() {
     if (panelEl) panelEl.remove();
-    if (!route) return;
+    panelEl = null;
+    if (!ctx) return;
     const p = document.createElement("div");
     p.className = "usl-panel";
     chrome.storage.local.get("uslCollapsed", (v) => { if (v.uslCollapsed) p.classList.add("usl-collapsed"); });
     const flights = (data && data.flights || []).slice(0, 6);
-    const deps = (data && data.deps || []).slice(0, 3);
+    const rel = depsRelevant();
+    const deps = rel ? (data && data.deps || []).slice(0, 3) : [];
     const itin = (data && data.itins || []).find((it) => it.via && it.via.length && it.coverage === "full");
+    const legTag = ctx.phase === "return" ? " · return leg" : "";
     p.innerHTML =
-      `<header><span>🛰️ Starlink odds · ${esc(route.o)}→${esc(route.d)}</span><span class="usl-x">▾</span></header>
+      `<header><span>🛰️ ${esc(ctx.o)}→${esc(ctx.d)} · ${esc(fmtDate(ctx.date) || "Starlink odds")}${legTag}</span>` +
+      `<span><span class="usl-refresh" title="Refresh odds (bypass cache)">↻</span> <span class="usl-x">▾</span></span></header>
       <div class="usl-body">` +
       (flights.length
         ? flights.map((f, i) =>
@@ -188,18 +229,30 @@
             `<span>${i === 0 ? "⭐ " : ""}${esc(f.fn)}${probMap.get(f.fn) && probMap.get(f.fn).dep ? " ✓" : ""}<span class="usl-time" data-time="${esc(f.fn)}"></span></span>` +
             `<span class="usl-badge ${cls(f.prob)}">${f.prob}%</span></div>`).join("")
         : `<div class="usl-row">No Starlink history on this route yet.</div>`) +
-      (flights.length ? `<button class="usl-sortbtn" style="display:none">⇅ Sort page by Starlink odds</button>` : "") +
+      (flights.length ? `<button class="usl-sortbtn" style="display:none">⇅ Sort page by Starlink odds</button>
+        <label class="usl-keep-wrap" style="display:none;font-size:11.5px;color:#93a1c0;margin-top:6px;gap:6px;align-items:center;cursor:pointer">
+        <input type="checkbox" class="usl-keep"> keep sorted when the page updates</label>` : "") +
       (itin ? `<div class="usl-row" style="border-top:1px solid rgba(148,178,255,.14);margin-top:6px;padding-top:8px">` +
         `<span>via ${esc(itin.via.join("+"))} (connection)</span><span class="usl-badge usl-mid">${Math.round(itin.joint)}%</span></div>` : "") +
-      (deps.length ? `<div style="margin-top:8px;font-size:11px;opacity:.75">Confirmed tails: ` +
-        deps.map((d) => `${esc(d.fn)} ${esc(d.date.slice(5))}`).join(" · ") + `</div>` : "") +
+      (deps.length ? `<div style="margin-top:8px;font-size:11px;opacity:.75">Confirmed tails (next ~72h): ` +
+        deps.map((d) => `${esc(d.fn)} ${esc(d.date.slice(5))}`).join(" · ") + `</div>` :
+        (ctx.date && daysOut(ctx.date) > 3 ? `<div style="margin-top:8px;font-size:11px;opacity:.6">Tail assignments publish ~48h out — firm ✓s appear closer to ${esc(fmtDate(ctx.date))}.</div>` : "")) +
       `<div style="margin-top:10px;font-size:11.5px"><a href="https://smithfamai.com/unitedstarlink/" target="_blank" rel="noopener" style="color:#8ecdff">full plan ↗</a>` +
       ` · <a href="https://unitedstarlinktracker.com" target="_blank" rel="noopener" style="color:#8ecdff">tracker ↗</a>` +
-      `<span style="opacity:.55"> · ✓ = confirmed Starlink tail</span></div>` +
+      (rel ? `<span style="opacity:.55"> · ✓ = confirmed Starlink tail</span>` : "") + `</div>` +
       `</div>`;
-    p.querySelector("header").addEventListener("click", () => {
+    p.querySelector("header").addEventListener("click", (ev) => {
+      if (ev.target.classList.contains("usl-refresh")) return;
       p.classList.toggle("usl-collapsed");
       chrome.storage.local.set({ uslCollapsed: p.classList.contains("usl-collapsed") });
+    });
+    p.querySelector(".usl-refresh").addEventListener("click", async (ev) => {
+      ev.stopPropagation();
+      ev.target.textContent = "…";
+      data = await loadData(ctx, true);
+      indexData();
+      renderPanel();
+      rebadge();
     });
     p.querySelectorAll(".usl-jump").forEach((row) => row.addEventListener("click", () => {
       if (row.classList.contains("usl-ghost")) return;
@@ -211,12 +264,20 @@
       sb.textContent = r.ok ? `✓ sorted ${r.count} flights (best first)` : `couldn't sort (${r.why})`;
       setTimeout(() => { sb.textContent = "⇅ Sort page by Starlink odds"; }, 3500);
     });
+    const keep = p.querySelector(".usl-keep");
+    if (keep) {
+      keep.checked = keepSorted;
+      keep.addEventListener("change", () => {
+        keepSorted = keep.checked;
+        chrome.storage.local.set({ uslKeepSorted: keepSorted });
+        if (keepSorted && !desiredOrder) sortPage();
+      });
+    }
     document.documentElement.appendChild(p);
     panelEl = p;
     refreshPanelTimes();
     updatePanelSortBtn();
   }
-  /* Sync panel rows with what's actually on the page: times + ghost state. */
   function refreshPanelTimes() {
     if (!panelEl) return;
     panelEl.querySelectorAll(".usl-jump").forEach((row) => {
@@ -229,6 +290,14 @@
       if (s) s.textContent = onPage && r.times ? " · " + r.times.split(" – ")[0] : (onPage ? "" : " · not in results");
     });
   }
+  function rebadge() {
+    document.querySelectorAll("[data-usl-badged]").forEach((el) => {
+      delete el.dataset.uslBadged;
+      el.querySelectorAll(".usl-badge").forEach((b) => b.remove());
+    });
+    registry = new Map();
+    scheduleScan();
+  }
 
   /* ── popup bridge ── */
   try {
@@ -240,6 +309,7 @@
           .map(([fn, r]) => ({ fn, times: r.times })) });
         return false;
       }
+      if (msg.type === "pageContext") { sendResponse(ctx || {}); return false; }
       if (msg.type === "gotoFlight") { sendResponse({ ok: gotoFlight(msg.fn) }); return false; }
       if (msg.type === "sortPage") { sendResponse(sortPage()); return false; }
       return false;
@@ -248,23 +318,21 @@
 
   /* ── orchestration ── */
   async function refresh() {
-    const r = detectRoute();
-    if (!r) { if (panelEl) { panelEl.remove(); panelEl = null; } route = null; return; }
-    if (route && r.o === route.o && r.d === route.d && data) {
-      if (!panelEl || !panelEl.isConnected) renderPanel(); // recover if the SPA nuked it
+    const c = getContext();
+    if (!c) { if (panelEl) { panelEl.remove(); panelEl = null; } ctx = null; ctxKey = ""; return; }
+    const key = `${c.o}-${c.d}|${c.date}|${c.phase}`;
+    if (key === ctxKey && data) {
+      if (!panelEl || !panelEl.isConnected) renderPanel();
       refreshPanelTimes();
       return;
     }
-    route = r;
-    registry = new Map();
-    data = await loadData(r);
+    const routeChanged = !ctx || c.o !== ctx.o || c.d !== ctx.d;
+    ctx = c; ctxKey = key;
+    desiredOrder = null;
+    if (routeChanged || !data) data = await loadData(c, false);
     indexData();
     renderPanel();
-    document.querySelectorAll("[data-usl-badged]").forEach((el) => {
-      delete el.dataset.uslBadged;
-      el.querySelectorAll(".usl-badge").forEach((b) => b.remove());
-    });
-    scheduleScan();
+    rebadge();
   }
 
   new MutationObserver(scheduleScan).observe(document.documentElement, { childList: true, subtree: true });

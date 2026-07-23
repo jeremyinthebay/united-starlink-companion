@@ -197,14 +197,20 @@ formEl.addEventListener("submit", function (e) {
 function init() {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     var tab = tabs && tabs[0];
-    var route = tab && tab.url ? parseUnitedUrl(tab.url) : null;
-    if (route) {
-      activeTab = tab;
+    var urlRoute = tab && tab.url ? parseUnitedUrl(tab.url) : null;
+    if (!urlRoute) {
+      setStatus("Enter a route to check Starlink odds.");
+      return;
+    }
+    activeTab = tab;
+    // Ask the content script which leg is actually being shown (round trips:
+    // the URL still says outbound while the RETURN list is on screen).
+    chrome.tabs.sendMessage(tab.id, { type: "pageContext" }, function (pc) {
+      void chrome.runtime.lastError;
+      var route = pc && pc.o && pc.d ? { o: pc.o, d: pc.d } : urlRoute;
       tabRoute = route;
       loadRoute(route.o, route.d);
-    } else {
-      setStatus("Enter a route to check Starlink odds.");
-    }
+    });
   });
 }
 

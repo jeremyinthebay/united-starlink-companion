@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "United ✕ Starlink Odds",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "See which United flights get free Starlink WiFi, right in united.com search results. Data: unitedstarlinktracker.com",
   "permissions": ["storage", "activeTab"],
   "host_permissions": ["https://unitedstarlinktracker.com/*"],
