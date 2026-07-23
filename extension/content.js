@@ -11,7 +11,8 @@
  */
 (() => {
   "use strict";
-  const FN_RE = /\bUA\s?(\d{2,4})\b/;
+  const FN_RE = /\b(?:UA|United)\s?(\d{2,4})\b/;
+  const NAVAN = /(^|\.)navan\.com$/.test(location.hostname);
   const TIME_RE = /\b\d{1,2}:\d{2}\s?[ap]\.?m\.?/gi;
   let ctx = null;            // {o,d,date,phase} — the ACTIVE leg
   let ctxKey = "";
@@ -20,6 +21,22 @@
   let registry = new Map();
   let keepSorted = false, desiredOrder = null, lastSortTs = 0;
   let watched = new Set(); // "UA1812|2026-07-25"
+  let pendingPredict = new Set();
+  function requestPredictions(fns) {
+    const need = fns.filter((f) => !probMap.has(f) && !pendingPredict.has(f));
+    if (!need.length) return;
+    need.forEach((f) => pendingPredict.add(f));
+    try {
+      chrome.runtime.sendMessage({ type: "predictFlights", fns: need }, (res) => {
+        if (chrome.runtime.lastError || !res || !res.ok) return;
+        for (const [fn, v] of Object.entries(res.flights || {})) {
+          if (v) probMap.set(fn, { prob: v.prob, obs: v.obs, dep: null });
+          else if (v === null) probMap.set(fn, null); // known: no data → n/a
+        }
+        scheduleScan();
+      });
+    } catch (e) {}
+  }
   try { chrome.runtime.sendMessage({ type: "tripList" }, (res) => {
     if (!chrome.runtime.lastError && res && res.trips)
       watched = new Set(res.trips.map((t) => t.fn + "|" + t.date));
@@ -88,7 +105,7 @@
   /* ── badge injection ── */
   function scan() {
     scanScheduled = false;
-    if (!data) return;
+    if (!data && !NAVAN) return;
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode(n) {
         if (!n.nodeValue || !FN_RE.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
@@ -101,11 +118,16 @@
     let node;
     while ((node = walker.nextNode())) targets.push(node);
     let registered = false;
+    const navanWants = [];
+    let bestFn = null, bestP = -1;
+    for (const [f, v] of probMap.entries())
+      if (v && v.prob > bestP) { bestP = v.prob; bestFn = f; }
     for (const n of targets) {
       const el = n.parentElement;
       if (!el) continue;
       const m = n.nodeValue.match(FN_RE);
       const fn = "UA" + m[1];
+      if (NAVAN && !probMap.has(fn)) { navanWants.push(fn); continue; }
       const hit = probMap.get(fn);
       const row = findRow(el);
       if (!el.dataset.uslBadged) {
@@ -115,8 +137,9 @@
         } else if (hit) {
           el.dataset.uslBadged = "1";
           const b = document.createElement("span");
-          b.className = "usl-badge " + cls(hit.prob);
-          b.textContent = "🛰️ " + hit.prob + "%" + (hit.dep ? " ✓" : "");
+          const isBest = fn === bestFn && hit.prob >= 30 && !NAVAN;
+          b.className = "usl-badge " + (isBest ? "usl-best-badge" : cls(hit.prob));
+          b.textContent = (isBest ? "★ " : "") + "🛰️ " + hit.prob + "%" + (hit.dep ? " ✓" : "");
           b.title = `${fn}: gets a Starlink-equipped plane ~${hit.prob}% of the time (${hit.obs} recent departures)` +
             (hit.dep ? ` — CONFIRMED Starlink tail ${hit.dep.tail} on ${hit.dep.date}` : "") +
             " · data: unitedstarlinktracker.com";
@@ -142,6 +165,7 @@
       }
     }
     if (registered) { updatePanelSortBtn(); refreshPanelTimes(); }
+    if (NAVAN && navanWants.length) requestPredictions([...new Set(navanWants)]);
     maybeResort();
   }
   function scheduleScan() {

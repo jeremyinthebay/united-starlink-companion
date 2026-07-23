@@ -122,3 +122,13 @@
 .usl-watch{cursor:pointer;margin-left:5px;color:#ffd166;opacity:.55;font-size:14px;vertical-align:middle}
 .usl-watch:hover{opacity:1}
 .usl-watching{opacity:1}
+
+/* v1.5 — high-contrast filled badges (override earlier translucent style) */
+.usl-badge{font-size:13px;font-weight:800;padding:3px 11px;color:#fff;background:#64748B;border:none;box-shadow:0 1px 3px rgba(0,0,0,.28);letter-spacing:.2px;line-height:1.5}
+.usl-badge.usl-hi{color:#fff;background:#0B8A47;border:none}
+.usl-badge.usl-mid{color:#fff;background:#1D4ED8;border:none}
+.usl-badge.usl-low{color:#fff;background:#C2410C;border:none}
+.usl-badge.usl-no{color:#fff;background:#DC2626;border:none}
+.usl-badge.usl-na{color:#fff;background:#64748B;border:none;opacity:.92}
+.usl-badge.usl-best-badge{color:#fff;background:#0B8A47;border:none;box-shadow:0 0 0 2.5px rgba(11,138,71,.4),0 1px 4px rgba(0,0,0,.3)}
+.usl-panel .usl-badge{font-size:12px;padding:2px 9px}

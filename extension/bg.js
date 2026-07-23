@@ -206,7 +206,31 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     runTripChecks(true).then((trips) => sendResponse({ ok: true, trips }));
     return true;
   }
-  if (msg.type !== "routeData") return false;
+  if (msg.type === "predictFlights") {
+    (async () => {
+      const out = {};
+      const fns = (msg.fns || []).slice(0, 25);
+      for (const fn of fns) {
+        if (!/^UA\d{1,4}$/.test(fn)) continue;
+        const key = "uslpf:" + fn;
+        const cached = await chrome.storage.local.get(key);
+        if (cached[key] && Date.now() - cached[key].ts < CACHE_TTL_MS) { out[fn] = cached[key].v; continue; }
+        try {
+          const r = await fetchWithTimeout(API_BASE + "/api/predict-flight?flight_number=" + fn);
+          const j = await r.json();
+          const v = j && typeof j.probability === "number"
+            ? { prob: Math.round(j.probability * 100), obs: j.n_observations || 0, conf: j.confidence || "low" }
+            : null;
+          out[fn] = v;
+          await chrome.storage.local.set({ [key]: { ts: Date.now(), v } });
+        } catch (e) { out[fn] = undefined; }
+        await new Promise((rr) => setTimeout(rr, 250));
+      }
+      sendResponse({ ok: true, flights: out });
+    })();
+    return true;
+  }
+    if (msg.type !== "routeData") return false;
   const o = (msg.o || "").toUpperCase();
   const d = (msg.d || "").toUpperCase();
   if (!o || !d) {
