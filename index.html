@@ -619,7 +619,7 @@
 @keyframes plc-sweep3{0%{opacity:0;transform:translateY(0)}12%{opacity:1;transform:translateY(0)}88%{opacity:1}100%{opacity:0;transform:translateY(210px)}}
 
 /* ── emulated navan (light SaaS UI — top nav, trip strip, filter sidebar, fare columns) ── */
-.plc-nv{flex:1;display:flex;flex-direction:column;background:#fff;overflow:hidden;color:#1c1f2e}
+.plc-nv{position:relative;flex:1;display:flex;flex-direction:column;background:#fff;overflow:hidden;color:#1c1f2e}
 .plc-nvnav{height:34px;flex:0 0 34px;background:#fff;border-bottom:1px solid #ececf1;display:flex;align-items:center;gap:12px;padding:0 14px}
 .plc-nvwm{font-size:15px;font-weight:800;letter-spacing:-.045em;color:#16192a;text-transform:lowercase}
 .plc-nvbt{font-size:11px;font-weight:600;color:#3c4152;margin-left:-6px;white-space:nowrap}
@@ -695,6 +695,40 @@
 /* the odds badge is the same component as other scenes, just row-sized here */
 .plc-s3 .plc-badge{padding:2px 8px;font-size:9px;gap:4px}
 .plc-s3 .plc-badge i{width:6px;height:6px;flex:0 0 6px}
+
+/* scene 3 — same slot reorder as scene 2 (70px pitch: 64px rows + 6px gap) */
+.plc-s3 .plc-nrows{height:274px}
+.plc-s3 .plc-nrow{position:absolute;left:0;right:0;top:calc(var(--y0)*70px);
+  transition:top .85s cubic-bezier(.22,.9,.24,1) var(--d,0s)}
+.plc-s3.is-sorted .plc-nrow{top:calc(var(--y1)*70px)}
+/* winning Navan row gets a soft green ring once the sort lands */
+.plc-s3 .plc-nwin{transition:top .85s cubic-bezier(.22,.9,.24,1) var(--d,0s),box-shadow .6s ease .95s,border-color .6s ease .95s}
+.plc-s3.is-sorted .plc-nwin{border-color:#9fe3bf;box-shadow:0 4px 16px rgba(53,208,127,.26),0 1px 2px rgba(20,22,28,.05)}
+
+/* scene 3 — the extension's floating panel over Navan (lower-right) */
+.plc-npanel{position:absolute;right:10px;bottom:10px;z-index:4;width:212px;border-radius:11px;overflow:hidden;
+  background:linear-gradient(165deg,#0a1233 0%,#040816 70%);border:1px solid rgba(142,205,255,.32);
+  box-shadow:0 14px 34px rgba(2,8,32,.55),0 2px 8px rgba(2,8,32,.4),inset 0 1px 0 rgba(142,205,255,.16);color:var(--ink)}
+.plc-nph{display:flex;align-items:center;gap:5px;padding:8px 10px 7px;font-family:var(--mono);font-size:9.5px;font-weight:700;color:var(--sky-bright);letter-spacing:.02em;border-bottom:1px solid rgba(148,178,255,.14);white-space:nowrap}
+.plc-nph .plc-satdot{margin-left:auto}
+.plc-npr{display:flex;align-items:center;gap:5px;padding:4px 10px;border-bottom:1px solid rgba(148,178,255,.06);font-family:var(--mono);font-size:8.5px;white-space:nowrap}
+.plc-npr b{color:var(--ink);font-weight:700}
+.plc-npr small{color:var(--faint);font-size:8px}
+.plc-npb{margin-left:auto;font-size:8px;font-weight:700;border-radius:999px;padding:1px 7px}
+.plc-npb-g{color:#03210f;background:var(--green)}
+.plc-npb-b{color:#04182e;background:var(--blue)}
+.plc-npb-a{color:#2b1c02;background:var(--gold)}
+.plc-npb-r{color:#33060d;background:var(--red)}
+.plc-npbtn{display:block;margin:8px 9px 7px;background:linear-gradient(180deg,#2f7bff,#1e5ede);border:1px solid rgba(142,205,255,.55);border-radius:7px;padding:6px 0;text-align:center;font-size:9px;font-weight:700;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(31,95,224,.38),inset 0 1px 0 rgba(255,255,255,.22)}
+.plc-npck{display:flex;align-items:center;gap:5px;padding:0 11px 5px;font-size:7.5px;color:var(--dim);white-space:nowrap}
+.plc-npck:last-child{padding-bottom:10px}
+.plc-npbox{position:relative;width:9px;height:9px;flex:0 0 9px;border-radius:2.5px;border:1px solid rgba(148,178,255,.4);background:rgba(148,178,255,.08)}
+.plc-npbox.on{background:var(--blue);border-color:var(--blue)}
+.plc-npbox.on::after{content:"";position:absolute;left:2.5px;top:.5px;width:3px;height:5.5px;border:solid #fff;border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+/* panel pops in, then the sort button presses itself just before the reorder */
+.plc-s3.is-active .plc-npanel{animation:plc-npanelin .6s cubic-bezier(.3,1.4,.4,1) .35s both}
+@keyframes plc-npanelin{from{opacity:0;transform:translateY(10px) scale(.95)}to{opacity:1;transform:none}}
+.plc-s3.is-active .plc-npbtn{animation:plc-press .55s ease 1.05s both}
 
 /* ── scene 4 — route panel close-up ── */
 .plc-s4bg{flex:1;position:relative;overflow:hidden;background:
@@ -787,6 +821,7 @@
   .plc *,.plc *::before,.plc *::after{transition:none!important;animation:none!important}
   .plc-scene,.plc-scene.is-left{transform:none}
   .plc-s2 .plc-row{top:calc(var(--y1)*60px)}
+  .plc-s3 .plc-nrow{top:calc(var(--y1)*70px)}
   .plc-s4 .plc-pbar i{width:var(--w)}
   .plc-fillbar{display:none}
   .plc-dot.is-active{background:var(--sky)}
@@ -917,8 +952,8 @@
       </div>
     </div>
 
-    <!-- ═══ Scene 3 · Navan corporate results ═══ -->
-    <div class="plc-scene plc-s3" data-site="navan" role="group" aria-label="Scene 3 of 4: odds badges inside Navan">
+    <!-- ═══ Scene 3 · Navan corporate results — panel + one-click sort ═══ -->
+    <div class="plc-scene plc-s3" data-site="navan" data-sort-delay="1500" role="group" aria-label="Scene 3 of 4: floating panel and sort by Starlink odds inside Navan">
       <div class="plc-kb">
         <div class="plc-chrome" aria-hidden="true">
           <i class="plc-cd plc-cd1"></i><i class="plc-cd plc-cd2"></i><i class="plc-cd plc-cd3"></i>
@@ -942,12 +977,12 @@
           </div>
           <div class="plc-nvbody">
             <div class="plc-nvside" aria-hidden="true">
-              <div class="plc-nvcount">128 of 631 results<b>Reset all</b></div>
+              <div class="plc-nvcount">9 of 628 results<b>Reset all</b></div>
               <span class="plc-nvchip">United &#10005;</span>
               <i class="plc-nvhr"></i>
-              <div class="plc-nvradio"><i></i>Nonstop only (9)<u>$402</u></div>
+              <div class="plc-nvradio sel"><i></i>Nonstop only (9)<u>$402</u></div>
               <div class="plc-nvradio"><i></i>1 stop max (92)<u>$577</u></div>
-              <div class="plc-nvradio sel"><i></i>Any stops (128)<u>$647</u></div>
+              <div class="plc-nvradio"><i></i>Any stops (128)<u>$647</u></div>
               <div class="plc-nvsec">Time window<i>&#9650;</i></div>
               <div class="plc-nvslab">Depart &middot; 5:00 am &ndash; 10:00 pm</div>
               <div class="plc-nvslide"><i style="left:0"></i><i style="right:0"></i></div>
@@ -965,7 +1000,40 @@
                 <span class="plc-nvcols"><span class="plc-nvcol">Standard <i>&#8645;</i></span><span class="plc-nvcol">Enhanced <i>&#8645;</i></span><span class="plc-nvcol">Premium <i>&#8645;</i></span><span class="plc-nvcol">Luxury <i>&#8645;</i></span></span>
               </div>
               <div class="plc-nrows">
-                <div class="plc-nrow" style="--i:0">
+                <!-- rows sit in fixed slots (--y0 pre-sort, --y1 sorted) — same mechanism as scene 2.
+                     Pre-sort is deliberately mixed (red on top, a green half-off-screen at the bottom)
+                     so the reorder reads clearly: 57/49 green, 44/39 blue, 18 red sinks to last. -->
+                <div class="plc-nrow" style="--i:0;--y0:0;--y1:4;--d:.08s">
+                  <div class="plc-nleft">
+                    <div class="plc-nfl"><span class="plc-nlogo"></span>United &middot; UA 2391
+                      <span class="plc-badge plc-b-red"><i></i>&#128752;&nbsp;<u class="plc-num" data-n="18">18</u>%</span></div>
+                    <div class="plc-ntimes"><b>6:10<small>am</small></b><span class="plc-nline"></span><b>7:54<small>am</small></b></div>
+                    <div class="plc-nsub"><span>DEN &middot; Aug 12</span><span>Aug 12 &middot; SFO</span></div>
+                    <div class="plc-nmeta">Nonstop &middot; 2h 44m<span>A321neo</span><u>Details</u><u>Seats</u></div>
+                  </div>
+                  <div class="plc-nfares" aria-hidden="true">
+                    <div class="plc-fare"><b>Economy</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $402</b></span></div>
+                    <div class="plc-fare"><b>Economy Plus</b><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $650</b></span></div>
+                    <div class="plc-fare plc-fna">No fares available</div>
+                    <div class="plc-fare plc-fna">No fares available</div>
+                  </div>
+                </div>
+                <div class="plc-nrow" style="--i:1;--y0:1;--y1:3;--d:.06s">
+                  <div class="plc-nleft">
+                    <div class="plc-nfl"><span class="plc-nlogo"></span>United &middot; UA 1007
+                      <span class="plc-badge plc-b-blue"><i></i>&#128752;&nbsp;<u class="plc-num" data-n="39">39</u>%</span></div>
+                    <div class="plc-ntimes"><b>5:49<small>pm</small></b><span class="plc-nline"></span><b>7:36<small>pm</small></b></div>
+                    <div class="plc-nsub"><span>DEN &middot; Aug 12</span><span>Aug 12 &middot; SFO</span></div>
+                    <div class="plc-nmeta">Nonstop &middot; 2h 47m<span>A321neo</span><u>Details</u><u>Seats</u></div>
+                  </div>
+                  <div class="plc-nfares" aria-hidden="true">
+                    <div class="plc-fare"><b>Economy</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $402</b></span></div>
+                    <div class="plc-fare"><b>Economy Plus</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $650</b></span></div>
+                    <div class="plc-fare"><b>United First</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $807</b></span></div>
+                    <div class="plc-fare plc-fna">No fares available</div>
+                  </div>
+                </div>
+                <div class="plc-nrow plc-nwin" style="--i:2;--y0:2;--y1:0;--d:0s">
                   <div class="plc-nleft">
                     <div class="plc-nfl"><span class="plc-nlogo"></span>United &middot; UA 1812
                       <span class="plc-badge plc-b-green"><i></i>&#128752;&nbsp;<u class="plc-num" data-n="57">57</u>%</span></div>
@@ -980,53 +1048,51 @@
                     <div class="plc-fare plc-fna">No fares available</div>
                   </div>
                 </div>
-                <div class="plc-nrow" style="--i:1">
+                <div class="plc-nrow" style="--i:3;--y0:3;--y1:2;--d:.05s">
                   <div class="plc-nleft">
-                    <div class="plc-nfl"><span class="plc-nlogo"></span>United &middot; UA 2391
-                      <span class="plc-badge plc-b-red"><i></i>&#128752;&nbsp;<u class="plc-num" data-n="18">18</u>%</span></div>
-                    <div class="plc-ntimes"><b>7:45<small>am</small></b><span class="plc-nline"></span><b>9:26<small>am</small></b></div>
+                    <div class="plc-nfl"><span class="plc-nlogo"></span>United &middot; UA 1389
+                      <span class="plc-badge plc-b-blue"><i></i>&#128752;&nbsp;<u class="plc-num" data-n="44">44</u>%</span></div>
+                    <div class="plc-ntimes"><b>7:25<small>pm</small></b><span class="plc-nline"></span><b>9:14<small>pm</small></b></div>
                     <div class="plc-nsub"><span>DEN &middot; Aug 12</span><span>Aug 12 &middot; SFO</span></div>
-                    <div class="plc-nmeta">Nonstop &middot; 2h 41m<span>B757-300</span><u>Details</u><u>Seats</u></div>
+                    <div class="plc-nmeta">Nonstop &middot; 2h 49m<span>A321neo</span><u>Details</u><u>Seats</u></div>
                   </div>
                   <div class="plc-nfares" aria-hidden="true">
                     <div class="plc-fare"><b>Economy</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $402</b></span></div>
                     <div class="plc-fare"><b>Economy Plus</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $650</b></span></div>
-                    <div class="plc-fare"><b>United First</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $722</b></span></div>
+                    <div class="plc-fare"><b>United First</b><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $1,610</b></span></div>
                     <div class="plc-fare plc-fna">No fares available</div>
                   </div>
                 </div>
-                <div class="plc-nrow" style="--i:2">
+                <div class="plc-nrow" style="--i:4;--y0:4;--y1:1;--d:.03s">
                   <div class="plc-nleft">
-                    <div class="plc-nfl"><span class="plc-nlogo"></span>United &middot; UA 1007
-                      <span class="plc-badge plc-b-blue"><i></i>&#128752;&nbsp;<u class="plc-num" data-n="39">39</u>%</span></div>
-                    <div class="plc-ntimes"><b>5:49<small>pm</small></b><span class="plc-nline"></span><b>7:36<small>pm</small></b></div>
+                    <div class="plc-nfl"><span class="plc-nlogo"></span>United &middot; UA 1561
+                      <span class="plc-badge plc-b-green"><i></i>&#128752;&nbsp;<u class="plc-num" data-n="49">49</u>%</span></div>
+                    <div class="plc-ntimes"><b>11:17<small>am</small></b><span class="plc-nline"></span><b>1:07<small>pm</small></b></div>
                     <div class="plc-nsub"><span>DEN &middot; Aug 12</span><span>Aug 12 &middot; SFO</span></div>
-                    <div class="plc-nmeta">Nonstop &middot; 2h 47m<span>B737 MAX 9</span><u>Details</u><u>Seats</u></div>
+                    <div class="plc-nmeta">Nonstop &middot; 2h 50m<span>A321neo</span><u>Details</u><u>Seats</u></div>
                   </div>
                   <div class="plc-nfares" aria-hidden="true">
-                    <div class="plc-fare"><b>Economy</b><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $428</b></span></div>
-                    <div class="plc-fare"><b>Economy Plus</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $695</b></span></div>
-                    <div class="plc-fare"><b>United First</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $807</b></span></div>
-                    <div class="plc-fare plc-fna">No fares available</div>
-                  </div>
-                </div>
-                <div class="plc-nrow" style="--i:3">
-                  <div class="plc-nleft">
-                    <div class="plc-nfl"><span class="plc-nlogo"></span>United &middot; UA 1389
-                      <span class="plc-badge plc-b-blue"><i></i>&#128752;&nbsp;<u class="plc-num" data-n="44">44</u>%</span></div>
-                    <div class="plc-ntimes"><b>8:05<small>pm</small></b><span class="plc-nline"></span><b>9:47<small>pm</small></b></div>
-                    <div class="plc-nsub"><span>DEN &middot; Aug 12</span><span>Aug 12 &middot; SFO</span></div>
-                    <div class="plc-nmeta">Nonstop &middot; 2h 42m<span>B737-800</span><u>Details</u><u>Seats</u></div>
-                  </div>
-                  <div class="plc-nfares" aria-hidden="true">
-                    <div class="plc-fare"><b>Economy</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $402</b></span></div>
-                    <div class="plc-fare"><b>Economy Plus</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $663</b></span></div>
-                    <div class="plc-fare"><b>United First</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $795</b></span></div>
+                    <div class="plc-fare"><b>Economy</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip from</small><b><i>&#8856;</i> $402</b></span></div>
+                    <div class="plc-fare"><b>Economy Plus</b><small>Credit may apply</small><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $650</b></span></div>
+                    <div class="plc-fare"><b>United First</b><span class="plc-fprice"><small>Roundtrip</small><b><i>&#8856;</i> $1,102</b></span></div>
                     <div class="plc-fare plc-fna">No fares available</div>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
+          <!-- the extension's floating panel — same dark navy/sky styling as the United scenes -->
+          <div class="plc-npanel" aria-hidden="true">
+            <div class="plc-nph">&#128752;&nbsp;DEN&rarr;SFO &middot; Starlink odds<i class="plc-satdot"></i></div>
+            <div class="plc-npr"><b>UA1812</b><small>&middot; 1:30pm</small><span class="plc-npb plc-npb-g"><u class="plc-num" data-n="57">57</u>%</span></div>
+            <div class="plc-npr"><b>UA1561</b><small>&middot; 11:17am</small><span class="plc-npb plc-npb-g"><u class="plc-num" data-n="49">49</u>%</span></div>
+            <div class="plc-npr"><b>UA1389</b><small>&middot; 7:25pm</small><span class="plc-npb plc-npb-b"><u class="plc-num" data-n="44">44</u>%</span></div>
+            <div class="plc-npr"><b>UA1007</b><small>&middot; 5:49pm</small><span class="plc-npb plc-npb-b"><u class="plc-num" data-n="39">39</u>%</span></div>
+            <div class="plc-npr"><b>UA2123</b><small>&middot; 9:00pm</small><span class="plc-npb plc-npb-a"><u class="plc-num" data-n="33">33</u>%</span></div>
+            <div class="plc-npr"><b>UA2391</b><small>&middot; 6:10am</small><span class="plc-npb plc-npb-r"><u class="plc-num" data-n="18">18</u>%</span></div>
+            <div class="plc-npbtn">&#8645;&nbsp;Sort page by Starlink odds</div>
+            <div class="plc-npck"><i class="plc-npbox on"></i>auto-sort by odds when the page loads</div>
+            <div class="plc-npck"><i class="plc-npbox"></i>keep sorted when the page updates</div>
           </div>
         </div>
       </div>
@@ -1068,14 +1134,14 @@
 <div class="plc-caps" aria-live="polite">
   <p class="plc-cap is-active">See <b>every flight&rsquo;s Starlink odds</b> on united.com.</p>
   <p class="plc-cap">One click <b>sorts the whole page</b> by odds.</p>
-  <p class="plc-cap">Works in <b>Navan</b> too &mdash; where work books travel.</p>
+  <p class="plc-cap">&hellip;and now it <b>sorts Navan, too</b> &mdash; where work books travel.</p>
   <p class="plc-cap">A <b>live route panel</b> &mdash; and it flips for your return.</p>
 </div>
 
 <div class="plc-dots" role="tablist" aria-label="Scenes">
   <button class="plc-dot is-active" type="button" role="tab" aria-selected="true" aria-label="Scene 1: odds on united.com"><i class="plc-fillbar"></i></button>
   <button class="plc-dot" type="button" role="tab" aria-selected="false" aria-label="Scene 2: sort page by odds"><i class="plc-fillbar"></i></button>
-  <button class="plc-dot" type="button" role="tab" aria-selected="false" aria-label="Scene 3: odds in Navan"><i class="plc-fillbar"></i></button>
+  <button class="plc-dot" type="button" role="tab" aria-selected="false" aria-label="Scene 3: panel and sort in Navan"><i class="plc-fillbar"></i></button>
   <button class="plc-dot" type="button" role="tab" aria-selected="false" aria-label="Scene 4: live route panel"><i class="plc-fillbar"></i></button>
 </div>
 
@@ -1101,7 +1167,7 @@
   var tabN=root.querySelector(".plc-site-navan");
   var scaleEl=root.querySelector(".plc-scale");
   var viewport=root.querySelector(".plc-viewport");
-  var s2=root.querySelector(".plc-s2");
+  var sorters=[].slice.call(root.querySelectorAll(".plc-s2,.plc-s3"));
   var n=scenes.length;
 
   var mq=window.matchMedia?window.matchMedia("(prefers-reduced-motion: reduce)"):null;
@@ -1116,7 +1182,7 @@
   else{window.addEventListener("resize",fit);}
   fit();
 
-  var idx=0,timer=null,startT=0,remain=DUR,sortT=null;
+  var idx=0,timer=null,startT=0,remain=DUR,sortTs=[];
   var hoverP=false,focusP=false,hiddenP=false;
   function pausedAny(){return hoverP||focusP||hiddenP;}
 
@@ -1152,18 +1218,21 @@
   }
 
   function choreo(){
-    /* scene 2: press the pill, then reorder */
-    clearTimeout(sortT);
-    if(scenes[idx]===s2){
-      if(reduced()){s2.classList.add("is-sorted");}
-      else{
-        s2.classList.remove("is-sorted");
-        sortT=setTimeout(function(){s2.classList.add("is-sorted");},1050);
+    /* sortable scenes (2: united, 3: navan): press the button, then reorder */
+    sortTs.forEach(clearTimeout);sortTs=[];
+    sorters.forEach(function(s){
+      if(scenes[idx]===s){
+        if(reduced()){s.classList.add("is-sorted");}
+        else{
+          s.classList.remove("is-sorted");
+          var d=parseInt(s.getAttribute("data-sort-delay"),10)||1050;
+          sortTs.push(setTimeout(function(){s.classList.add("is-sorted");},d));
+        }
+      }else{
+        /* reset after the exit fade so rows don't jump mid-transition */
+        sortTs.push(setTimeout(function(){s.classList.remove("is-sorted");},700));
       }
-    }else{
-      /* reset after the exit fade so rows don't jump mid-transition */
-      sortT=setTimeout(function(){s2.classList.remove("is-sorted");},700);
-    }
+    });
     /* every scene: restart the % count-ups on entry */
     countUp(scenes[idx]);
   }
@@ -1229,7 +1298,7 @@
   });
 
   function onMotionChange(){
-    if(reduced()){pause();s2.classList.add("is-sorted");cuToken++;snapNums();}
+    if(reduced()){pause();sorters.forEach(function(s){s.classList.add("is-sorted");});cuToken++;snapNums();}
     else{schedule();}
   }
   if(mq){
@@ -1239,7 +1308,7 @@
 
   /* init */
   scenes.forEach(function(s,j){s.setAttribute("aria-hidden",j===0?"false":"true");});
-  if(reduced()){s2.classList.add("is-sorted");root.classList.add("is-paused");}
+  if(reduced()){sorters.forEach(function(s){s.classList.add("is-sorted");});root.classList.add("is-paused");}
   else{countUp(scenes[0]);schedule();}
 })();
 </script>
