@@ -163,14 +163,7 @@
     "ORD-SDF": 6,
     "ORD-TVC": 6
    },
-   "newTails": [
-    "N14517",
-    "N14549",
-    "N14557",
-    "N54552",
-    "N54570",
-    "N94556"
-   ],
+   "newTails": [],
    "moved": []
   }
  ],
@@ -6877,11 +6870,3374 @@
   }
  },
  "knownTails": [
+  "N103SY",
+  "N105SY",
+  "N106SY",
+  "N107SY",
+  "N108SY",
+  "N109SY",
+  "N110SY",
+  "N113SY",
+  "N114SY",
+  "N116SY",
+  "N117SY",
+  "N118SY",
+  "N119SY",
+  "N120SY",
+  "N121SY",
+  "N12216",
+  "N122SY",
+  "N124SY",
+  "N125SY",
+  "N127SY",
+  "N128SY",
+  "N130SY",
+  "N131SY",
+  "N132SY",
+  "N133SY",
+  "N134SY",
+  "N135SY",
+  "N136SY",
+  "N138SY",
+  "N139SY",
+  "N140SY",
+  "N141SY",
+  "N14214",
+  "N14235",
+  "N14237",
+  "N14240",
+  "N14249",
+  "N14250",
+  "N142SY",
+  "N143SY",
+  "N144SY",
+  "N14509",
+  "N14512",
+  "N14515",
   "N14517",
+  "N14518",
+  "N14521",
+  "N14544",
+  "N14545",
+  "N14546",
+  "N14548",
   "N14549",
+  "N14553",
   "N14557",
+  "N14564",
+  "N14565",
+  "N14567",
+  "N14569",
+  "N14576",
+  "N145SY",
+  "N146SY",
+  "N148SY",
+  "N149SY",
+  "N150SY",
+  "N151SY",
+  "N152SY",
+  "N153SY",
+  "N154SY",
+  "N156SY",
+  "N157SY",
+  "N160SY",
+  "N161SY",
+  "N162SY",
+  "N163SY",
+  "N164SY",
+  "N165SY",
+  "N166SY",
+  "N167SY",
+  "N168SY",
+  "N17229",
+  "N17233",
+  "N17244",
+  "N17245",
+  "N18243",
+  "N200SY",
+  "N202SY",
+  "N203SY",
+  "N204SY",
+  "N205SY",
+  "N206SY",
+  "N207SY",
+  "N208SY",
+  "N209SY",
+  "N211SY",
+  "N213SY",
+  "N24202",
+  "N24514",
+  "N24542",
+  "N24573",
+  "N25201",
+  "N26208",
+  "N26215",
+  "N26226",
+  "N27213",
+  "N27239",
+  "N27246",
+  "N27477",
+  "N28478",
+  "N33203",
+  "N33209",
+  "N33284",
+  "N33286",
+  "N33289",
+  "N33294",
+  "N34282",
+  "N34547",
+  "N34551",
+  "N35204",
+  "N35236",
+  "N35260",
+  "N35271",
+  "N36207",
+  "N36272",
+  "N36444",
+  "N37018",
+  "N37252",
+  "N37253",
+  "N37255",
+  "N37273",
+  "N37274",
+  "N37277",
+  "N37281",
+  "N37287",
+  "N37290",
+  "N37413",
+  "N37422",
+  "N37427",
+  "N37434",
+  "N37437",
+  "N37466",
+  "N37471",
+  "N38257",
+  "N38424",
+  "N38443",
+  "N39423",
+  "N44501",
+  "N44550",
+  "N45440",
+  "N501GJ",
+  "N503GJ",
+  "N504GJ",
+  "N506GJ",
+  "N507GJ",
+  "N508GJ",
+  "N509GJ",
+  "N511GJ",
+  "N513GJ",
+  "N516GJ",
+  "N519GJ",
+  "N520GJ",
+  "N521GJ",
+  "N522GJ",
+  "N523GJ",
+  "N524GJ",
+  "N526GJ",
+  "N529GJ",
+  "N530GJ",
+  "N531GJ",
+  "N532GJ",
+  "N533GJ",
+  "N53441",
+  "N53442",
+  "N534GJ",
+  "N535GJ",
+  "N536GJ",
+  "N537GJ",
+  "N538GJ",
+  "N539GJ",
+  "N540GJ",
+  "N541GJ",
+  "N542GJ",
+  "N543GJ",
+  "N544GJ",
+  "N54543",
   "N54552",
+  "N54558",
+  "N54561",
   "N54570",
+  "N545GJ",
+  "N546GJ",
+  "N547GJ",
+  "N548GJ",
+  "N549GJ",
+  "N550GJ",
+  "N551GJ",
+  "N552GJ",
+  "N553GJ",
+  "N554GJ",
+  "N556GJ",
+  "N557GJ",
+  "N558GJ",
+  "N559GJ",
+  "N561GJ",
+  "N562GJ",
+  "N563GJ",
+  "N564GJ",
+  "N565GJ",
+  "N566GJ",
+  "N568GJ",
+  "N569GJ",
+  "N570GJ",
+  "N571GJ",
+  "N572GJ",
+  "N573GJ",
+  "N57439",
+  "N574GJ",
+  "N575GJ",
+  "N576GJ",
+  "N577GJ",
+  "N578GJ",
+  "N579GJ",
+  "N580GJ",
+  "N583GJ",
+  "N601UX",
+  "N602UX",
+  "N603SK",
+  "N603UX",
+  "N604UX",
+  "N605UX",
+  "N606UX",
+  "N607UX",
+  "N608UX",
+  "N609UX",
+  "N610UX",
+  "N611UX",
+  "N612UX",
+  "N613UX",
+  "N614UX",
+  "N615UX",
+  "N616UX",
+  "N617UX",
+  "N61898",
+  "N618UX",
+  "N619UX",
+  "N620UX",
+  "N621UX",
+  "N622UX",
+  "N623UX",
+  "N624UX",
+  "N625UX",
+  "N626SY",
+  "N627SY",
+  "N628SY",
+  "N629SY",
+  "N630SY",
+  "N631SY",
+  "N632SY",
+  "N634SY",
+  "N635SY",
+  "N637SY",
+  "N638SY",
+  "N639SY",
+  "N64321",
+  "N64809",
+  "N66803",
+  "N66808",
+  "N66814",
+  "N66828",
+  "N66893",
+  "N67812",
+  "N685SK",
+  "N68801",
+  "N68802",
+  "N68807",
+  "N68811",
+  "N68821",
+  "N68822",
+  "N689SK",
+  "N691SK",
+  "N69804",
+  "N69813",
+  "N69819",
+  "N69826",
+  "N69829",
+  "N716EV",
+  "N716EV",
+  "N721YX",
+  "N722YX",
+  "N723EV",
+  "N723YX",
+  "N724YX",
+  "N725YX",
+  "N726YX",
+  "N727YX",
+  "N728YX",
+  "N729YX",
+  "N730YX",
+  "N731YX",
+  "N73251",
+  "N73256",
+  "N73270",
+  "N73275",
+  "N73276",
+  "N73291",
+  "N732YX",
+  "N733YX",
+  "N736YX",
+  "N738EV",
+  "N739YX",
+  "N740YX",
+  "N741YX",
+  "N742YX",
+  "N743YX",
+  "N744YX",
+  "N745YX",
+  "N746YX",
+  "N747YX",
+  "N748YX",
+  "N749YX",
+  "N750YX",
+  "N751EV",
+  "N751YX",
+  "N752YX",
+  "N753EV",
+  "N753YX",
+  "N75426",
+  "N75428",
+  "N75432",
+  "N75433",
+  "N75435",
+  "N75436",
+  "N754YX",
+  "N755YX",
+  "N756YX",
+  "N757YX",
+  "N758YX",
+  "N760YX",
+  "N761YX",
+  "N762SK",
+  "N762YX",
+  "N763YX",
+  "N764YX",
+  "N76505",
+  "N76514",
+  "N76516",
+  "N76519",
+  "N76522",
+  "N765YX",
+  "N766YX",
+  "N767SK",
+  "N767YX",
+  "N768YX",
+  "N769YX",
+  "N770YX",
+  "N771SK",
+  "N771YX",
+  "N77258",
+  "N77261",
+  "N77296",
+  "N772YX",
+  "N773SK",
+  "N773YX",
+  "N77430",
+  "N77431",
+  "N774YX",
+  "N77520",
+  "N77525",
+  "N775YX",
+  "N776YX",
+  "N778YX",
+  "N779SK",
+  "N779YX",
+  "N780YX",
+  "N781YX",
+  "N78285",
+  "N782YX",
+  "N78361",
+  "N783SK",
+  "N783YX",
+  "N784YX",
+  "N78506",
+  "N785SK",
+  "N785YX",
+  "N786YX",
+  "N787YX",
+  "N788SK",
+  "N788YX",
+  "N789SK",
+  "N789YX",
+  "N790SK",
+  "N790YX",
+  "N791SK",
+  "N791YX",
+  "N792SK",
+  "N792YX",
+  "N793SK",
+  "N794SK",
+  "N795SK",
+  "N796SK",
+  "N797SK",
+  "N80343",
+  "N80348",
+  "N82314",
+  "N82333",
+  "N82338",
+  "N82366",
+  "N83329",
+  "N84307",
+  "N84378",
+  "N85320",
+  "N85323",
+  "N85340",
+  "N85351",
+  "N85352",
+  "N85354",
+  "N85355",
+  "N85356",
+  "N85358",
+  "N85363",
+  "N85369",
+  "N85370",
+  "N85373",
+  "N85374",
+  "N85376",
+  "N85377",
+  "N85379",
+  "N86309",
+  "N86311",
+  "N86312",
+  "N86316",
+  "N86322",
+  "N86324",
+  "N86334",
+  "N86336",
+  "N86344",
+  "N86347",
+  "N86350",
+  "N86371",
+  "N86372",
+  "N86375",
+  "N87302",
+  "N87303",
+  "N87306",
+  "N87318",
+  "N87319",
+  "N87337",
+  "N87339",
+  "N87345",
+  "N87353",
+  "N87360",
+  "N87364",
+  "N87365",
+  "N87367",
+  "N87368",
+  "N87380",
+  "N87527",
+  "N88301",
+  "N88310",
+  "N88325",
+  "N88326",
+  "N88327",
+  "N88328",
+  "N88330",
+  "N88331",
+  "N88332",
+  "N88335",
+  "N88341",
+  "N88346",
+  "N88359",
+  "N89304",
+  "N89308",
+  "N89313",
+  "N89315",
+  "N89317",
+  "N89321",
+  "N89342",
+  "N89349",
+  "N89357",
+  "N89362",
+  "N93305",
   "N94556"
+ ],
+ "roster": [
+  {
+   "tail": "N68811",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-07-23"
+  },
+  {
+   "tail": "N583GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-07-22"
+  },
+  {
+   "tail": "N14512",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-20"
+  },
+  {
+   "tail": "N14576",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-20"
+  },
+  {
+   "tail": "N38257",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-07-20"
+  },
+  {
+   "tail": "N738EV",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-07-20"
+  },
+  {
+   "tail": "N14517",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-18"
+  },
+  {
+   "tail": "N67812",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-07-18"
+  },
+  {
+   "tail": "N33203",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-07-17"
+  },
+  {
+   "tail": "N508GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-07-17"
+  },
+  {
+   "tail": "N54558",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-17"
+  },
+  {
+   "tail": "N24514",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-15"
+  },
+  {
+   "tail": "N35204",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-07-15"
+  },
+  {
+   "tail": "N14553",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-14"
+  },
+  {
+   "tail": "N14567",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-14"
+  },
+  {
+   "tail": "N54561",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-14"
+  },
+  {
+   "tail": "N75433",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-07-13"
+  },
+  {
+   "tail": "N76514",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-07-13"
+  },
+  {
+   "tail": "N27477",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-07-11"
+  },
+  {
+   "tail": "N24573",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-10"
+  },
+  {
+   "tail": "N25201",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-07-10"
+  },
+  {
+   "tail": "N509GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-07-09"
+  },
+  {
+   "tail": "N14546",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-08"
+  },
+  {
+   "tail": "N18243",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-07-08"
+  },
+  {
+   "tail": "N73276",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-07-08"
+  },
+  {
+   "tail": "N14249",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N14509",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N14515",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N14518",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N14544",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N14545",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N14557",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N14569",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N27213",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N28478",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N35271",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N37281",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N54570",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N66814",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N66893",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N69804",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N69813",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-07-07"
+  },
+  {
+   "tail": "N639SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-07-02"
+  },
+  {
+   "tail": "N14521",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-07-01"
+  },
+  {
+   "tail": "N37422",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-07-01"
+  },
+  {
+   "tail": "N37471",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-07-01"
+  },
+  {
+   "tail": "N33286",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-06-30"
+  },
+  {
+   "tail": "N39423",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-06-30"
+  },
+  {
+   "tail": "N44501",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-06-30"
+  },
+  {
+   "tail": "N14564",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-06-23"
+  },
+  {
+   "tail": "N37018",
+   "type": "777",
+   "fleet": "mainline",
+   "seen": "2026-06-23"
+  },
+  {
+   "tail": "N529GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-06-22"
+  },
+  {
+   "tail": "N37255",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-06-21"
+  },
+  {
+   "tail": "N54552",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-06-21"
+  },
+  {
+   "tail": "N24202",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-06-18"
+  },
+  {
+   "tail": "N26208",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-06-18"
+  },
+  {
+   "tail": "N53441",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-06-18"
+  },
+  {
+   "tail": "N34551",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-06-17"
+  },
+  {
+   "tail": "N37253",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-06-17"
+  },
+  {
+   "tail": "N603SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-06-17"
+  },
+  {
+   "tail": "N788SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-06-17"
+  },
+  {
+   "tail": "N54543",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-06-16"
+  },
+  {
+   "tail": "N78285",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-06-16"
+  },
+  {
+   "tail": "N44550",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-06-13"
+  },
+  {
+   "tail": "N57439",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-06-13"
+  },
+  {
+   "tail": "N94556",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-06-11"
+  },
+  {
+   "tail": "N36207",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-06-10"
+  },
+  {
+   "tail": "N77431",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-06-10"
+  },
+  {
+   "tail": "N14549",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-06-07"
+  },
+  {
+   "tail": "N795SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-06-07"
+  },
+  {
+   "tail": "N14565",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-06-06"
+  },
+  {
+   "tail": "N34282",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-06-06"
+  },
+  {
+   "tail": "N685SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-06-05"
+  },
+  {
+   "tail": "N14548",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-06-04"
+  },
+  {
+   "tail": "N17245",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-06-04"
+  },
+  {
+   "tail": "N35260",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-06-04"
+  },
+  {
+   "tail": "N36444",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-06-04"
+  },
+  {
+   "tail": "N37413",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-06-04"
+  },
+  {
+   "tail": "N45440",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-06-04"
+  },
+  {
+   "tail": "N68801",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-06-04"
+  },
+  {
+   "tail": "N73275",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-06-04"
+  },
+  {
+   "tail": "N75426",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-06-04"
+  },
+  {
+   "tail": "N77261",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-06-04"
+  },
+  {
+   "tail": "N64321",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-06-03"
+  },
+  {
+   "tail": "N66828",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-06-03"
+  },
+  {
+   "tail": "N68807",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-06-03"
+  },
+  {
+   "tail": "N75428",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-31"
+  },
+  {
+   "tail": "N797SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-05-31"
+  },
+  {
+   "tail": "N34547",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-05-29"
+  },
+  {
+   "tail": "N37427",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-28"
+  },
+  {
+   "tail": "N12216",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-05-26"
+  },
+  {
+   "tail": "N61898",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-26"
+  },
+  {
+   "tail": "N75432",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-26"
+  },
+  {
+   "tail": "N37290",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-05-25"
+  },
+  {
+   "tail": "N38424",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-25"
+  },
+  {
+   "tail": "N68821",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-24"
+  },
+  {
+   "tail": "N77520",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-05-23"
+  },
+  {
+   "tail": "N68822",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-21"
+  },
+  {
+   "tail": "N76522",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-05-21"
+  },
+  {
+   "tail": "N76505",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-05-19"
+  },
+  {
+   "tail": "N76516",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-05-16"
+  },
+  {
+   "tail": "N78506",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-05-16"
+  },
+  {
+   "tail": "N76519",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-05-15"
+  },
+  {
+   "tail": "N691SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-05-13"
+  },
+  {
+   "tail": "N73291",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-05-10"
+  },
+  {
+   "tail": "N794SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-05-10"
+  },
+  {
+   "tail": "N37466",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-09"
+  },
+  {
+   "tail": "N69826",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-07"
+  },
+  {
+   "tail": "N77430",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-07"
+  },
+  {
+   "tail": "N37277",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-05-06"
+  },
+  {
+   "tail": "N37434",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-06"
+  },
+  {
+   "tail": "N68802",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-06"
+  },
+  {
+   "tail": "N37274",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-05-04"
+  },
+  {
+   "tail": "N69819",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-05-02"
+  },
+  {
+   "tail": "N14240",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-05-01"
+  },
+  {
+   "tail": "N37273",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-04-30"
+  },
+  {
+   "tail": "N66803",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-04-28"
+  },
+  {
+   "tail": "N64809",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-04-27"
+  },
+  {
+   "tail": "N66808",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-04-25"
+  },
+  {
+   "tail": "N790SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-04-25"
+  },
+  {
+   "tail": "N69829",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-04-24"
+  },
+  {
+   "tail": "N73256",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-04-23"
+  },
+  {
+   "tail": "N75435",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-04-23"
+  },
+  {
+   "tail": "N689SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-04-22"
+  },
+  {
+   "tail": "N26215",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-04-21"
+  },
+  {
+   "tail": "N36272",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-04-18"
+  },
+  {
+   "tail": "N37437",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-04-18"
+  },
+  {
+   "tail": "N38443",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-04-17"
+  },
+  {
+   "tail": "N751EV",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-04-17"
+  },
+  {
+   "tail": "N14214",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-04-16"
+  },
+  {
+   "tail": "N73270",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-04-04"
+  },
+  {
+   "tail": "N791YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-04-02"
+  },
+  {
+   "tail": "N27239",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-03-28"
+  },
+  {
+   "tail": "N17244",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-03-22"
+  },
+  {
+   "tail": "N792YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-03-21"
+  },
+  {
+   "tail": "N14235",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-03-18"
+  },
+  {
+   "tail": "N14237",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-03-18"
+  },
+  {
+   "tail": "N35236",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-03-12"
+  },
+  {
+   "tail": "N14250",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-03-05"
+  },
+  {
+   "tail": "N24542",
+   "type": "A321neo",
+   "fleet": "mainline",
+   "seen": "2026-03-05"
+  },
+  {
+   "tail": "N27246",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-03-05"
+  },
+  {
+   "tail": "N33294",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-03-05"
+  },
+  {
+   "tail": "N53442",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-03-05"
+  },
+  {
+   "tail": "N77258",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-03-05"
+  },
+  {
+   "tail": "N77296",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-03-05"
+  },
+  {
+   "tail": "N17233",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-03-04"
+  },
+  {
+   "tail": "N574GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-03-03"
+  },
+  {
+   "tail": "N37252",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-03-02"
+  },
+  {
+   "tail": "N17229",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-02-28"
+  },
+  {
+   "tail": "N516GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-02-28"
+  },
+  {
+   "tail": "N796SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-02-25"
+  },
+  {
+   "tail": "N26226",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-02-20"
+  },
+  {
+   "tail": "N716EV",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-02-18"
+  },
+  {
+   "tail": "N716EV",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-02-18"
+  },
+  {
+   "tail": "N33209",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-02-16"
+  },
+  {
+   "tail": "N73251",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-02-16"
+  },
+  {
+   "tail": "N75436",
+   "type": "737-900",
+   "fleet": "mainline",
+   "seen": "2026-02-16"
+  },
+  {
+   "tail": "N753EV",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-02-14"
+  },
+  {
+   "tail": "N552GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-02-12"
+  },
+  {
+   "tail": "N33289",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-02-11"
+  },
+  {
+   "tail": "N37287",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-02-11"
+  },
+  {
+   "tail": "N569GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-02-11"
+  },
+  {
+   "tail": "N789SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-02-10"
+  },
+  {
+   "tail": "N739YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-02-08"
+  },
+  {
+   "tail": "N87527",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-02-08"
+  },
+  {
+   "tail": "N556GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-02-07"
+  },
+  {
+   "tail": "N128SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-02-05"
+  },
+  {
+   "tail": "N209SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-02-05"
+  },
+  {
+   "tail": "N87302",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-02-05"
+  },
+  {
+   "tail": "N133SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-02-04"
+  },
+  {
+   "tail": "N543GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-02-01"
+  },
+  {
+   "tail": "N565GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-02-01"
+  },
+  {
+   "tail": "N579GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-02-01"
+  },
+  {
+   "tail": "N790YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-02-01"
+  },
+  {
+   "tail": "N88310",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-31"
+  },
+  {
+   "tail": "N571GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-30"
+  },
+  {
+   "tail": "N758YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-30"
+  },
+  {
+   "tail": "N558GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-27"
+  },
+  {
+   "tail": "N755YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-21"
+  },
+  {
+   "tail": "N80343",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-21"
+  },
+  {
+   "tail": "N624UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-18"
+  },
+  {
+   "tail": "N85340",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-18"
+  },
+  {
+   "tail": "N136SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-16"
+  },
+  {
+   "tail": "N756YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-16"
+  },
+  {
+   "tail": "N559GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-15"
+  },
+  {
+   "tail": "N732YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-15"
+  },
+  {
+   "tail": "N519GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-11"
+  },
+  {
+   "tail": "N566GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-11"
+  },
+  {
+   "tail": "N637SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-11"
+  },
+  {
+   "tail": "N731YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-11"
+  },
+  {
+   "tail": "N85356",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-11"
+  },
+  {
+   "tail": "N548GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-10"
+  },
+  {
+   "tail": "N568GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-10"
+  },
+  {
+   "tail": "N86344",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-09"
+  },
+  {
+   "tail": "N87353",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-09"
+  },
+  {
+   "tail": "N635SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-08"
+  },
+  {
+   "tail": "N132SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-07"
+  },
+  {
+   "tail": "N86309",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-07"
+  },
+  {
+   "tail": "N730YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-06"
+  },
+  {
+   "tail": "N89349",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-06"
+  },
+  {
+   "tail": "N570GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-05"
+  },
+  {
+   "tail": "N625UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-05"
+  },
+  {
+   "tail": "N638SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-05"
+  },
+  {
+   "tail": "N754YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-05"
+  },
+  {
+   "tail": "N33284",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2026-01-02"
+  },
+  {
+   "tail": "N544GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-02"
+  },
+  {
+   "tail": "N546GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-02"
+  },
+  {
+   "tail": "N563GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-02"
+  },
+  {
+   "tail": "N576GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-02"
+  },
+  {
+   "tail": "N580GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-02"
+  },
+  {
+   "tail": "N779SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2026-01-02"
+  },
+  {
+   "tail": "N788YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2026-01-01"
+  },
+  {
+   "tail": "N506GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-29"
+  },
+  {
+   "tail": "N522GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-29"
+  },
+  {
+   "tail": "N540GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-29"
+  },
+  {
+   "tail": "N605UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-29"
+  },
+  {
+   "tail": "N89304",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-29"
+  },
+  {
+   "tail": "N86311",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-28"
+  },
+  {
+   "tail": "N513GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N521GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N535GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N536GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N537GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N538GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N541GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N542GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N545GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N554GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N562GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N564GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N88341",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-26"
+  },
+  {
+   "tail": "N131SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-24"
+  },
+  {
+   "tail": "N80348",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-19"
+  },
+  {
+   "tail": "N87345",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-19"
+  },
+  {
+   "tail": "N789YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-17"
+  },
+  {
+   "tail": "N130SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-14"
+  },
+  {
+   "tail": "N504GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-14"
+  },
+  {
+   "tail": "N526GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-14"
+  },
+  {
+   "tail": "N539GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-14"
+  },
+  {
+   "tail": "N547GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-14"
+  },
+  {
+   "tail": "N621UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-14"
+  },
+  {
+   "tail": "N623UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-14"
+  },
+  {
+   "tail": "N87367",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-14"
+  },
+  {
+   "tail": "N88301",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-14"
+  },
+  {
+   "tail": "N89342",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-14"
+  },
+  {
+   "tail": "N728YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-13"
+  },
+  {
+   "tail": "N86347",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-13"
+  },
+  {
+   "tail": "N727YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-10"
+  },
+  {
+   "tail": "N769YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-10"
+  },
+  {
+   "tail": "N88346",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-10"
+  },
+  {
+   "tail": "N501GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-06"
+  },
+  {
+   "tail": "N507GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-06"
+  },
+  {
+   "tail": "N524GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-06"
+  },
+  {
+   "tail": "N106SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N107SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N109SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N114SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N117SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N118SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N119SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N120SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N121SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N122SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N124SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N125SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N127SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N134SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N135SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N138SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N139SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N140SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N141SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N142SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N143SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N144SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N145SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N146SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N148SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N149SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N150SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N151SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N152SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N153SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N154SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N156SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N157SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N160SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N161SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N162SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N163SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N164SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N165SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N166SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N167SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N168SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N200SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N202SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N203SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N204SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N205SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N206SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N207SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N208SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N211SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N213SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N721YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N722YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N723EV",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N723YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N724YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N725YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N726YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N729YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N733YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N736YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N740YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N741YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N742YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N743YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N744YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N745YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N746YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N747YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N748YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N749YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N750YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N751YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N752YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N753YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N757YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N760YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N761YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N762YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N763YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N764YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N765YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N766YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N767YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N768YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N770YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N771YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N772YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N773YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N774YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N775YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N776YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N778YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N779YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N780YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N781YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N782YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N783YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N784YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N785YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N786YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N787YX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N793SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N82333",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N82338",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N84307",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N85351",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N85352",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N85354",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N85355",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N85358",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N86334",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N87318",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N87339",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N87360",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N88326",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N88335",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N88359",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N89315",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N89357",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-12-03"
+  },
+  {
+   "tail": "N553GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-11-29"
+  },
+  {
+   "tail": "N550GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-11-19"
+  },
+  {
+   "tail": "N551GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-11-19"
+  },
+  {
+   "tail": "N86350",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-11-19"
+  },
+  {
+   "tail": "N88331",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-11-19"
+  },
+  {
+   "tail": "N762SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-11-17"
+  },
+  {
+   "tail": "N511GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-11-14"
+  },
+  {
+   "tail": "N785SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-11-12"
+  },
+  {
+   "tail": "N520GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-11-08"
+  },
+  {
+   "tail": "N557GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-11-08"
+  },
+  {
+   "tail": "N616UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-11-08"
+  },
+  {
+   "tail": "N619UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-11-08"
+  },
+  {
+   "tail": "N620UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-11-08"
+  },
+  {
+   "tail": "N622UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-11-08"
+  },
+  {
+   "tail": "N634SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-11-08"
+  },
+  {
+   "tail": "N791SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-11-08"
+  },
+  {
+   "tail": "N86336",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-11-08"
+  },
+  {
+   "tail": "N87303",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-11-08"
+  },
+  {
+   "tail": "N88332",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-11-08"
+  },
+  {
+   "tail": "N773SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-11-03"
+  },
+  {
+   "tail": "N523GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-11-01"
+  },
+  {
+   "tail": "N534GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-11-01"
+  },
+  {
+   "tail": "N767SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-29"
+  },
+  {
+   "tail": "N503GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-24"
+  },
+  {
+   "tail": "N792SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-24"
+  },
+  {
+   "tail": "N783SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-23"
+  },
+  {
+   "tail": "N578GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-22"
+  },
+  {
+   "tail": "N531GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-19"
+  },
+  {
+   "tail": "N549GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-19"
+  },
+  {
+   "tail": "N561GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-19"
+  },
+  {
+   "tail": "N618UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-10-19"
+  },
+  {
+   "tail": "N530GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-18"
+  },
+  {
+   "tail": "N632SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-10-18"
+  },
+  {
+   "tail": "N77525",
+   "type": "737-800",
+   "fleet": "mainline",
+   "seen": "2025-10-16"
+  },
+  {
+   "tail": "N83329",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-10-15"
+  },
+  {
+   "tail": "N573GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-12"
+  },
+  {
+   "tail": "N771SK",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-12"
+  },
+  {
+   "tail": "N88328",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-10-12"
+  },
+  {
+   "tail": "N613UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-10-11"
+  },
+  {
+   "tail": "N533GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-10"
+  },
+  {
+   "tail": "N572GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-10-10"
+  },
+  {
+   "tail": "N617UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-10-09"
+  },
+  {
+   "tail": "N85374",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-10-03"
+  },
+  {
+   "tail": "N88330",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-30"
+  },
+  {
+   "tail": "N532GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-09-27"
+  },
+  {
+   "tail": "N575GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-09-27"
+  },
+  {
+   "tail": "N615UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-27"
+  },
+  {
+   "tail": "N88327",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-27"
+  },
+  {
+   "tail": "N614UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-24"
+  },
+  {
+   "tail": "N88325",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-23"
+  },
+  {
+   "tail": "N78361",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-21"
+  },
+  {
+   "tail": "N86324",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-21"
+  },
+  {
+   "tail": "N84378",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-19"
+  },
+  {
+   "tail": "N577GJ",
+   "type": "CRJ-550",
+   "fleet": "express",
+   "seen": "2025-09-18"
+  },
+  {
+   "tail": "N85323",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-17"
+  },
+  {
+   "tail": "N612UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-16"
+  },
+  {
+   "tail": "N86372",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-15"
+  },
+  {
+   "tail": "N85373",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-13"
+  },
+  {
+   "tail": "N87365",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-12"
+  },
+  {
+   "tail": "N85379",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-11"
+  },
+  {
+   "tail": "N86375",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-11"
+  },
+  {
+   "tail": "N87319",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-10"
+  },
+  {
+   "tail": "N85370",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-08"
+  },
+  {
+   "tail": "N608UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-07"
+  },
+  {
+   "tail": "N86322",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-04"
+  },
+  {
+   "tail": "N89362",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-04"
+  },
+  {
+   "tail": "N85369",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-02"
+  },
+  {
+   "tail": "N87380",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-09-02"
+  },
+  {
+   "tail": "N601UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-29"
+  },
+  {
+   "tail": "N602UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-29"
+  },
+  {
+   "tail": "N89317",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-27"
+  },
+  {
+   "tail": "N604UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-26"
+  },
+  {
+   "tail": "N82314",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-26"
+  },
+  {
+   "tail": "N85377",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-25"
+  },
+  {
+   "tail": "N607UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-22"
+  },
+  {
+   "tail": "N85376",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-21"
+  },
+  {
+   "tail": "N87306",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-21"
+  },
+  {
+   "tail": "N82366",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-16"
+  },
+  {
+   "tail": "N89313",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-16"
+  },
+  {
+   "tail": "N611UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-15"
+  },
+  {
+   "tail": "N610UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-13"
+  },
+  {
+   "tail": "N609UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-12"
+  },
+  {
+   "tail": "N86312",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-12"
+  },
+  {
+   "tail": "N89308",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-09"
+  },
+  {
+   "tail": "N87368",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-08"
+  },
+  {
+   "tail": "N603UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-04"
+  },
+  {
+   "tail": "N85363",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-08-04"
+  },
+  {
+   "tail": "N86371",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-07-31"
+  },
+  {
+   "tail": "N87337",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-07-31"
+  },
+  {
+   "tail": "N606UX",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-07-29"
+  },
+  {
+   "tail": "N85320",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-07-25"
+  },
+  {
+   "tail": "N93305",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-07-19"
+  },
+  {
+   "tail": "N630SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-07-16"
+  },
+  {
+   "tail": "N86316",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-07-14"
+  },
+  {
+   "tail": "N631SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-07-12"
+  },
+  {
+   "tail": "N87364",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-07-12"
+  },
+  {
+   "tail": "N89321",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-07-02"
+  },
+  {
+   "tail": "N110SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-05-22"
+  },
+  {
+   "tail": "N105SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-05-20"
+  },
+  {
+   "tail": "N103SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-05-18"
+  },
+  {
+   "tail": "N108SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-03-14"
+  },
+  {
+   "tail": "N113SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-03-14"
+  },
+  {
+   "tail": "N116SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-03-14"
+  },
+  {
+   "tail": "N626SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-03-14"
+  },
+  {
+   "tail": "N627SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-03-14"
+  },
+  {
+   "tail": "N628SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-03-14"
+  },
+  {
+   "tail": "N629SY",
+   "type": "E175",
+   "fleet": "express",
+   "seen": "2025-03-14"
+  }
  ]
 }

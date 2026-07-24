@@ -870,32 +870,49 @@ function drawSpark(){
   $("spark-note").textContent=`${H.length} daily snapshots · ${H[0].date} → ${last.date}`;
 }
 
+const CLOG_MAX_DAYS=30;            // how many recent update-days to show as cards
 function renderChangelog(){
   const box=$("changelog"),sec=$("changelog-sec");
-  const H=(DATA.history||[]).slice().sort((a,b)=>a.date<b.date?-1:1); // oldest→newest
-  if(!H.length){sec.hidden=true;return;}
-  const fmt=d=>{const[y,m,dd]=d.split("-");return new Date(y,m-1,dd).toLocaleDateString("en-US",{month:"short",day:"numeric"});};
-  const cards=[];
-  for(let i=H.length-1;i>=0;i--){                 // newest first
-    const cur=H[i],prev=H[i-1]||null;
+  const roster=DATA.roster||[];
+  const H=(DATA.history||[]);
+  if(!roster.length&&!H.length){sec.hidden=true;return;}
+  const fmt=d=>{const[y,m,dd]=d.split("-");return new Date(y,m-1,dd).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});};
+
+  // tails grouped by their install ("first seen") date — the real go-live timeline
+  const addByDate={};
+  for(const r of roster)(addByDate[r.seen]=addByDate[r.seen]||[]).push(r);
+  // history keyed by date, for equipped delta / routes / odds
+  const histByDate={},histSorted=H.slice().sort((a,b)=>a.date<b.date?-1:1);
+  histSorted.forEach((h,i)=>histByDate[h.date]={h,prev:histSorted[i-1]||null});
+
+  const allDates=[...new Set([...Object.keys(addByDate),...H.map(h=>h.date)])].sort().reverse();
+  const shown=allDates.slice(0,CLOG_MAX_DAYS);
+  const latest=allDates[0];
+
+  const cards=shown.map(date=>{
+    const adds=addByDate[date]||[];
+    const hist=histByDate[date];
     const rows=[];
 
-    // aircraft types that gained equipped tails (needs both days' per-type snapshot)
-    if(cur.types&&prev&&prev.types){
-      const ups=[];
-      for(const[t,n]of Object.entries(cur.types)){
-        const was=prev.types[t]; if(was===undefined)continue;
-        if(n-was>0)ups.push({t,d:n-was});
-      }
-      ups.sort((a,b)=>b.d-a.d);
-      if(ups.length)rows.push(["Types added",ups.map(u=>`<span class="pill add">+${u.d} ${esc(u.t)}</span>`).join("")]);
+    // PLANES ADDED — count by type family
+    if(adds.length){
+      const byType={};
+      for(const a of adds)byType[a.type]=(byType[a.type]||0)+1;
+      const chips=Object.entries(byType).sort((a,b)=>b[1]-a[1])
+        .map(([ty,n])=>`<span class="pill add">+${n} ${esc(ty)}</span>`).join("");
+      rows.push(["Planes added",chips]);
+
+      // TAIL NUMBERS — the actual registrations, each tagged with its type
+      const tails=adds.slice().sort((a,b)=>a.type<b.type?-1:a.type>b.type?1:a.tail<b.tail?-1:1)
+        .map(a=>`<span class="pill tail">${esc(a.tail)} · ${esc(a.type)}</span>`).join("");
+      rows.push(["Tail numbers",tails]);
     }
 
-    // routes that gained scheduled Starlink departures (leaderboard diff)
-    if(cur.leaderboard&&prev&&prev.leaderboard){
+    // ROUTES GAINED — leaderboard departures diff vs the prior history day
+    if(hist&&hist.prev&&hist.h.leaderboard&&hist.prev.leaderboard){
       const ups=[];
-      for(const[rt,dep]of Object.entries(cur.leaderboard)){
-        const was=prev.leaderboard[rt]; if(was===undefined)continue;
+      for(const[rt,dep]of Object.entries(hist.h.leaderboard)){
+        const was=hist.prev.leaderboard[rt]; if(was===undefined)continue;
         if(dep-was>0)ups.push({rt,d:dep-was,dep});
       }
       ups.sort((a,b)=>b.d-a.d);
@@ -903,32 +920,35 @@ function renderChangelog(){
         `<span class="pill">${u.rt.replace("-","–")} +${u.d}→${u.dep}</span>`).join("")]);
     }
 
-    // odds movers (already textual, e.g. "UA1450 62%→70%")
-    const movers=(cur.moved||[]).filter(m=>/[→]/.test(m));
+    // ODDS MOVED — per-flight probability changes (≥5pt)
+    const movers=((hist&&hist.h.moved)||[]).filter(m=>/[→]/.test(m));
     if(movers.length)rows.push(["Odds moved",movers.slice(0,10).map(m=>
-      `<span class="pill">${esc(m).replace(/%25/g,"%")}</span>`).join("")]);
+      `<span class="pill">${esc(m)}</span>`).join("")]);
 
-    // best-effort newly-confirmed tails
-    const tails=cur.newTails||[];
-    const tailTracked=prev&&prev.newTails!==undefined; // was tail tracking active the prior day?
-    if(tails.length)rows.push([tailTracked?"New tails":"Tails tracked",
-      tails.slice(0,24).map(t=>`<span class="pill tail">${esc(t)}</span>`).join("")]);
-
-    const eqD=prev?cur.equipped-prev.equipped:null;
-    const eqHtml=eqD===null?`<span class="cday-eq">${cur.equipped} equipped · first snapshot</span>`
-      :`<span class="cday-eq">${eqD>0?`<span class="up">+${eqD} equipped</span> · `:eqD<0?`${eqD} equipped · `:`<span class="flat">no net change</span> · `}${cur.equipped} of ${cur.total}</span>`;
+    // equipped headline: prefer real snapshot delta, else the roster add count
+    let eqHtml;
+    if(hist){
+      const eqD=hist.prev?hist.h.equipped-hist.prev.equipped:null;
+      eqHtml=eqD===null?`<span class="cday-eq">${hist.h.equipped} equipped · first snapshot</span>`
+        :`<span class="cday-eq">${eqD>0?`<span class="up">+${eqD} equipped</span> · `:eqD<0?`${eqD} equipped · `:`<span class="flat">no net fleet change</span> · `}${hist.h.equipped} of ${hist.h.total}</span>`;
+    }else{
+      eqHtml=`<span class="cday-eq"><span class="up">+${adds.length} Starlink ${adds.length===1?"jet":"jets"}</span></span>`;
+    }
 
     const body=rows.length
       ?`<div class="cday-rows">${rows.map(([k,v])=>`<div class="crow"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}</div>`
-      :`<div class="cday-steady">Fleet steady — no new aircraft types, route gains, or tails logged this day.</div>`;
+      :`<div class="cday-steady">No new tails or route gains logged this day.</div>`;
 
-    cards.push(`<div class="cday${i===H.length-1?" today":""}">
-      <div class="cday-top"><span class="cday-date">${fmt(cur.date)}</span>${eqHtml}</div>
-      ${body}</div>`);
-  }
+    return `<div class="cday${date===latest?" today":""}">
+      <div class="cday-top"><span class="cday-date">${fmt(date)}</span>${eqHtml}</div>
+      ${body}</div>`;
+  });
+
   box.innerHTML=cards.join("");
-  $("changelog-foot").innerHTML=`Types &amp; route gains are computed by diffing consecutive daily snapshots — a full trend builds as more days accrue. `+
-    `Tail numbers are <b>best-effort</b>: sourced from confirmed 48-hour route lists, not yet a complete fleet roster. `+
+  const earliest=allDates[allDates.length-1];
+  const more=allDates.length>CLOG_MAX_DAYS?` · ${allDates.length-CLOG_MAX_DAYS} earlier update days not shown`:"";
+  $("changelog-foot").innerHTML=`Aircraft &amp; tail numbers come from the tracker's full equipped roster (${roster.length} tails), dated by each jet's install day. `+
+    `Route &amp; odds movements are diffed from daily snapshots. Timeline back to ${earliest?fmt(earliest):"—"}${more}. `+
     `Data from <a href="https://unitedstarlinktracker.com" target="_blank" rel="noopener">UnitedStarlinkTracker.com</a>.`;
   sec.hidden=false;
 }
