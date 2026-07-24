@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>United ✕ Starlink Odds</title>
+<title>WiFi Odds</title>
 <style>
   :root {
     --bg: #040816;
@@ -205,12 +205,32 @@
   .usl-airline:focus{border-color:var(--sky)}
   .usl-enable{width:100%;margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--sky);background:var(--card-bg);border:1px solid var(--card-edge);border-radius:8px;padding:7px 8px;cursor:pointer;text-align:center}
   .usl-enable:hover{background:rgba(148,178,255,.09)}
+
+  /* ── ConnectScore by airline (v2.0) — static, collapsed by default ── */
+  .usl-cs{margin-top:14px;border-top:1px solid var(--card-edge);padding-top:10px}
+  .usl-cs-sum{font-family:var(--mono);font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;cursor:pointer;list-style:none;outline:none}
+  .usl-cs-sum::-webkit-details-marker{display:none}
+  .usl-cs-sum::before{content:"▸ ";color:var(--sky)}
+  .usl-cs[open] .usl-cs-sum::before{content:"▾ "}
+  .usl-cs-sum:hover{color:var(--ink)}
+  .usl-cs-list{margin-top:8px}
+  .usl-cs-row{padding:5px 6px;border-radius:8px;cursor:default}
+  .usl-cs-row:hover{background:rgba(148,178,255,.07)}
+  .usl-cs-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .usl-cs-name{font-family:var(--mono);font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .usl-cs-meta{font-family:var(--mono);font-size:10px;color:var(--dim);margin-left:6px;font-weight:400}
+  .usl-cs-chip{font-family:var(--mono);font-weight:700;font-size:13px;min-width:34px;text-align:right}
+  .usl-cs-label{font-family:var(--mono);font-size:10px;color:var(--dim);margin-left:5px}
+  .usl-cs-note{display:none;font-family:var(--mono);font-size:10px;color:var(--dim);line-height:1.45;margin-top:3px;padding-right:2px}
+  .usl-cs-row:hover .usl-cs-note,.usl-cs-row.usl-open .usl-cs-note{display:block}
+  .usl-cs-live{color:var(--sky)}
+  .usl-cs-method{font-family:var(--mono);font-size:9.5px;color:var(--dim);line-height:1.45;margin-top:8px;opacity:.85}
 </style>
 </head>
 <body>
   <div class="usl-wrap">
     <header class="usl-header">
-      <div class="usl-title">🛰️ UNITED ✕ STARLINK</div>
+      <div class="usl-title">🛰️ WIFI ODDS</div>
       <a class="usl-full-link" href="https://smithfamai.com/unitedstarlink/" target="_blank" rel="noopener">full optimizer ↗</a>
     </header>
     <div id="usl-credit" class="usl-credit">data: unitedstarlinktracker.com</div>
@@ -230,6 +250,12 @@
     <div id="usl-results" class="usl-results"></div>
     <button id="usl-enable-alaska" class="usl-enable" type="button" hidden>Enable on alaskaair.com</button>
 
+    <details id="usl-cs" class="usl-cs">
+      <summary id="usl-cs-sum" class="usl-cs-sum">✈ WiFi odds by airline (ConnectScore)</summary>
+      <div id="usl-cs-list" class="usl-cs-list"></div>
+      <div id="usl-cs-method" class="usl-cs-method"></div>
+    </details>
+
     <div class="usl-section-label" style="margin-top:14px;display:flex;justify-content:space-between;align-items:baseline">
       <span>Guardian · booking-to-boarding tail watch</span>
       <button id="usl-check-now" class="usl-check-now" type="button">check now</button>
@@ -244,6 +270,7 @@
 
     <div class="usl-footer">Estimates from tail-assignment history — verify at T-48h.</div>
   </div>
+  <script src="airlines.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

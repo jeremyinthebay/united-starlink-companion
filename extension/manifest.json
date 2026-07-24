@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Starlink Odds for United Flights",
-  "version": "1.6.0",
-  "description": "See United flights' Starlink WiFi odds while you book: badges + one-click or auto sort on united.com and Navan. Unofficial.",
+  "name": "WiFi Odds for Flights",
+  "version": "2.0.0",
+  "description": "WiFi odds per flight while you book: Starlink, Amazon Leo, Viasat badges + sort on united.com, alaskaair.com, Navan. Unofficial.",
   "permissions": [
     "storage",
     "activeTab",

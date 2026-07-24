@@ -1,4 +1,4 @@
-// popup.js — United x Starlink Odds popup logic (no inline scripts, MV3 CSP safe)
+// popup.js — WiFi Odds popup logic (no inline scripts, MV3 CSP safe)
 // v1.1: flights are sorted by odds, show departure times found on the page, and
 // clicking a row scrolls the united.com tab to that flight.
 
@@ -313,6 +313,64 @@ if (airlineEl) airlineEl.addEventListener("change", function () {
 updateCredit();
 init();
 
+
+/* ── ConnectScore by airline (v2.0) ────────────────────────────────────────
+ * Fully static: every number comes from airlines.js, which is loaded ahead of
+ * this file and makes no network calls. Rendered lazily the first time the
+ * <details> is opened, so a popup that never opens it pays nothing. If
+ * airlines.js is ever missing, the section simply stays empty — no throw. */
+var csEl = document.getElementById("usl-cs");
+var csListEl = document.getElementById("usl-cs-list");
+var csMethodEl = document.getElementById("usl-cs-method");
+var csRendered = false;
+
+function csFleetText(a) {
+  var fleet = a.fleet ? a.equipped + "/" + a.fleet : "fleetwide";
+  return a.systemLabel + " " + fleet;
+}
+
+function renderConnectScores() {
+  if (csRendered || !csListEl) return;
+  if (typeof rankAirlines !== "function") return; // airlines.js absent — stay quiet
+  csRendered = true;
+
+  rankAirlines().forEach(function (a) {
+    var row = el("div", "usl-cs-row");
+    var head = el("div", "usl-cs-head");
+
+    var name = el("div", "usl-cs-name", a.name);
+    name.appendChild(el("span", "usl-cs-meta", csFleetText(a)));
+
+    var right = el("div", null);
+    right.style.display = "flex";
+    right.style.alignItems = "baseline";
+    right.appendChild(el("span", "usl-cs-chip " + a.cls, String(a.score)));
+    right.appendChild(el("span", "usl-cs-label", a.label));
+
+    head.appendChild(name);
+    head.appendChild(right);
+    row.appendChild(head);
+
+    var note = el("div", "usl-cs-note", a.note);
+    if (a.instrumented) {
+      note.appendChild(document.createTextNode(" "));
+      note.appendChild(el("span", "usl-cs-live", "· live per-flight odds ↑ above"));
+    }
+    row.appendChild(note);
+    row.title = a.note;
+    // Hover reveals the note on a mouse; tap toggles it on a trackpad/touch.
+    row.addEventListener("click", function () { row.classList.toggle("usl-open"); });
+
+    csListEl.appendChild(row);
+  });
+
+  if (csMethodEl) {
+    csMethodEl.textContent = typeof SCORE_METHOD_LINE === "string" ? SCORE_METHOD_LINE : "";
+    if (typeof SCORE_CAVEAT === "string") csMethodEl.title = SCORE_CAVEAT;
+  }
+}
+
+if (csEl) csEl.addEventListener("toggle", function () { if (csEl.open) renderConnectScores(); });
 
 /* ── Trip monitor (v1.4) ── */
 var tripsEl = document.getElementById("usl-trips");
