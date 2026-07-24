@@ -230,14 +230,14 @@
     const on = watched.has(key);
     w.className = "usl-watch" + (on ? " usl-watching" : "");
     w.textContent = on ? "★" : "☆";
-    w.title = on ? "Watching — manage in the extension popup"
-      : "Watch " + fn + " on " + ctx.date + " — get an alert when its Starlink tail is confirmed (or not)";
+    w.title = on ? "Guarded — manage in the extension popup"
+      : "Guard " + fn + " on " + ctx.date + " — alerts from booking to boarding if its Starlink tail changes.";
     w.addEventListener("click", (ev) => {
       ev.stopPropagation(); ev.preventDefault();
       if (watched.has(key)) return;
       watched.add(key);
       w.textContent = "★"; w.classList.add("usl-watching");
-      w.title = "Watching — manage in the extension popup";
+      w.title = "Guarded — manage in the extension popup";
       try { chrome.runtime.sendMessage({ type: "tripAdd", fn, date: ctx.date, route: ctx.o + "-" + ctx.d }, () => { void chrome.runtime.lastError; }); } catch {}
     });
     el.appendChild(w);

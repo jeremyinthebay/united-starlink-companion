@@ -193,6 +193,11 @@
   .usl-trip-main{font-weight:700}
   .usl-trip-sub{color:var(--dim);font-size:10.5px;margin-top:2px;line-height:1.35}
   .usl-t-yes{color:var(--green)} .usl-t-no{color:var(--red)} .usl-t-early{color:var(--dim)}
+  .usl-t-swap{color:#ffd166}
+  .usl-asof{color:var(--dim);font-size:10px;opacity:.7;margin-left:4px}
+  .usl-hist{margin-top:4px;border-top:1px solid var(--card-edge);padding-top:4px}
+  .usl-hist-row{color:var(--dim);font-size:10px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .usl-trip-left{cursor:pointer;flex:1;min-width:0}
   .usl-trip-x{cursor:pointer;color:var(--dim);font-size:14px;padding:2px 4px;border:none;background:none}
   .usl-trip-x:hover{color:var(--red)}
   .usl-check-now{font-family:var(--mono);font-size:10.5px;color:var(--sky);cursor:pointer;background:none;border:none;padding:0;text-decoration:underline}
@@ -217,7 +222,7 @@
     <div id="usl-results" class="usl-results"></div>
 
     <div class="usl-section-label" style="margin-top:14px;display:flex;justify-content:space-between;align-items:baseline">
-      <span>Trip monitor · T-48h tail watch</span>
+      <span>Guardian · booking-to-boarding tail watch</span>
       <button id="usl-check-now" class="usl-check-now" type="button">check now</button>
     </div>
     <div id="usl-trips"></div>

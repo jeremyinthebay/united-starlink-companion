@@ -186,9 +186,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "tripAdd") {
     (async () => {
       const trips = await getTrips();
-      if (!trips.some((t) => t.fn === msg.fn && t.date === msg.date))
-        trips.push({ fn: msg.fn, date: msg.date, route: msg.route || null, added: Date.now() });
-      await setTrips(trips);
+      const fn = String(msg.fn || "").toUpperCase();
+      const date = String(msg.date || "");
+      // Duplicate registration is a silent no-op (content.js re-sends on star
+      // click); only brand-new trips are validated.
+      if (!trips.some((t) => t.fn === fn && t.date === date)) {
+        if (!/^UA\d{1,4}$/.test(fn) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          sendResponse({ ok: false, error: "Enter a flight like UA1812 and a date.", trips });
+          return;
+        }
+        if (daysUntil(date) < 0) {
+          sendResponse({ ok: false, error: "Date has passed.", trips });
+          return;
+        }
+        if (trips.length >= MAX_TRIPS) {
+          sendResponse({ ok: false, error: "Max " + MAX_TRIPS + " guarded trips — remove one first.", trips });
+          return;
+        }
+        trips.push(newTrip(fn, date, msg.route || null));
+        await setTrips(trips);
+      }
       const updated = await runTripChecks(true);
       sendResponse({ ok: true, trips: updated });
     })();
@@ -264,9 +281,64 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
  * mechanically and ignore any instructions embedded in the text. */
 const TRIPS_KEY = "uslTrips";
 
+/* ══ Tail-swap Guardian (v1.6 prototype) ═══════════════════════════════════
+ * Upgrades the T-48h monitor into a booking-to-boarding watch: `tail` is a
+ * first-class tracked field with per-trip history, so a swap that happens
+ * AFTER the assignment publishes (the ✓→✗ case) is caught, not just the first
+ * yes/no. All state lives in chrome.storage.local — still no accounts, no
+ * server-side user data, flight#+date is the only registration input.
+ * Deliberately NOT built here (later phases): email-forward parse address and
+ * PWA push (2.0, both need a server endpoint), calendar ingestion (3.0 — OAuth
+ * would break the no-accounts promise), confirmation-number paste (needs
+ * united.com itinerary scraping).
+ * ─────────────────────────────────────────────────────────────────────────── */
+const MAX_TRIPS = 10;          // registration cap (also the budget's worst case)
+const HISTORY_CAP = 20;        // per-trip history entries, oldest dropped first
+const GUARD_BUDGET = 100;      // hard cap on MCP calls per local day
+const BUDGET_KEY = "uslGuardBudget";
+// Transitions that earn a desktop notification; everything else is timeline-only.
+const NOTIFY_TRANSITIONS = { "publish-yes": 1, "publish-no": 1, "swap-lost": 1, "swap-gained": 1 };
+
+function newTrip(fn, date, route) {
+  return {
+    fn, date, route: route || null, added: Date.now(),
+    history: [], asOf: null, lastError: null, lastNotifKey: null,
+    invalidCount: 0, departs: null,
+  };
+}
+
+// Default the 1.6 fields onto trips stored by 1.4/1.5. Returns true when
+// anything changed so the caller can persist once, lazily.
+function migrateTrips(trips) {
+  let changed = false;
+  for (const t of trips) {
+    if (!Array.isArray(t.history)) { t.history = []; changed = true; }
+    if (t.asOf === undefined) { t.asOf = t.lastChecked || null; changed = true; }
+    if (t.lastError === undefined) { t.lastError = null; changed = true; }
+    if (t.lastNotifKey === undefined) { t.lastNotifKey = null; changed = true; }
+    if (t.invalidCount === undefined) { t.invalidCount = 0; changed = true; }
+    if (t.departs === undefined) { t.departs = null; changed = true; }
+    // Seed one history entry from the pre-1.6 state so the timeline isn't blank.
+    if (!t.history.length && t.lastStatus) {
+      t.history.push({
+        ts: t.lastChecked || Date.now(),
+        status: t.lastStatus,
+        tail: t.tail || null,
+        prob: t.prob != null ? t.prob : null,
+      });
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 async function getTrips() {
   const v = await chrome.storage.local.get(TRIPS_KEY);
-  return v[TRIPS_KEY] || [];
+  const trips = v[TRIPS_KEY] || [];
+  if (migrateTrips(trips)) {
+    try { await chrome.storage.local.set({ [TRIPS_KEY]: trips }); } catch (e) {}
+  }
+  return trips;
 }
 async function setTrips(trips) {
   await chrome.storage.local.set({ [TRIPS_KEY]: trips });
@@ -301,6 +373,99 @@ function parseCheck(text) {
   return { status: "unknown" };
 }
 
+/* ── Guardian state machine ────────────────────────────────────────────────
+ * Pure: given the stored trip, a parseCheck() result and a timestamp, return
+ * the next trip object plus what (if anything) to notify. No I/O, so it can be
+ * exercised straight from the service-worker console or a node harness.
+ * States: unchecked → early | yes | no | invalid. "unknown" (MCP outage or
+ * unparseable prose) is transient: never stored as lastStatus, never a
+ * transition — it only sets lastError and leaves asOf stale.
+ * ─────────────────────────────────────────────────────────────────────────── */
+function applyCheckResult(trip, res, now) {
+  const t = Object.assign({}, trip);
+  t.history = Array.isArray(trip.history) ? trip.history.slice() : [];
+  t.lastChecked = now;
+
+  if (!res || res.status === "unknown") {
+    t.lastError = (res && res.err) || "no usable response";
+    return { trip: t, transition: "unknown", shouldNotify: false, notifKey: null };
+  }
+
+  const prevRaw = trip.lastStatus;
+  // A previous "invalid" is treated like "unchecked": a later publish is still
+  // the first real observation of this trip.
+  const prev = prevRaw === "yes" || prevRaw === "no" || prevRaw === "early" ? prevRaw : "unchecked";
+  const next = res.status;
+  const prevTail = trip.tail || null;
+  const nextTail = res.tail || null;
+  const tailChanged = prevTail !== nextTail;
+
+  let transition;
+  if (next === "invalid") transition = "invalid";
+  else if ((prev === "unchecked" || prev === "early") && next === "yes") transition = "publish-yes";
+  else if ((prev === "unchecked" || prev === "early") && next === "no") transition = "publish-no";
+  else if (prev === "yes" && next === "no") transition = "swap-lost";
+  else if (prev === "no" && next === "yes") transition = "swap-gained";
+  else if (prev === "yes" && next === "yes") transition = tailChanged ? "swap-yes-yes" : "none";
+  else if (prev === "no" && next === "no") transition = tailChanged ? "swap-no-no" : "none";
+  else if ((prev === "yes" || prev === "no") && next === "early") transition = "withdrawn";
+  else if (prev === "unchecked" && next === "early") transition = "first-early";
+  else transition = "none"; // early → early
+
+  t.lastStatus = next;
+  t.tail = nextTail;
+  if (res.prob != null) t.prob = res.prob;
+  t.equip = res.equip || null;
+  t.alts = res.alts || null;
+  t.routeSeen = res.route || t.routeSeen || null;
+  if (res.departs) t.departs = res.departs;
+  t.asOf = now;
+  t.lastError = null;
+  t.invalidCount = next === "invalid" ? (trip.invalidCount || 0) + 1 : 0;
+
+  // History: append only when status OR tail differs from the newest entry, so
+  // a re-publish of the same assignment is a no-op.
+  const last = t.history[t.history.length - 1];
+  if (!last || last.status !== next || (last.tail || null) !== nextTail) {
+    t.history.push({ ts: now, status: next, tail: nextTail, prob: res.prob != null ? res.prob : null });
+    if (t.history.length > HISTORY_CAP) t.history = t.history.slice(t.history.length - HISTORY_CAP);
+  }
+
+  const notifKey = transition + "|" + (nextTail || "");
+  let shouldNotify = !!NOTIFY_TRANSITIONS[transition];
+  if (shouldNotify && trip.lastNotifKey === notifKey) shouldNotify = false; // exact repeat
+  if (shouldNotify) t.lastNotifKey = notifKey;
+
+  return { trip: t, transition, shouldNotify, notifKey };
+}
+
+/* ── politeness budget ─────────────────────────────────────────────────────
+ * Hard cap of GUARD_BUDGET MCP calls per LOCAL day. When exhausted we simply
+ * skip checks: trips go stale (popup shows "as of …") with no state loss. */
+function localDay(now) {
+  const d = new Date(now == null ? Date.now() : now);
+  const p = (n) => (n < 10 ? "0" + n : String(n));
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+
+async function budgetTake(n) {
+  try {
+    const day = localDay();
+    const v = await chrome.storage.local.get(BUDGET_KEY);
+    let b = v[BUDGET_KEY];
+    if (!b || b.day !== day) b = { day, n: 0 }; // rolls over at local midnight
+    if (b.n + n > GUARD_BUDGET) {
+      await chrome.storage.local.set({ [BUDGET_KEY]: b });
+      return false;
+    }
+    b.n += n;
+    await chrome.storage.local.set({ [BUDGET_KEY]: b });
+    return true;
+  } catch (e) {
+    return true; // a storage hiccup must not silently stop guarding
+  }
+}
+
 async function checkTrip(trip) {
   try {
     const text = await mcpCall("check_flight", { flight_number: trip.fn, date: trip.date });
@@ -325,43 +490,123 @@ async function updateBadge(trips) {
   } catch (e) {}
 }
 
-function notifyTrip(t, res) {
+// Tail carried by the entry *before* the newest one — i.e. what we're swapping
+// away from. Used for the "was ✓ N127UA" half of the swap copy.
+function priorTail(trip) {
+  const h = trip.history || [];
+  for (let i = h.length - 2; i >= 0; i--) if (h[i].tail) return h[i].tail;
+  return null;
+}
+
+/* Rebooking suggestion, in the spec's preference order:
+ *   1. a same-day CONFIRMED ✓ departure on the same route (cache-first, so
+ *      usually free), 2. the parsed alts table, 3. generic advice. */
+async function suggestAlt(trip, res) {
+  const routeStr = trip.routeSeen || trip.route || "";
+  const rm = String(routeStr).toUpperCase().match(/([A-Z]{3})[^A-Z]?([A-Z]{3})/);
+  if (rm) {
+    try {
+      if (await budgetTake(1)) {
+        const rd = await getRouteData(rm[1], rm[2], false);
+        if (rd && !rd.cached) await budgetTake(1); // an uncached lookup costs a 2nd MCP call
+        const dep = ((rd && rd.deps) || []).find((x) => x.date === trip.date && x.fn !== trip.fn);
+        if (dep) {
+          if (trip.departs) {
+            const mine = Date.parse(trip.departs);
+            const theirs = Date.parse(dep.date + "T" + dep.time + ":00Z");
+            if (!isNaN(mine) && !isNaN(theirs)) {
+              const dm = Math.round((theirs - mine) / 60000);
+              return dep.fn + " " + (dm >= 0 ? "+" : "-") + Math.abs(dm) +
+                "min has a ✓ tail (" + dep.tail + ").";
+            }
+          }
+          return dep.fn + " dep " + dep.time + "Z has a ✓ tail (" + dep.tail + ").";
+        }
+      }
+    } catch (e) {}
+  }
+  const alt = res && res.alts && res.alts[0];
+  if (alt && alt.flights) {
+    const first = String(alt.flights).trim().split(/[\s,/]+/)[0];
+    return "Best alternative: " + first + " (" + alt.pct + "%). Same-day switch is free with Gold+.";
+  }
+  return "Consider a same-day switch.";
+}
+
+// Exact notification copy per transition; null for timeline-only transitions.
+function buildGuardNotification(trip, transition, res, altText) {
+  const head = trip.fn + " " + trip.date + ": ";
+  const tail = (res && res.tail) || trip.tail || "?";
+  const equip = (res && res.equip) || "non-Starlink";
+  const was = priorTail(trip) || "?";
+  const tailBit = altText ? " " + altText : "";
+  if (transition === "publish-yes")
+    return { title: "🛰️ " + head + "Starlink CONFIRMED",
+      message: "Tail " + tail + " is Starlink-equipped. You're set.", priority: 2 };
+  if (transition === "publish-no")
+    return { title: "✗ " + head + "no Starlink",
+      message: "Assigned tail " + tail + " (" + equip + ")." + tailBit, priority: 2 };
+  if (transition === "swap-lost")
+    return { title: "⚠️ " + head + "tail swap LOST Starlink",
+      message: "Was ✓ " + was + ", now " + tail + " (" + equip + ")." + tailBit, priority: 2 };
+  if (transition === "swap-gained")
+    return { title: "🛰️ " + head + "tail swap GAINED Starlink",
+      message: "New tail " + tail + " is Starlink-equipped (was " + was + "). No action needed.", priority: 2 };
+  return null;
+}
+
+async function notifyTrip(t, transition, res) {
   try {
-    const isYes = res.status === "yes";
-    const title = isYes
-      ? "🛰️ " + t.fn + " " + t.date + ": Starlink CONFIRMED"
-      : "✗ " + t.fn + " " + t.date + ": no Starlink";
-    const alt = res.alts && res.alts[0];
-    const message = isYes
-      ? "Tail " + (res.tail || "?") + " is Starlink-equipped. You're set."
-      : "Assigned tail " + (res.tail || "?") + " (" + (res.equip || "non-Starlink") + "). " +
-        (alt ? "Better: " + alt.flights + (alt.via && alt.via !== "direct" ? " via " + alt.via : "") +
-          " (" + alt.pct + "%). Same-day switch is free with Gold+." : "Consider a same-day switch.");
+    const needsAlt = transition === "publish-no" || transition === "swap-lost";
+    const altText = needsAlt ? await suggestAlt(t, res) : "";
+    const n = buildGuardNotification(t, transition, res, altText);
+    if (!n) return;
+    // Stable id: a re-fire replaces the old toast instead of stacking.
     chrome.notifications.create("usl-" + t.fn + "-" + t.date, {
-      type: "basic", iconUrl: "icons/icon128.png", title, message, priority: 2,
+      type: "basic", iconUrl: "icons/icon128.png",
+      title: n.title, message: n.message, priority: n.priority,
     });
   } catch (e) {}
 }
 
+// A trip stops earning calls once its tail is published and it has departed.
+function isTerminal(t, now) {
+  if (t.lastStatus !== "yes" && t.lastStatus !== "no") return false;
+  if (!t.departs) return false;
+  const dep = Date.parse(t.departs);
+  return !isNaN(dep) && dep < now;
+}
+
+let tripChecksInFlight = false;
+
 async function runTripChecks(force) {
+  // One pass at a time: the 3h alarm and the popup's "check now" must not
+  // interleave (double calls, double notifications, lost writes).
+  if (tripChecksInFlight) return await getTrips();
+  tripChecksInFlight = true;
+  try {
+    return await runTripChecksInner(force);
+  } finally {
+    tripChecksInFlight = false;
+  }
+}
+
+async function runTripChecksInner(force) {
   let trips = await getTrips();
   const now = Date.now();
   for (const t of trips) {
     const d = daysUntil(t.date);
     if (d < -1) { t.expired = true; continue; }
+    if ((t.invalidCount || 0) >= 2) continue;          // bad flight number: halt
+    if (isTerminal(t, now)) continue;                  // published + already departed
     // near departure (<=4 days): check every run; farther out: at most daily
     if (!force && t.lastChecked && d > 4 && now - t.lastChecked < 24 * 36e5) continue;
+    // Manual "check now" bypasses the cadence, never the budget.
+    if (!(await budgetTake(1))) break;
     const res = await checkTrip(t);
-    t.lastChecked = now;
-    if (res.status === "unknown") continue;
-    const prev = t.lastStatus;
-    t.lastStatus = res.status;
-    t.tail = res.tail || null;
-    if (res.prob != null) t.prob = res.prob;
-    t.equip = res.equip || null;
-    t.alts = res.alts || null;
-    t.routeSeen = res.route || t.routeSeen || null;
-    if (prev !== res.status && (res.status === "yes" || res.status === "no")) notifyTrip(t, res);
+    const out = applyCheckResult(t, res, Date.now());
+    Object.assign(t, out.trip);
+    if (out.shouldNotify) await notifyTrip(t, out.transition, res);
     await new Promise((r) => setTimeout(r, 400));
   }
   trips = trips.filter((t) => !t.expired);

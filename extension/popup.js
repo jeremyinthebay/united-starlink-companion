@@ -225,25 +225,74 @@ var watchDate = document.getElementById("usl-watch-date");
 var watchStatus = document.getElementById("usl-watch-status");
 var checkNowBtn = document.getElementById("usl-check-now");
 
+/* ── Guardian timeline helpers (v1.6) ── */
+function histOf(t) { return t && t.history && t.history.length ? t.history : []; }
+function prevHist(t) { var h = histOf(t); return h.length >= 2 ? h[h.length - 2] : null; }
+function fmtTs(ts) {
+  if (!ts) return "";
+  try {
+    return new Date(ts).toLocaleString(undefined,
+      { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+  } catch (e) { return ""; }
+}
+// Newest entry that actually carried a tail, used for "was ✓ N127UA".
+function lastPublished(t) {
+  var h = histOf(t);
+  for (var i = h.length - 1; i >= 0; i--)
+    if ((h[i].status === "yes" || h[i].status === "no") && h[i].tail) return h[i];
+  return null;
+}
+function statusGlyph(s) {
+  return s === "yes" ? "✓" : s === "no" ? "✗" : s === "invalid" ? "⚠" : "⏳";
+}
+
 function tripLine(t) {
-  var d = t.date;
-  if (t.lastStatus === "yes")
+  var prev = prevHist(t);
+  var swapped = prev && prev.tail && t.tail && prev.tail !== t.tail;
+  if (t.lastStatus === "yes") {
+    if (swapped && prev.status === "yes")
+      return { cls: "usl-t-swap", txt: "✓ swapped, still ✓ — tail " + t.tail + " (was " + prev.tail + ")" };
     return { cls: "usl-t-yes", txt: "✓ Starlink confirmed — tail " + (t.tail || "?") };
+  }
   if (t.lastStatus === "no") {
     var alt = t.alts && t.alts[0];
-    return { cls: "usl-t-no", txt: "✗ " + (t.equip || "non-Starlink tail") +
-      (alt ? " · better: " + alt.flights + " (" + alt.pct + "%)" : "") };
+    var better = alt ? " · better: " + alt.flights + " (" + alt.pct + "%)" : "";
+    if (swapped && prev.status === "yes")
+      return { cls: "usl-t-no", txt: "✗ swap lost Starlink — " + t.tail + " (" + (t.equip || "non-Starlink") + ")" + better };
+    if (swapped && prev.status === "no")
+      return { cls: "usl-t-swap", txt: "✗ swapped, still ✗ — " + t.tail + " (" + (t.equip || "non-Starlink") + ")" + better };
+    return { cls: "usl-t-no", txt: "✗ " + (t.equip || "non-Starlink tail") + better };
   }
-  if (t.lastStatus === "early")
+  if (t.lastStatus === "early") {
+    var was = lastPublished(t);
+    if (was)
+      return { cls: "usl-t-swap", txt: "⏳ assignment withdrawn — was " + statusGlyph(was.status) + " " + was.tail };
     return { cls: "usl-t-early", txt: "⏳ " + (t.prob != null ? "~" + t.prob + "% · " : "") + "tail publishes ~48h out" };
+  }
   if (t.lastStatus === "invalid")
-    return { cls: "usl-t-no", txt: "⚠ flight number not recognized" };
+    return { cls: "usl-t-no", txt: "⚠ flight number not recognized" +
+      ((t.invalidCount || 0) >= 2 ? " — checks paused" : "") };
   return { cls: "usl-t-early", txt: "… not checked yet" };
 }
+
+function renderHistory(t) {
+  var h = histOf(t);
+  if (!h.length) return null;
+  var wrap = el("div", "usl-hist");
+  for (var i = h.length - 1; i >= 0; i--) {
+    var e = h[i], before = i > 0 ? h[i - 1] : null;
+    var detail = e.tail || (e.prob != null ? "~" + e.prob + "%" : "—");
+    var swap = before && before.tail && e.tail && before.tail !== e.tail ? " (swap)" : "";
+    wrap.appendChild(el("div", "usl-hist-row",
+      "▸ " + fmtTs(e.ts) + "  " + statusGlyph(e.status) + " " + detail + swap));
+  }
+  return wrap;
+}
+
 function renderTrips(trips) {
   tripsEl.innerHTML = "";
   if (!trips.length) {
-    var e = el("div", "usl-empty", "No watched flights. Add one below, or click the ☆ next to any badge on united.com.");
+    var e = el("div", "usl-empty", "No guarded trips. Add one below, or click the ☆ next to any badge on united.com.");
     e.style.padding = "4px 2px";
     tripsEl.appendChild(e);
     return;
@@ -251,12 +300,24 @@ function renderTrips(trips) {
   trips.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
   trips.forEach(function (t) {
     var row = el("div", "usl-trip-row");
-    var left = el("div", null);
+    var left = el("div", "usl-trip-left");
     left.appendChild(el("div", "usl-trip-main", t.fn + " · " + t.date + (t.routeSeen || t.route ? " · " + (t.routeSeen || t.route).replace("-", "→") : "")));
     var line = tripLine(t);
-    left.appendChild(el("div", "usl-trip-sub " + line.cls, line.txt));
+    var sub = el("div", "usl-trip-sub " + line.cls, line.txt);
+    // Stale data: last check failed, so say when the state was last confirmed.
+    if (t.lastError && t.asOf) sub.appendChild(el("span", "usl-asof", "as of " + fmtTs(t.asOf)));
+    left.appendChild(sub);
+    var hist = renderHistory(t);
+    if (hist) {
+      hist.style.display = "none";
+      left.appendChild(hist);
+      left.title = "Click for this trip's tail history";
+      left.addEventListener("click", function (h) {
+        return function () { h.style.display = h.style.display === "none" ? "" : "none"; };
+      }(hist));
+    }
     var x = el("button", "usl-trip-x", "×");
-    x.title = "Stop watching";
+    x.title = "Stop guarding";
     x.addEventListener("click", function () {
       chrome.runtime.sendMessage({ type: "tripRemove", fn: t.fn, date: t.date }, function (res) {
         void chrome.runtime.lastError;
@@ -282,8 +343,9 @@ watchForm.addEventListener("submit", function (e) {
   watchStatus.textContent = "Adding + checking…";
   chrome.runtime.sendMessage({ type: "tripAdd", fn: fn, date: watchDate.value }, function (res) {
     void chrome.runtime.lastError;
-    watchStatus.textContent = "";
-    watchFn.value = "";
+    // The service worker owns the rules (past date, max trips) — surface its text.
+    watchStatus.textContent = res && res.ok === false && res.error ? res.error : "";
+    if (!res || res.ok !== false) watchFn.value = "";
     if (res && res.trips) renderTrips(res.trips);
   });
 });
