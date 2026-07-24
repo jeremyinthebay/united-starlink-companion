@@ -41,7 +41,7 @@ account (payment) and clicking Submit.
      Starlink, or unitedstarlinktracker.com. Probabilities are historical estimates, not
      guarantees — verify your aircraft ~48h before departure.
      ```
-   - **Screenshots:** upload `store-assets/screenshot-1280x800.png` (add more later if desired)
+   - **Screenshots (v1.5.1):** upload `store-assets/screenshot-united-1280x800.png` and `store-assets/screenshot-navan-1280x800.png` — the extension now works on both united.com and Navan. (`store-assets/screenshot-1280x800.png` is the older single United shot.)
    - **Small promo tile:** `store-assets/tile-440x280.png`
    - **Marquee (optional):** `store-assets/marquee-1400x560.png`
 3. **Privacy tab:**

@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Starlink Odds for United Flights — How it works</title>
+<meta name="description" content="Animated tour of the Starlink Odds browser extension: color-coded WiFi odds on united.com and Navan, one-click sorting, and a live round-trip-aware route panel.">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{background:#040816}
+  body{
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:clamp(20px,4vw,48px) max(18px,env(safe-area-inset-right)) clamp(20px,4vw,48px) max(18px,env(safe-area-inset-left));
+    background:
+      radial-gradient(1100px 650px at 75% -10%, #0b1b4d 0%, transparent 55%),
+      radial-gradient(820px 560px at 8% 108%, #071233 0%, transparent 60%),
+      #040816;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(1px 1px at 11% 18%, rgba(232,238,251,.5) 50%, transparent 51%),
+      radial-gradient(1px 1px at 27% 64%, rgba(232,238,251,.3) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 49% 12%, rgba(142,205,255,.4) 50%, transparent 51%),
+      radial-gradient(1px 1px at 66% 42%, rgba(232,238,251,.28) 50%, transparent 51%),
+      radial-gradient(1px 1px at 84% 22%, rgba(142,205,255,.35) 50%, transparent 51%),
+      radial-gradient(1px 1px at 92% 74%, rgba(232,238,251,.3) 50%, transparent 51%),
+      radial-gradient(1px 1px at 38% 88%, rgba(232,238,251,.26) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 71% 92%, rgba(142,205,255,.3) 50%, transparent 51%);
+  }
+  main{position:relative;z-index:1;width:100%;max-width:960px}
+  .pagefoot{position:relative;z-index:1;margin-top:26px;font-size:11.5px;color:#5c688a;text-align:center}
+  .pagefoot b{color:#93a1c0;font-weight:600}
+</style>
+</head>
+<body>
+<main>
+<section class="plc" aria-roledescription="carousel" aria-label="How Starlink Odds for United Flights works" tabindex="0">
+<style>
+/* ═══ Starlink Odds — "how it works" carousel · all selectors scoped under .plc ═══ */
+.plc{
+  --united:#0033A0;--united-deep:#001A57;--sky:#69B3E7;--sky-bright:#8ecdff;
+  --ink:#e8eefb;--dim:#93a1c0;--faint:#5c688a;--bg:#040816;
+  --card:rgba(148,178,255,.055);--card-edge:rgba(148,178,255,.14);
+  --gold:#ffd166;--green:#35d07f;--blue:#4da6ff;--red:#ff5a6e;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  display:block;max-width:920px;margin:0 auto;color:var(--ink);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;outline:none;
+}
+.plc *,.plc *::before,.plc *::after{margin:0;padding:0;box-sizing:border-box;font-family:inherit}
+.plc:focus-visible{outline:2px solid var(--sky);outline-offset:6px;border-radius:18px}
+
+/* ── header row ── */
+.plc-head{display:flex;align-items:center;gap:13px;margin-bottom:15px;flex-wrap:wrap}
+.plc-mark{position:relative;width:34px;height:34px;flex:0 0 34px}
+.plc-mark .plc-orbit{position:absolute;inset:0;border:1.5px solid rgba(142,205,255,.45);border-radius:50%;transform:rotate(-24deg) scaleY(.62)}
+.plc-mark .plc-planet{position:absolute;left:9px;top:9px;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 32% 30%,#8ecdff,#0033A0 72%)}
+.plc-mark .plc-sat{position:absolute;right:-1px;top:5px;width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px 2px rgba(255,209,102,.55)}
+.plc-titles h2{font-size:18px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+.plc-titles p{font-size:12px;color:var(--dim);margin-top:1px}
+.plc-ver{font-family:var(--mono);font-size:10px;color:var(--sky);border:1px solid var(--card-edge);background:var(--card);border-radius:999px;padding:1px 7px;margin-left:5px;letter-spacing:.03em}
+.plc-sitetab{margin-left:auto;display:flex;gap:2px;background:var(--card);border:1px solid var(--card-edge);border-radius:999px;padding:3px}
+.plc-site{font-size:11.5px;font-weight:600;color:var(--faint);padding:5px 14px;border-radius:999px;transition:color .45s ease,background .45s ease,box-shadow .45s ease;white-space:nowrap}
+.plc-site.on{color:#fff;background:linear-gradient(180deg,#13296b,#0a1a4a);box-shadow:inset 0 1px 0 rgba(142,205,255,.25),0 2px 8px rgba(3,10,40,.4)}
+
+/* ── viewport & scaling stage (scenes designed at 720×440, scaled by JS) ── */
+.plc-viewport{position:relative;aspect-ratio:720/440;border-radius:16px;overflow:hidden;
+  border:1px solid var(--card-edge);background:#04091c;
+  box-shadow:0 24px 60px rgba(2,8,32,.55),0 4px 14px rgba(2,8,32,.4),inset 0 1px 0 rgba(142,205,255,.08)}
+.plc-scale{position:absolute;left:0;top:0;width:720px;height:440px;transform-origin:0 0}
+
+.plc-scene{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;visibility:hidden;
+  transform:translateX(28px);pointer-events:none;
+  transition:opacity .6s ease,transform .6s ease,visibility 0s linear .6s}
+.plc-scene.is-active{opacity:1;visibility:visible;transform:none;pointer-events:auto;
+  transition:opacity .6s ease,transform .6s ease}
+.plc-scene.is-left{transform:translateX(-28px)}
+.plc-kb{flex:1;display:flex;flex-direction:column;overflow:hidden;transform-origin:50% 38%}
+.plc-scene.is-active .plc-kb{animation:plc-kb 9s ease-out forwards}
+@keyframes plc-kb{from{transform:scale(1)}to{transform:scale(1.018)}}
+
+/* ── faux browser chrome ── */
+.plc-chrome{height:30px;flex:0 0 30px;background:#e9ebf0;display:flex;align-items:center;gap:6px;padding:0 12px;border-bottom:1px solid #d4d7de}
+.plc-cd{width:9px;height:9px;border-radius:50%}
+.plc-cd1{background:#ff5f57}.plc-cd2{background:#febc2e}.plc-cd3{background:#28c840}
+.plc-url{flex:1;max-width:390px;margin-left:8px;height:20px;background:#fff;border:1px solid #d4d7de;border-radius:10px;display:flex;align-items:center;gap:5px;padding:0 10px;font-size:10px;color:#5a6072;white-space:nowrap;overflow:hidden}
+.plc-url b{color:#20242e;font-weight:600}
+.plc-lock{font-size:8px;color:#28a745}
+.plc-ext{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:9.5px;font-weight:600;color:#3c4356;background:#fff;border:1px solid #d4d7de;border-radius:6px;padding:3px 8px;white-space:nowrap}
+.plc-pip{width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8ecdff,#0033A0)}
+
+/* ── emulated united.com ── */
+.plc-usite{flex:1;background:#f4f6f9;display:flex;flex-direction:column;overflow:hidden}
+.plc-unav{height:34px;flex:0 0 34px;background:linear-gradient(180deg,#0033A0,#002b8a);display:flex;align-items:center;gap:15px;padding:0 16px;box-shadow:0 1px 0 rgba(0,0,0,.12)}
+.plc-tulip{width:11px;height:11px;border-radius:2px 50% 2px 50%;background:linear-gradient(135deg,#69B3E7,#fff);transform:rotate(45deg);flex:0 0 11px}
+.plc-uwm{font-size:13px;font-weight:800;letter-spacing:.13em;color:#fff;margin-right:4px}
+.plc-ulink{font-size:10.5px;color:rgba(255,255,255,.85);font-weight:500;white-space:nowrap}
+.plc-ulink.on{color:#fff;font-weight:700}
+.plc-signin{margin-left:auto;font-size:9.5px;font-weight:600;color:#fff;border:1px solid rgba(255,255,255,.7);border-radius:999px;padding:3px 11px;white-space:nowrap}
+.plc-uhead{display:flex;align-items:center;justify-content:space-between;padding:11px 16px 9px;gap:10px}
+.plc-uhead h3{font-size:15px;font-weight:700;color:#001A57;letter-spacing:-.01em}
+.plc-uhead p{font-size:10px;color:#4b5563;margin-top:2px}
+.plc-uhead p b{color:#1f2937}
+.plc-sortpill{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(180deg,#0a1230,#040816);border:1px solid rgba(142,205,255,.4);border-radius:999px;padding:6px 13px;font-size:10.5px;font-weight:600;color:var(--sky-bright);white-space:nowrap;box-shadow:0 3px 10px rgba(3,10,40,.35),inset 0 1px 0 rgba(142,205,255,.18)}
+.plc-satdot{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 6px 2px rgba(255,209,102,.5)}
+.plc-s2.is-active .plc-sortpill{animation:plc-press .55s ease .4s both}
+@keyframes plc-press{0%{transform:scale(1)}35%{transform:scale(.93);border-color:var(--sky-bright);box-shadow:0 0 0 4px rgba(142,205,255,.18),0 3px 10px rgba(3,10,40,.35)}100%{transform:scale(1)}}
+
+/* flight rows (united) */
+.plc-rows{display:flex;flex-direction:column;gap:8px;padding:0 16px}
+.plc-row{background:#fff;border:1px solid #e3e7ee;border-radius:8px;height:52px;flex:0 0 52px;padding:0 14px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 3px rgba(16,32,73,.06)}
+.plc-times{flex:0 0 170px}
+.plc-times b{display:block;font-size:13px;font-weight:700;color:#001A57;letter-spacing:-.01em;white-space:nowrap}
+.plc-times b i{font-style:normal;color:#9aa3b5;font-weight:400;padding:0 4px}
+.plc-times small{font-size:9.5px;color:#6b7280;white-space:nowrap}
+.plc-flno{flex:0 0 98px}
+.plc-flno b{display:block;font-size:11px;font-weight:700;color:#1f2937;white-space:nowrap}
+.plc-flno small{font-size:9.5px;color:#6b7280;white-space:nowrap}
+.plc-odds{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.plc-badge{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(180deg,#0b1330,#040816);border:1px solid;border-radius:999px;padding:4px 10px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.01em;white-space:nowrap;box-shadow:0 2px 8px rgba(3,10,40,.28)}
+.plc-badge i{width:7px;height:7px;border-radius:50%;flex:0 0 7px}
+.plc-b-gold{border-color:rgba(255,209,102,.65);color:var(--gold)}
+.plc-b-gold i{background:var(--gold);box-shadow:0 0 6px 2px rgba(255,209,102,.45)}
+.plc-b-green{border-color:rgba(53,208,127,.6);color:var(--green)}
+.plc-b-green i{background:var(--green);box-shadow:0 0 5px 1px rgba(53,208,127,.4)}
+.plc-b-blue{border-color:rgba(77,166,255,.6);color:var(--blue)}
+.plc-b-blue i{background:var(--blue);box-shadow:0 0 5px 1px rgba(77,166,255,.4)}
+.plc-b-red{border-color:rgba(255,90,110,.6);color:var(--red)}
+.plc-b-red i{background:var(--red);box-shadow:0 0 5px 1px rgba(255,90,110,.4)}
+.plc-b-gray{border-color:rgba(147,161,192,.4);color:var(--dim)}
+.plc-b-gray i{background:var(--faint)}
+.plc-conf{display:inline-flex;align-items:center;gap:3px;font-size:8.5px;font-weight:700;color:#8a6d1a;background:linear-gradient(180deg,#fff7e0,#ffedbe);border:1px solid #f0d789;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.plc-price{flex:0 0 62px;text-align:right}
+.plc-price b{display:block;font-size:13px;font-weight:700;color:#0033A0}
+.plc-price small{font-size:8.5px;color:#8a90a0}
+
+/* scene 2 — animated reorder: rows sit in fixed slots, --y0 pre-sort, --y1 sorted */
+.plc-s2 .plc-rows{position:relative;height:296px;padding:0}
+.plc-s2 .plc-row{position:absolute;left:16px;right:16px;top:calc(var(--y0)*60px);
+  transition:top .85s cubic-bezier(.22,.9,.24,1) var(--d,0s)}
+.plc-s2.is-sorted .plc-row{top:calc(var(--y1)*60px)}
+
+/* ── emulated navan ── */
+.plc-napp{flex:1;display:flex;background:#f6f7f9;overflow:hidden}
+.plc-rail{flex:0 0 112px;background:#111318;color:#c8ccd6;display:flex;flex-direction:column;padding:10px 0}
+.plc-nwm{font-size:14px;font-weight:800;letter-spacing:-.02em;color:#fff;padding:2px 14px 9px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:6px}
+.plc-nwm small{display:block;font-size:7px;color:#7f8694;font-weight:500;letter-spacing:.09em;margin-top:1px}
+.plc-ritem{display:flex;align-items:center;gap:7px;padding:6px 14px;font-size:9.5px;color:#9aa0ae;white-space:nowrap}
+.plc-ritem b{font-weight:400;width:11px;text-align:center;opacity:.85}
+.plc-ritem.on{color:#fff;background:rgba(255,255,255,.07);border-left:2px solid #fff;padding-left:12px;font-weight:600}
+.plc-rfoot{margin-top:auto;padding:8px 14px 2px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:7px}
+.plc-av{width:18px;height:18px;flex:0 0 18px;border-radius:50%;background:linear-gradient(135deg,#69B3E7,#0033A0);color:#fff;font-size:7px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.plc-rfoot small{font-size:7.5px;color:#7f8694;line-height:1.35}
+.plc-nmain{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.plc-ntop{height:36px;flex:0 0 36px;background:#fff;border-bottom:1px solid #e6e8ee;display:flex;align-items:center;gap:8px;padding:0 14px}
+.plc-tripchip{display:flex;align-items:center;gap:6px;background:#f2f4f7;border:1px solid #e2e5ec;border-radius:7px;padding:5px 10px;font-size:9.5px;color:#1c1f26;font-weight:600;white-space:nowrap}
+.plc-tripchip small{color:#7f8694;font-weight:500}
+.plc-fchip{font-size:8.5px;color:#3c4150;background:#fff;border:1px solid #dfe2e9;border-radius:999px;padding:3px 9px;font-weight:500;white-space:nowrap}
+.plc-fchip.sel{background:#1c1f26;color:#fff;border-color:#1c1f26}
+.plc-nres{flex:1;padding:10px 14px 0}
+.plc-nreshead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:10px}
+.plc-nreshead h3{font-size:12px;font-weight:700;color:#14161c}
+.plc-nreshead h3 small{font-size:9px;color:#7f8694;font-weight:500;margin-left:5px}
+.plc-nrows{display:flex;flex-direction:column;gap:8px}
+.plc-nrow{background:#fff;border:1px solid #e6e8ee;border-radius:9px;height:56px;flex:0 0 56px;padding:0 12px;display:flex;align-items:center;gap:11px;box-shadow:0 1px 2px rgba(20,22,28,.05)}
+.plc-ua{flex:0 0 28px;height:28px;border-radius:7px;background:linear-gradient(180deg,#0033A0,#00257a);color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;letter-spacing:.03em}
+.plc-leg{flex:0 0 148px}
+.plc-leg b{display:block;font-size:12px;font-weight:700;color:#14161c;letter-spacing:-.01em;white-space:nowrap}
+.plc-leg b i{font-style:normal;color:#a3a9b6;font-weight:400;padding:0 3px}
+.plc-leg small{font-size:8.5px;color:#7f8694;white-space:nowrap}
+.plc-ptag{flex:0 0 auto;font-size:8px;font-weight:700;color:#0d7a45;background:#e7f7ee;border:1px solid #bfe8d1;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.plc-ptag.warn{color:#9a6b00;background:#fdf4dc;border-color:#efdca2}
+.plc-nbuy{margin-left:auto;display:flex;align-items:center;gap:9px}
+.plc-nprice{text-align:right}
+.plc-nprice b{display:block;font-size:12px;font-weight:800;color:#14161c}
+.plc-nprice small{font-size:7.5px;color:#7f8694}
+.plc-sel{background:#1c1f26;color:#fff;font-size:9px;font-weight:600;border-radius:7px;padding:6px 12px;white-space:nowrap}
+
+/* ── scene 4 — route panel close-up ── */
+.plc-s4bg{flex:1;position:relative;overflow:hidden;background:
+  radial-gradient(1px 1px at 12% 24%,rgba(232,238,251,.5) 50%,transparent 51%),
+  radial-gradient(1px 1px at 30% 72%,rgba(232,238,251,.3) 50%,transparent 51%),
+  radial-gradient(1.5px 1.5px at 52% 16%,rgba(142,205,255,.4) 50%,transparent 51%),
+  radial-gradient(1px 1px at 71% 60%,rgba(232,238,251,.3) 50%,transparent 51%),
+  radial-gradient(1px 1px at 88% 30%,rgba(142,205,255,.35) 50%,transparent 51%),
+  radial-gradient(1px 1px at 44% 88%,rgba(232,238,251,.28) 50%,transparent 51%),
+  linear-gradient(160deg,#081231 0%,#040816 70%)}
+.plc-ghost{position:absolute;left:44px;right:44px;height:44px;border-radius:8px;background:rgba(244,246,249,.045);border:1px solid rgba(244,246,249,.06)}
+.plc-panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:404px;border-radius:14px;overflow:hidden;
+  background:linear-gradient(165deg,#0a1233 0%,#040816 70%);border:1px solid rgba(142,205,255,.32);
+  box-shadow:0 18px 44px rgba(2,8,32,.6),0 2px 8px rgba(2,8,32,.4),inset 0 1px 0 rgba(142,205,255,.16)}
+.plc-ph{display:flex;align-items:center;gap:8px;padding:12px 14px 10px;border-bottom:1px solid rgba(148,178,255,.12)}
+.plc-pmark{position:relative;width:18px;height:18px;flex:0 0 18px}
+.plc-pmark b{position:absolute;inset:0;border:1px solid rgba(142,205,255,.55);border-radius:50%;transform:rotate(-24deg) scaleY(.6)}
+.plc-pmark i{position:absolute;left:5px;top:5px;width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#8ecdff,#0033A0)}
+.plc-ph .plc-pt{font-size:12.5px;font-weight:700;color:var(--ink);white-space:nowrap}
+.plc-proute{margin-left:auto;position:relative;display:grid;font-family:var(--mono);font-size:10px}
+.plc-proute span{grid-area:1/1;white-space:nowrap;color:var(--sky);text-align:right}
+.plc-proute .plc-rb{opacity:0;color:var(--gold)}
+.plc-s4.is-active .plc-proute .plc-ra{animation:plc-swapa 8s linear forwards}
+.plc-s4.is-active .plc-proute .plc-rb{animation:plc-swapb 8s linear forwards}
+.plc-seg{display:flex;gap:1px;background:rgba(148,178,255,.08);border:1px solid var(--card-edge);border-radius:999px;padding:2px;margin-left:10px}
+.plc-seg span{font-size:8.5px;font-weight:600;color:var(--faint);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.plc-seg .plc-sa{color:#fff;background:#13296b}
+.plc-s4.is-active .plc-seg .plc-sa{animation:plc-sega 8s linear forwards}
+.plc-s4.is-active .plc-seg .plc-sb{animation:plc-segb 8s linear forwards}
+@keyframes plc-swapa{0%,46%{opacity:1}54%,100%{opacity:0}}
+@keyframes plc-swapb{0%,46%{opacity:0}54%,100%{opacity:1}}
+@keyframes plc-sega{0%,46%{color:#fff;background:#13296b}54%,100%{color:var(--faint);background:transparent}}
+@keyframes plc-segb{0%,46%{color:var(--faint);background:transparent}54%,100%{color:#fff;background:#13296b}}
+.plc-prow{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(148,178,255,.07)}
+.plc-pdep{font-family:var(--mono);font-size:10.5px;color:var(--ink);flex:0 0 58px;white-space:nowrap}
+.plc-pfn{font-size:10.5px;color:var(--dim);flex:1;white-space:nowrap}
+.plc-pbar{flex:0 0 96px;height:5px;border-radius:3px;background:rgba(148,178,255,.12);overflow:hidden}
+.plc-pbar i{display:block;height:100%;width:0;border-radius:3px;transition:width 1s cubic-bezier(.25,.8,.3,1) var(--bd,0s)}
+.plc-s4.is-active .plc-pbar i{width:var(--w)}
+.plc-pct{font-family:var(--mono);font-size:11px;font-weight:700;flex:0 0 34px;text-align:right}
+.plc-pfoot{padding:9px 14px 11px;font-size:9.5px;color:var(--faint)}
+.plc-pfoot b{color:var(--dim);font-weight:600}
+
+/* ── prev/next arrows ── */
+.plc-nav{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;
+  border:1px solid var(--card-edge);background:rgba(4,9,28,.72);color:var(--ink);font-size:17px;line-height:1;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:5;opacity:0;
+  transition:opacity .25s ease,border-color .25s ease;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.plc-nav:hover{border-color:var(--sky)}
+.plc-viewport:hover .plc-nav,.plc-nav:focus-visible{opacity:1}
+.plc-nav:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+.plc-prev{left:10px}.plc-next{right:10px}
+@media (hover:none){.plc-nav{opacity:.7}}
+
+/* ── caption + dots + fine print ── */
+.plc-caps{position:relative;min-height:46px;margin-top:15px}
+.plc-cap{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;text-align:center;
+  font-size:15px;color:var(--dim);opacity:0;transform:translateY(6px);
+  transition:opacity .5s ease,transform .5s ease;pointer-events:none;padding:0 8px}
+.plc-cap b{color:var(--ink);font-weight:600}
+.plc-cap.is-active{opacity:1;transform:none}
+.plc-dots{display:flex;align-items:center;justify-content:center;gap:9px;margin-top:2px}
+.plc-dot{position:relative;width:9px;height:9px;border-radius:999px;border:0;padding:0;
+  background:rgba(148,178,255,.25);cursor:pointer;overflow:hidden;flex:0 0 auto;
+  transition:width .35s ease,background .35s ease}
+.plc-dot:hover{background:rgba(148,178,255,.45)}
+.plc-dot.is-active{width:34px;background:rgba(148,178,255,.18)}
+.plc-fillbar{position:absolute;inset:0;width:0;border-radius:999px;background:linear-gradient(90deg,var(--sky),var(--sky-bright))}
+.plc-dot.is-active .plc-fillbar{animation:plc-prog var(--plc-dur,4.2s) linear forwards}
+.plc.is-paused .plc-fillbar{animation-play-state:paused}
+.plc-dot:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+@keyframes plc-prog{from{width:0}to{width:100%}}
+.plc-fine{text-align:center;font-size:10.5px;color:var(--faint);margin-top:13px}
+
+/* ── responsive trims ── */
+@media (max-width:560px){
+  .plc-titles p .plc-hidesm{display:none}
+  .plc-cap{font-size:13.5px}
+  .plc-caps{min-height:54px}
+}
+
+/* ── reduced motion: no auto-advance (JS), no motion, sorted/final states shown ── */
+@media (prefers-reduced-motion: reduce){
+  .plc *,.plc *::before,.plc *::after{transition:none!important;animation:none!important}
+  .plc-scene,.plc-scene.is-left{transform:none}
+  .plc-s2 .plc-row{top:calc(var(--y1)*60px)}
+  .plc-s4 .plc-pbar i{width:var(--w)}
+  .plc-fillbar{display:none}
+  .plc-dot.is-active{background:var(--sky)}
+  .plc-nav{opacity:.9}
+}
+</style>
+
+<div class="plc-head">
+  <div class="plc-mark" aria-hidden="true"><i class="plc-orbit"></i><i class="plc-planet"></i><i class="plc-sat"></i></div>
+  <div class="plc-titles">
+    <h2>How it works</h2>
+    <p>Starlink Odds for United Flights<span class="plc-hidesm"> — live WiFi odds while you book</span><span class="plc-ver">v1.5.1</span></p>
+  </div>
+  <div class="plc-sitetab" aria-hidden="true">
+    <span class="plc-site plc-site-united on">United.com</span>
+    <span class="plc-site plc-site-navan">Navan</span>
+  </div>
+</div>
+
+<div class="plc-viewport">
+  <div class="plc-scale">
+
+    <!-- ═══ Scene 1 · united.com results with odds badges ═══ -->
+    <div class="plc-scene plc-s1 is-active" data-site="united" role="group" aria-label="Scene 1 of 4: odds badges on united.com results">
+      <div class="plc-kb">
+        <div class="plc-chrome" aria-hidden="true">
+          <i class="plc-cd plc-cd1"></i><i class="plc-cd plc-cd2"></i><i class="plc-cd plc-cd3"></i>
+          <span class="plc-url"><span class="plc-lock">&#128274;</span><span><b>united.com</b>/en/us/fsr/choose-flights?f=DEN&amp;t=SFO</span></span>
+          <span class="plc-ext"><i class="plc-pip"></i>Starlink Odds</span>
+        </div>
+        <div class="plc-usite">
+          <div class="plc-unav" aria-hidden="true">
+            <i class="plc-tulip"></i><span class="plc-uwm">UNITED</span>
+            <span class="plc-ulink on">Book</span><span class="plc-ulink">My trips</span><span class="plc-ulink">Travel info</span><span class="plc-ulink">MileagePlus&reg;</span>
+            <span class="plc-signin">Sign in</span>
+          </div>
+          <div class="plc-uhead">
+            <div><h3>Choose your flight</h3><p><b>Denver (DEN)</b> &rarr; <b>San Francisco (SFO)</b> &middot; Wed, Aug 12 &middot; 1 adult</p></div>
+            <span class="plc-sortpill"><i class="plc-satdot"></i>&#8645;&nbsp;Sort page by Starlink odds</span>
+          </div>
+          <div class="plc-rows">
+            <div class="plc-row">
+              <div class="plc-times"><b>7:05 AM<i>&rarr;</i>8:41 AM</b><small>Nonstop &middot; 2h 36m</small></div>
+              <div class="plc-flno"><b>UA 1943</b><small>737 MAX 9</small></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-gold"><i></i>Starlink 88%</span><span class="plc-conf">&#10003; confirmed tail</span></div>
+              <div class="plc-price"><b>$164</b><small>one-way</small></div>
+            </div>
+            <div class="plc-row">
+              <div class="plc-times"><b>9:30 AM<i>&rarr;</i>11:09 AM</b><small>Nonstop &middot; 2h 39m</small></div>
+              <div class="plc-flno"><b>UA 519</b><small>A321neo</small></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-green"><i></i>Starlink 42%</span></div>
+              <div class="plc-price"><b>$139</b><small>one-way</small></div>
+            </div>
+            <div class="plc-row">
+              <div class="plc-times"><b>12:10 PM<i>&rarr;</i>1:52 PM</b><small>Nonstop &middot; 2h 42m</small></div>
+              <div class="plc-flno"><b>UA 2117</b><small>737-900</small></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-blue"><i></i>Starlink 27%</span></div>
+              <div class="plc-price"><b>$129</b><small>one-way</small></div>
+            </div>
+            <div class="plc-row">
+              <div class="plc-times"><b>3:45 PM<i>&rarr;</i>5:28 PM</b><small>Nonstop &middot; 2h 43m</small></div>
+              <div class="plc-flno"><b>UA 780</b><small>737-900</small></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-red"><i></i>Starlink 12%</span></div>
+              <div class="plc-price"><b>$119</b><small>one-way</small></div>
+            </div>
+            <div class="plc-row">
+              <div class="plc-times"><b>6:20 PM<i>&rarr;</i>8:04 PM</b><small>Nonstop &middot; 2h 44m</small></div>
+              <div class="plc-flno"><b>UA 5342</b><small>CRJ-550 &middot; Express</small></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-gray"><i></i>Starlink n/a</span></div>
+              <div class="plc-price"><b>$109</b><small>one-way</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Scene 2 · one-click sort reorders the page ═══ -->
+    <div class="plc-scene plc-s2" data-site="united" role="group" aria-label="Scene 2 of 4: sort the page by Starlink odds">
+      <div class="plc-kb">
+        <div class="plc-chrome" aria-hidden="true">
+          <i class="plc-cd plc-cd1"></i><i class="plc-cd plc-cd2"></i><i class="plc-cd plc-cd3"></i>
+          <span class="plc-url"><span class="plc-lock">&#128274;</span><span><b>united.com</b>/en/us/fsr/choose-flights?f=DEN&amp;t=SFO</span></span>
+          <span class="plc-ext"><i class="plc-pip"></i>Starlink Odds</span>
+        </div>
+        <div class="plc-usite">
+          <div class="plc-unav" aria-hidden="true">
+            <i class="plc-tulip"></i><span class="plc-uwm">UNITED</span>
+            <span class="plc-ulink on">Book</span><span class="plc-ulink">My trips</span><span class="plc-ulink">Travel info</span><span class="plc-ulink">MileagePlus&reg;</span>
+            <span class="plc-signin">Sign in</span>
+          </div>
+          <div class="plc-uhead">
+            <div><h3>Choose your flight</h3><p><b>Denver (DEN)</b> &rarr; <b>San Francisco (SFO)</b> &middot; Wed, Aug 12 &middot; 1 adult</p></div>
+            <span class="plc-sortpill"><i class="plc-satdot"></i>&#8645;&nbsp;Sort page by Starlink odds</span>
+          </div>
+          <div class="plc-rows">
+            <div class="plc-row" style="--y0:0;--y1:3;--d:.06s">
+              <div class="plc-times"><b>6:00 AM<i>&rarr;</i>7:34 AM</b><small>Nonstop &middot; 2h 34m</small></div>
+              <div class="plc-flno"><b>UA 302</b><small>A319</small></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-red"><i></i>Starlink 9%</span></div>
+              <div class="plc-price"><b>$99</b><small>one-way</small></div>
+            </div>
+            <div class="plc-row" style="--y0:1;--y1:0;--d:0s">
+              <div class="plc-times"><b>7:05 AM<i>&rarr;</i>8:41 AM</b><small>Nonstop &middot; 2h 36m</small></div>
+              <div class="plc-flno"><b>UA 1943</b><small>737 MAX 9</small></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-gold"><i></i>Starlink 88%</span><span class="plc-conf">&#10003; confirmed tail</span></div>
+              <div class="plc-price"><b>$164</b><small>one-way</small></div>
+            </div>
+            <div class="plc-row" style="--y0:2;--y1:1;--d:.03s">
+              <div class="plc-times"><b>9:30 AM<i>&rarr;</i>11:09 AM</b><small>Nonstop &middot; 2h 39m</small></div>
+              <div class="plc-flno"><b>UA 519</b><small>A321neo</small></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-green"><i></i>Starlink 42%</span></div>
+              <div class="plc-price"><b>$139</b><small>one-way</small></div>
+            </div>
+            <div class="plc-row" style="--y0:3;--y1:2;--d:.05s">
+              <div class="plc-times"><b>12:10 PM<i>&rarr;</i>1:52 PM</b><small>Nonstop &middot; 2h 42m</small></div>
+              <div class="plc-flno"><b>UA 2117</b><small>737-900</small></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-blue"><i></i>Starlink 27%</span></div>
+              <div class="plc-price"><b>$129</b><small>one-way</small></div>
+            </div>
+            <div class="plc-row" style="--y0:4;--y1:4;--d:.08s">
+              <div class="plc-times"><b>6:20 PM<i>&rarr;</i>8:04 PM</b><small>Nonstop &middot; 2h 44m</small></div>
+              <div class="plc-flno"><b>UA 5342</b><small>CRJ-550 &middot; Express</small></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-gray"><i></i>Starlink n/a</span></div>
+              <div class="plc-price"><b>$109</b><small>one-way</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Scene 3 · Navan corporate results ═══ -->
+    <div class="plc-scene plc-s3" data-site="navan" role="group" aria-label="Scene 3 of 4: odds badges inside Navan">
+      <div class="plc-kb">
+        <div class="plc-chrome" aria-hidden="true">
+          <i class="plc-cd plc-cd1"></i><i class="plc-cd plc-cd2"></i><i class="plc-cd plc-cd3"></i>
+          <span class="plc-url"><span class="plc-lock">&#128274;</span><span><b>app.navan.com</b>/travel/flights/search?from=EWR&amp;to=ORD</span></span>
+          <span class="plc-ext"><i class="plc-pip"></i>Starlink Odds</span>
+        </div>
+        <div class="plc-napp">
+          <div class="plc-rail" aria-hidden="true">
+            <div class="plc-nwm">navan<small>BUSINESS TRAVEL</small></div>
+            <div class="plc-ritem"><b>&#8962;</b>Home</div>
+            <div class="plc-ritem on"><b>&#9992;</b>Travel</div>
+            <div class="plc-ritem"><b>&#9635;</b>Expenses</div>
+            <div class="plc-ritem"><b>&#9733;</b>Rewards</div>
+            <div class="plc-ritem"><b>&#9881;</b>Settings</div>
+            <div class="plc-rfoot"><span class="plc-av">JS</span><small>J. Smith<br>Smith&nbsp;Co</small></div>
+          </div>
+          <div class="plc-nmain">
+            <div class="plc-ntop" aria-hidden="true">
+              <span class="plc-tripchip">EWR &#8652; ORD <small>&middot; Wed, Sep 3</small></span>
+              <span class="plc-fchip sel">Nonstop</span>
+              <span class="plc-fchip">United</span>
+              <span class="plc-fchip">Morning</span>
+            </div>
+            <div class="plc-nres">
+              <div class="plc-nreshead">
+                <h3>Departing flights<small>14 results</small></h3>
+                <span class="plc-sortpill"><i class="plc-satdot"></i>&#8645;&nbsp;Sort by Starlink odds</span>
+              </div>
+              <div class="plc-nrows">
+                <div class="plc-nrow">
+                  <span class="plc-ua">UA</span>
+                  <div class="plc-leg"><b>8:00 AM<i>&rarr;</i>9:29 AM</b><small>EWR&ndash;ORD &middot; UA 1611 &middot; 737 MAX 8</small></div>
+                  <span class="plc-ptag">In policy</span>
+                  <span class="plc-badge plc-b-gold"><i></i>Starlink 64%</span>
+                  <div class="plc-nbuy"><span class="plc-nprice"><b>$221</b><small>round trip</small></span><span class="plc-sel">Select</span></div>
+                </div>
+                <div class="plc-nrow">
+                  <span class="plc-ua">UA</span>
+                  <div class="plc-leg"><b>10:45 AM<i>&rarr;</i>12:14 PM</b><small>EWR&ndash;ORD &middot; UA 673 &middot; A320</small></div>
+                  <span class="plc-ptag">In policy</span>
+                  <span class="plc-badge plc-b-green"><i></i>Starlink 38%</span>
+                  <div class="plc-nbuy"><span class="plc-nprice"><b>$198</b><small>round trip</small></span><span class="plc-sel">Select</span></div>
+                </div>
+                <div class="plc-nrow">
+                  <span class="plc-ua">UA</span>
+                  <div class="plc-leg"><b>1:30 PM<i>&rarr;</i>3:02 PM</b><small>EWR&ndash;ORD &middot; UA 2288 &middot; 757-300</small></div>
+                  <span class="plc-ptag warn">Approval</span>
+                  <span class="plc-badge plc-b-blue"><i></i>Starlink 22%</span>
+                  <div class="plc-nbuy"><span class="plc-nprice"><b>$176</b><small>round trip</small></span><span class="plc-sel">Select</span></div>
+                </div>
+                <div class="plc-nrow">
+                  <span class="plc-ua">UA</span>
+                  <div class="plc-leg"><b>5:15 PM<i>&rarr;</i>6:50 PM</b><small>EWR&ndash;ORD &middot; UA 490 &middot; A319</small></div>
+                  <span class="plc-ptag">In policy</span>
+                  <span class="plc-badge plc-b-red"><i></i>Starlink 11%</span>
+                  <div class="plc-nbuy"><span class="plc-nprice"><b>$164</b><small>round trip</small></span><span class="plc-sel">Select</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ Scene 4 · floating route panel close-up ═══ -->
+    <div class="plc-scene plc-s4" data-site="united" role="group" aria-label="Scene 4 of 4: live route panel, round-trip aware">
+      <div class="plc-kb">
+        <div class="plc-s4bg" aria-hidden="true">
+          <i class="plc-ghost" style="top:52px"></i>
+          <i class="plc-ghost" style="top:108px"></i>
+          <i class="plc-ghost" style="top:164px"></i>
+          <i class="plc-ghost" style="top:220px"></i>
+          <i class="plc-ghost" style="top:276px"></i>
+          <i class="plc-ghost" style="top:332px"></i>
+          <div class="plc-panel">
+            <div class="plc-ph">
+              <span class="plc-pmark"><b></b><i></i></span>
+              <span class="plc-pt">Best Starlink odds</span>
+              <span class="plc-proute"><span class="plc-ra">DEN&rarr;SFO</span><span class="plc-rb">SFO&rarr;DEN</span></span>
+              <span class="plc-seg"><span class="plc-sa">Outbound</span><span class="plc-sb">Return</span></span>
+            </div>
+            <div class="plc-prow"><span class="plc-pdep">7:05 AM</span><span class="plc-pfn">UA 1943 &middot; 737 MAX 9</span><span class="plc-pbar"><i style="--w:88%;--bd:.5s;background:var(--gold)"></i></span><span class="plc-pct" style="color:var(--gold)">88%</span></div>
+            <div class="plc-prow"><span class="plc-pdep">9:30 AM</span><span class="plc-pfn">UA 519 &middot; A321neo</span><span class="plc-pbar"><i style="--w:42%;--bd:.65s;background:var(--green)"></i></span><span class="plc-pct" style="color:var(--green)">42%</span></div>
+            <div class="plc-prow"><span class="plc-pdep">12:10 PM</span><span class="plc-pfn">UA 2117 &middot; 737-900</span><span class="plc-pbar"><i style="--w:27%;--bd:.8s;background:var(--blue)"></i></span><span class="plc-pct" style="color:var(--blue)">27%</span></div>
+            <div class="plc-prow"><span class="plc-pdep">3:45 PM</span><span class="plc-pfn">UA 780 &middot; 737-900</span><span class="plc-pbar"><i style="--w:12%;--bd:.95s;background:var(--red)"></i></span><span class="plc-pct" style="color:var(--red)">12%</span></div>
+            <div class="plc-pfoot"><b>Round-trip aware</b> &middot; the panel flips to your return leg automatically</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <button class="plc-nav plc-prev" type="button" aria-label="Previous scene">&#8249;</button>
+  <button class="plc-nav plc-next" type="button" aria-label="Next scene">&#8250;</button>
+</div>
+
+<div class="plc-caps" aria-live="polite">
+  <p class="plc-cap is-active">See <b>every flight&rsquo;s Starlink odds</b> on united.com.</p>
+  <p class="plc-cap">One click <b>sorts the whole page</b> by odds.</p>
+  <p class="plc-cap">Works in <b>Navan</b> too &mdash; where work books travel.</p>
+  <p class="plc-cap">A <b>live route panel</b> &mdash; and it flips for your return.</p>
+</div>
+
+<div class="plc-dots" role="tablist" aria-label="Scenes">
+  <button class="plc-dot is-active" type="button" role="tab" aria-selected="true" aria-label="Scene 1: odds on united.com"><i class="plc-fillbar"></i></button>
+  <button class="plc-dot" type="button" role="tab" aria-selected="false" aria-label="Scene 2: sort page by odds"><i class="plc-fillbar"></i></button>
+  <button class="plc-dot" type="button" role="tab" aria-selected="false" aria-label="Scene 3: odds in Navan"><i class="plc-fillbar"></i></button>
+  <button class="plc-dot" type="button" role="tab" aria-selected="false" aria-label="Scene 4: live route panel"><i class="plc-fillbar"></i></button>
+</div>
+
+<p class="plc-fine">Unofficial &middot; Not affiliated with United&nbsp;Airlines, Navan, or Starlink</p>
+
+<script>
+(function(){
+  "use strict";
+  var doc=document;
+  var cs=doc.currentScript;
+  var root=(cs&&cs.closest)?cs.closest("section.plc"):null;
+  if(!root){var all=doc.querySelectorAll("section.plc");root=all[all.length-1];}
+  if(!root||root.getAttribute("data-plc-init"))return;
+  root.setAttribute("data-plc-init","1");
+
+  var DUR=4200;
+  root.style.setProperty("--plc-dur",(DUR/1000)+"s");
+
+  var scenes=[].slice.call(root.querySelectorAll(".plc-scene"));
+  var caps=[].slice.call(root.querySelectorAll(".plc-cap"));
+  var dots=[].slice.call(root.querySelectorAll(".plc-dot"));
+  var tabU=root.querySelector(".plc-site-united");
+  var tabN=root.querySelector(".plc-site-navan");
+  var scaleEl=root.querySelector(".plc-scale");
+  var viewport=root.querySelector(".plc-viewport");
+  var s2=root.querySelector(".plc-s2");
+  var n=scenes.length;
+
+  var mq=window.matchMedia?window.matchMedia("(prefers-reduced-motion: reduce)"):null;
+  function reduced(){return !!(mq&&mq.matches);}
+
+  /* fit the 720x440 stage to the viewport width */
+  function fit(){
+    var w=viewport.clientWidth;
+    if(w>0)scaleEl.style.transform="scale("+(w/720)+")";
+  }
+  if(window.ResizeObserver){new ResizeObserver(fit).observe(viewport);}
+  else{window.addEventListener("resize",fit);}
+  fit();
+
+  var idx=0,timer=null,startT=0,remain=DUR,sortT=null;
+  var hoverP=false,focusP=false,hiddenP=false;
+  function pausedAny(){return hoverP||focusP||hiddenP;}
+
+  function choreo(){
+    /* scene 2: press the pill, then reorder */
+    clearTimeout(sortT);
+    if(scenes[idx]===s2){
+      if(reduced()){s2.classList.add("is-sorted");}
+      else{
+        s2.classList.remove("is-sorted");
+        sortT=setTimeout(function(){s2.classList.add("is-sorted");},1050);
+      }
+    }else{
+      /* reset after the exit fade so rows don't jump mid-transition */
+      sortT=setTimeout(function(){s2.classList.remove("is-sorted");},700);
+    }
+  }
+
+  function setScene(k,dir){
+    k=((k%n)+n)%n;
+    if(k===idx&&scenes[k].classList.contains("is-active"))return;
+    var old=idx;idx=k;
+    scenes.forEach(function(s,j){
+      var act=(j===idx);
+      s.classList.toggle("is-active",act);
+      if(act)s.classList.remove("is-left");
+      else s.classList.toggle("is-left",j===old&&dir>=0);
+      s.setAttribute("aria-hidden",act?"false":"true");
+    });
+    caps.forEach(function(c,j){c.classList.toggle("is-active",j===idx);});
+    dots.forEach(function(d,j){
+      d.classList.toggle("is-active",j===idx);
+      d.setAttribute("aria-selected",j===idx?"true":"false");
+    });
+    var site=scenes[idx].getAttribute("data-site");
+    if(tabU)tabU.classList.toggle("on",site!=="navan");
+    if(tabN)tabN.classList.toggle("on",site==="navan");
+    choreo();
+    schedule();
+  }
+
+  function next(){setScene(idx+1,1);}
+  function prev(){setScene(idx-1,-1);}
+
+  function schedule(){
+    clearTimeout(timer);timer=null;
+    remain=DUR;startT=Date.now();
+    root.classList.toggle("is-paused",pausedAny());
+    if(reduced()||pausedAny())return;
+    timer=setTimeout(next,DUR);
+  }
+  function pause(){
+    if(timer){clearTimeout(timer);timer=null;remain-=(Date.now()-startT);}
+    root.classList.add("is-paused");
+  }
+  function resume(){
+    if(reduced())return;
+    root.classList.remove("is-paused");
+    if(!timer){startT=Date.now();timer=setTimeout(next,Math.max(remain,600));}
+  }
+  function sync(){pausedAny()?pause():resume();}
+
+  root.addEventListener("mouseenter",function(){hoverP=true;sync();});
+  root.addEventListener("mouseleave",function(){hoverP=false;sync();});
+  root.addEventListener("focusin",function(){focusP=true;sync();});
+  root.addEventListener("focusout",function(){focusP=false;sync();});
+  doc.addEventListener("visibilitychange",function(){hiddenP=doc.hidden;sync();});
+
+  dots.forEach(function(d,j){
+    d.addEventListener("click",function(){setScene(j,j>idx?1:-1);});
+  });
+  root.querySelector(".plc-prev").addEventListener("click",prev);
+  root.querySelector(".plc-next").addEventListener("click",next);
+  root.addEventListener("keydown",function(e){
+    if(e.key==="ArrowRight"){next();e.preventDefault();}
+    else if(e.key==="ArrowLeft"){prev();e.preventDefault();}
+  });
+
+  function onMotionChange(){
+    if(reduced()){pause();s2.classList.add("is-sorted");}
+    else{schedule();}
+  }
+  if(mq){
+    if(mq.addEventListener)mq.addEventListener("change",onMotionChange);
+    else if(mq.addListener)mq.addListener(onMotionChange);
+  }
+
+  /* init */
+  scenes.forEach(function(s,j){s.setAttribute("aria-hidden",j===0?"false":"true");});
+  if(reduced()){s2.classList.add("is-sorted");root.classList.add("is-paused");}
+  else{schedule();}
+})();
+</script>
+</section>
+</main>
+<footer class="pagefoot"><b>Starlink Odds for United Flights</b> · promo reel · smithfamai.com/unitedstarlink</footer>
+</body>
+</html>
