@@ -120,7 +120,7 @@
 .plc-flno b{display:block;font-size:11px;font-weight:700;color:#1f2937;white-space:nowrap}
 .plc-flno small{font-size:9.5px;color:#6b7280;white-space:nowrap}
 .plc-odds{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
-.plc-badge{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(180deg,#0b1330,#040816);border:1px solid;border-radius:999px;padding:4px 10px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.01em;white-space:nowrap;box-shadow:0 2px 8px rgba(3,10,40,.28)}
+.plc-badge{position:relative;display:inline-flex;align-items:center;gap:6px;background:linear-gradient(180deg,#0b1330,#040816);border:1px solid;border-radius:999px;padding:4px 10px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.01em;white-space:nowrap;box-shadow:0 2px 8px rgba(3,10,40,.28)}
 .plc-badge i{width:7px;height:7px;border-radius:50%;flex:0 0 7px}
 .plc-b-gold{border-color:rgba(255,209,102,.65);color:var(--gold)}
 .plc-b-gold i{background:var(--gold);box-shadow:0 0 6px 2px rgba(255,209,102,.45)}
@@ -142,6 +142,45 @@
 .plc-s2 .plc-row{position:absolute;left:16px;right:16px;top:calc(var(--y0)*60px);
   transition:top .85s cubic-bezier(.22,.9,.24,1) var(--d,0s)}
 .plc-s2.is-sorted .plc-row{top:calc(var(--y1)*60px)}
+/* scene 2 — after the sort lands, the winning row gets a soft gold ring */
+.plc-s2 .plc-win{transition:top .85s cubic-bezier(.22,.9,.24,1) var(--d,0s),box-shadow .6s ease 1s,border-color .6s ease 1s}
+.plc-s2.is-sorted .plc-win{border-color:#f0d789;box-shadow:0 4px 16px rgba(255,209,102,.3),0 1px 3px rgba(16,32,73,.06)}
+
+/* ── scene-entry choreography (scenes 1 & 3) — re-fires every time .is-active returns ── */
+.plc-s1.is-active .plc-row{animation:plc-rowin .55s cubic-bezier(.2,.7,.3,1) both;animation-delay:calc(.1s + var(--i,0)*.07s)}
+.plc-s3.is-active .plc-nrow{animation:plc-rowin .55s cubic-bezier(.2,.7,.3,1) both;animation-delay:calc(.1s + var(--i,0)*.07s)}
+@keyframes plc-rowin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.plc-s1.is-active .plc-badge,.plc-s3.is-active .plc-badge{animation:plc-pop .5s cubic-bezier(.34,1.56,.64,1) both;animation-delay:calc(.3s + var(--i,0)*.09s)}
+.plc-s1.is-active .plc-conf{animation:plc-pop .5s cubic-bezier(.34,1.56,.64,1) both,plc-twinkle 2.4s ease-in-out infinite;animation-delay:calc(.46s + var(--i,0)*.09s),1.6s}
+.plc-s3.is-active .plc-ptag{animation:plc-fadein .5s ease both;animation-delay:calc(.55s + var(--i,0)*.09s)}
+@keyframes plc-pop{0%{opacity:0;transform:scale(.4)}60%{opacity:1}100%{opacity:1;transform:scale(1)}}
+@keyframes plc-fadein{from{opacity:0}to{opacity:1}}
+@keyframes plc-twinkle{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+.plc-num{text-decoration:none;font-style:normal;font-variant-numeric:tabular-nums}
+
+/* satellite dots breathe while their scene is live (header sat too) */
+.plc-scene.is-active .plc-satdot{animation:plc-breathe 2s ease-in-out .6s infinite}
+.plc-mark .plc-sat{animation:plc-breathe 2.6s ease-in-out infinite}
+@keyframes plc-breathe{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.35);opacity:.72}}
+
+/* glimmer sweep across gold/green badges (base opacity 0 → invisible under reduced motion) */
+.plc-b-gold,.plc-b-green{overflow:hidden}
+.plc-b-gold::after,.plc-b-green::after{content:"";position:absolute;top:-6px;bottom:-6px;left:0;width:18px;opacity:0;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.34),transparent);transform:translateX(-26px) rotate(14deg)}
+.plc-scene.is-active .plc-b-gold::after,.plc-scene.is-active .plc-b-green::after{animation:plc-shine 3.4s ease-in-out 1.1s infinite}
+@keyframes plc-shine{0%{opacity:0;transform:translateX(-26px) rotate(14deg)}8%{opacity:1}30%{opacity:1;transform:translateX(130px) rotate(14deg)}31%,100%{opacity:0;transform:translateX(130px) rotate(14deg)}}
+
+/* soft highlight sweeping down the result rows (scenes 1 & 3) */
+.plc-s1 .plc-rows,.plc-s3 .plc-nrows{position:relative}
+.plc-s1 .plc-rows::before,.plc-s3 .plc-nrows::before{content:"";position:absolute;left:16px;right:16px;top:0;height:52px;border-radius:8px;
+  opacity:0;pointer-events:none;z-index:1;
+  background:linear-gradient(90deg,rgba(105,179,231,0),rgba(105,179,231,.13) 30%,rgba(142,205,255,.09) 70%,rgba(105,179,231,0));
+  box-shadow:inset 0 0 0 1px rgba(105,179,231,.3)}
+.plc-s3 .plc-nrows::before{left:0;right:0;height:56px;border-radius:9px}
+.plc-s1.is-active .plc-rows::before{animation:plc-sweep 3s ease-in-out .9s forwards}
+.plc-s3.is-active .plc-nrows::before{animation:plc-sweep3 3s ease-in-out .9s forwards}
+@keyframes plc-sweep{0%{opacity:0;transform:translateY(0)}12%{opacity:1;transform:translateY(0)}88%{opacity:1}100%{opacity:0;transform:translateY(240px)}}
+@keyframes plc-sweep3{0%{opacity:0;transform:translateY(0)}12%{opacity:1;transform:translateY(0)}88%{opacity:1}100%{opacity:0;transform:translateY(192px)}}
 
 /* ── emulated navan ── */
 .plc-napp{flex:1;display:flex;background:#f6f7f9;overflow:hidden}
@@ -217,6 +256,12 @@
 .plc-pbar{flex:0 0 96px;height:5px;border-radius:3px;background:rgba(148,178,255,.12);overflow:hidden}
 .plc-pbar i{display:block;height:100%;width:0;border-radius:3px;transition:width 1s cubic-bezier(.25,.8,.3,1) var(--bd,0s)}
 .plc-s4.is-active .plc-pbar i{width:var(--w)}
+/* scene 4 — panel pops in, then hovers gently; ghost rows shimmer behind it */
+.plc-s4.is-active .plc-panel{animation:plc-panelin .65s cubic-bezier(.3,1.4,.4,1) both,plc-float 5.5s ease-in-out 1.4s infinite}
+@keyframes plc-panelin{from{opacity:0;transform:translate(-50%,-46%) scale(.94)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes plc-float{0%,100%{transform:translate(-50%,-50%)}50%{transform:translate(-50%,calc(-50% - 5px))}}
+.plc-s4.is-active .plc-ghost{animation:plc-ghostp 3.6s ease-in-out infinite;animation-delay:calc(var(--gi,0)*.45s)}
+@keyframes plc-ghostp{0%,100%{opacity:1}50%{opacity:.45}}
 .plc-pct{font-family:var(--mono);font-size:11px;font-weight:700;flex:0 0 34px;text-align:right}
 .plc-pfoot{padding:9px 14px 11px;font-size:9.5px;color:var(--faint)}
 .plc-pfoot b{color:var(--dim);font-weight:600}
@@ -305,31 +350,31 @@
             <span class="plc-sortpill"><i class="plc-satdot"></i>&#8645;&nbsp;Sort page by Starlink odds</span>
           </div>
           <div class="plc-rows">
-            <div class="plc-row">
+            <div class="plc-row" style="--i:0">
               <div class="plc-times"><b>7:05 AM<i>&rarr;</i>8:41 AM</b><small>Nonstop &middot; 2h 36m</small></div>
               <div class="plc-flno"><b>UA 1943</b><small>737 MAX 9</small></div>
-              <div class="plc-odds"><span class="plc-badge plc-b-gold"><i></i>Starlink 88%</span><span class="plc-conf">&#10003; confirmed tail</span></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-gold"><i></i>Starlink&nbsp;<u class="plc-num" data-n="88">88</u>%</span><span class="plc-conf">&#10003; confirmed tail</span></div>
               <div class="plc-price"><b>$164</b><small>one-way</small></div>
             </div>
-            <div class="plc-row">
+            <div class="plc-row" style="--i:1">
               <div class="plc-times"><b>9:30 AM<i>&rarr;</i>11:09 AM</b><small>Nonstop &middot; 2h 39m</small></div>
               <div class="plc-flno"><b>UA 519</b><small>A321neo</small></div>
-              <div class="plc-odds"><span class="plc-badge plc-b-green"><i></i>Starlink 42%</span></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-green"><i></i>Starlink&nbsp;<u class="plc-num" data-n="42">42</u>%</span></div>
               <div class="plc-price"><b>$139</b><small>one-way</small></div>
             </div>
-            <div class="plc-row">
+            <div class="plc-row" style="--i:2">
               <div class="plc-times"><b>12:10 PM<i>&rarr;</i>1:52 PM</b><small>Nonstop &middot; 2h 42m</small></div>
               <div class="plc-flno"><b>UA 2117</b><small>737-900</small></div>
-              <div class="plc-odds"><span class="plc-badge plc-b-blue"><i></i>Starlink 27%</span></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-blue"><i></i>Starlink&nbsp;<u class="plc-num" data-n="27">27</u>%</span></div>
               <div class="plc-price"><b>$129</b><small>one-way</small></div>
             </div>
-            <div class="plc-row">
+            <div class="plc-row" style="--i:3">
               <div class="plc-times"><b>3:45 PM<i>&rarr;</i>5:28 PM</b><small>Nonstop &middot; 2h 43m</small></div>
               <div class="plc-flno"><b>UA 780</b><small>737-900</small></div>
-              <div class="plc-odds"><span class="plc-badge plc-b-red"><i></i>Starlink 12%</span></div>
+              <div class="plc-odds"><span class="plc-badge plc-b-red"><i></i>Starlink&nbsp;<u class="plc-num" data-n="12">12</u>%</span></div>
               <div class="plc-price"><b>$119</b><small>one-way</small></div>
             </div>
-            <div class="plc-row">
+            <div class="plc-row" style="--i:4">
               <div class="plc-times"><b>6:20 PM<i>&rarr;</i>8:04 PM</b><small>Nonstop &middot; 2h 44m</small></div>
               <div class="plc-flno"><b>UA 5342</b><small>CRJ-550 &middot; Express</small></div>
               <div class="plc-odds"><span class="plc-badge plc-b-gray"><i></i>Starlink n/a</span></div>
@@ -365,7 +410,7 @@
               <div class="plc-odds"><span class="plc-badge plc-b-red"><i></i>Starlink 9%</span></div>
               <div class="plc-price"><b>$99</b><small>one-way</small></div>
             </div>
-            <div class="plc-row" style="--y0:1;--y1:0;--d:0s">
+            <div class="plc-row plc-win" style="--y0:1;--y1:0;--d:0s">
               <div class="plc-times"><b>7:05 AM<i>&rarr;</i>8:41 AM</b><small>Nonstop &middot; 2h 36m</small></div>
               <div class="plc-flno"><b>UA 1943</b><small>737 MAX 9</small></div>
               <div class="plc-odds"><span class="plc-badge plc-b-gold"><i></i>Starlink 88%</span><span class="plc-conf">&#10003; confirmed tail</span></div>
@@ -425,32 +470,32 @@
                 <span class="plc-sortpill"><i class="plc-satdot"></i>&#8645;&nbsp;Sort by Starlink odds</span>
               </div>
               <div class="plc-nrows">
-                <div class="plc-nrow">
+                <div class="plc-nrow" style="--i:0">
                   <span class="plc-ua">UA</span>
                   <div class="plc-leg"><b>8:00 AM<i>&rarr;</i>9:29 AM</b><small>EWR&ndash;ORD &middot; UA 1611 &middot; 737 MAX 8</small></div>
                   <span class="plc-ptag">In policy</span>
-                  <span class="plc-badge plc-b-gold"><i></i>Starlink 64%</span>
+                  <span class="plc-badge plc-b-gold"><i></i>Starlink&nbsp;<u class="plc-num" data-n="64">64</u>%</span>
                   <div class="plc-nbuy"><span class="plc-nprice"><b>$221</b><small>round trip</small></span><span class="plc-sel">Select</span></div>
                 </div>
-                <div class="plc-nrow">
+                <div class="plc-nrow" style="--i:1">
                   <span class="plc-ua">UA</span>
                   <div class="plc-leg"><b>10:45 AM<i>&rarr;</i>12:14 PM</b><small>EWR&ndash;ORD &middot; UA 673 &middot; A320</small></div>
                   <span class="plc-ptag">In policy</span>
-                  <span class="plc-badge plc-b-green"><i></i>Starlink 38%</span>
+                  <span class="plc-badge plc-b-green"><i></i>Starlink&nbsp;<u class="plc-num" data-n="38">38</u>%</span>
                   <div class="plc-nbuy"><span class="plc-nprice"><b>$198</b><small>round trip</small></span><span class="plc-sel">Select</span></div>
                 </div>
-                <div class="plc-nrow">
+                <div class="plc-nrow" style="--i:2">
                   <span class="plc-ua">UA</span>
                   <div class="plc-leg"><b>1:30 PM<i>&rarr;</i>3:02 PM</b><small>EWR&ndash;ORD &middot; UA 2288 &middot; 757-300</small></div>
                   <span class="plc-ptag warn">Approval</span>
-                  <span class="plc-badge plc-b-blue"><i></i>Starlink 22%</span>
+                  <span class="plc-badge plc-b-blue"><i></i>Starlink&nbsp;<u class="plc-num" data-n="22">22</u>%</span>
                   <div class="plc-nbuy"><span class="plc-nprice"><b>$176</b><small>round trip</small></span><span class="plc-sel">Select</span></div>
                 </div>
-                <div class="plc-nrow">
+                <div class="plc-nrow" style="--i:3">
                   <span class="plc-ua">UA</span>
                   <div class="plc-leg"><b>5:15 PM<i>&rarr;</i>6:50 PM</b><small>EWR&ndash;ORD &middot; UA 490 &middot; A319</small></div>
                   <span class="plc-ptag">In policy</span>
-                  <span class="plc-badge plc-b-red"><i></i>Starlink 11%</span>
+                  <span class="plc-badge plc-b-red"><i></i>Starlink&nbsp;<u class="plc-num" data-n="11">11</u>%</span>
                   <div class="plc-nbuy"><span class="plc-nprice"><b>$164</b><small>round trip</small></span><span class="plc-sel">Select</span></div>
                 </div>
               </div>
@@ -464,12 +509,12 @@
     <div class="plc-scene plc-s4" data-site="united" role="group" aria-label="Scene 4 of 4: live route panel, round-trip aware">
       <div class="plc-kb">
         <div class="plc-s4bg" aria-hidden="true">
-          <i class="plc-ghost" style="top:52px"></i>
-          <i class="plc-ghost" style="top:108px"></i>
-          <i class="plc-ghost" style="top:164px"></i>
-          <i class="plc-ghost" style="top:220px"></i>
-          <i class="plc-ghost" style="top:276px"></i>
-          <i class="plc-ghost" style="top:332px"></i>
+          <i class="plc-ghost" style="top:52px;--gi:0"></i>
+          <i class="plc-ghost" style="top:108px;--gi:1"></i>
+          <i class="plc-ghost" style="top:164px;--gi:2"></i>
+          <i class="plc-ghost" style="top:220px;--gi:3"></i>
+          <i class="plc-ghost" style="top:276px;--gi:4"></i>
+          <i class="plc-ghost" style="top:332px;--gi:5"></i>
           <div class="plc-panel">
             <div class="plc-ph">
               <span class="plc-pmark"><b></b><i></i></span>
@@ -477,10 +522,10 @@
               <span class="plc-proute"><span class="plc-ra">DEN&rarr;SFO</span><span class="plc-rb">SFO&rarr;DEN</span></span>
               <span class="plc-seg"><span class="plc-sa">Outbound</span><span class="plc-sb">Return</span></span>
             </div>
-            <div class="plc-prow"><span class="plc-pdep">7:05 AM</span><span class="plc-pfn">UA 1943 &middot; 737 MAX 9</span><span class="plc-pbar"><i style="--w:88%;--bd:.5s;background:var(--gold)"></i></span><span class="plc-pct" style="color:var(--gold)">88%</span></div>
-            <div class="plc-prow"><span class="plc-pdep">9:30 AM</span><span class="plc-pfn">UA 519 &middot; A321neo</span><span class="plc-pbar"><i style="--w:42%;--bd:.65s;background:var(--green)"></i></span><span class="plc-pct" style="color:var(--green)">42%</span></div>
-            <div class="plc-prow"><span class="plc-pdep">12:10 PM</span><span class="plc-pfn">UA 2117 &middot; 737-900</span><span class="plc-pbar"><i style="--w:27%;--bd:.8s;background:var(--blue)"></i></span><span class="plc-pct" style="color:var(--blue)">27%</span></div>
-            <div class="plc-prow"><span class="plc-pdep">3:45 PM</span><span class="plc-pfn">UA 780 &middot; 737-900</span><span class="plc-pbar"><i style="--w:12%;--bd:.95s;background:var(--red)"></i></span><span class="plc-pct" style="color:var(--red)">12%</span></div>
+            <div class="plc-prow"><span class="plc-pdep">7:05 AM</span><span class="plc-pfn">UA 1943 &middot; 737 MAX 9</span><span class="plc-pbar"><i style="--w:88%;--bd:.5s;background:var(--gold)"></i></span><span class="plc-pct" style="color:var(--gold)"><u class="plc-num" data-n="88">88</u>%</span></div>
+            <div class="plc-prow"><span class="plc-pdep">9:30 AM</span><span class="plc-pfn">UA 519 &middot; A321neo</span><span class="plc-pbar"><i style="--w:42%;--bd:.65s;background:var(--green)"></i></span><span class="plc-pct" style="color:var(--green)"><u class="plc-num" data-n="42">42</u>%</span></div>
+            <div class="plc-prow"><span class="plc-pdep">12:10 PM</span><span class="plc-pfn">UA 2117 &middot; 737-900</span><span class="plc-pbar"><i style="--w:27%;--bd:.8s;background:var(--blue)"></i></span><span class="plc-pct" style="color:var(--blue)"><u class="plc-num" data-n="27">27</u>%</span></div>
+            <div class="plc-prow"><span class="plc-pdep">3:45 PM</span><span class="plc-pfn">UA 780 &middot; 737-900</span><span class="plc-pbar"><i style="--w:12%;--bd:.95s;background:var(--red)"></i></span><span class="plc-pct" style="color:var(--red)"><u class="plc-num" data-n="12">12</u>%</span></div>
             <div class="plc-pfoot"><b>Round-trip aware</b> &middot; the panel flips to your return leg automatically</div>
           </div>
         </div>
@@ -548,6 +593,37 @@
   var hoverP=false,focusP=false,hiddenP=false;
   function pausedAny(){return hoverP||focusP||hiddenP;}
 
+  /* odds %s count up from 0 each time their scene enters (markup holds the
+     final values, so no-JS and reduced-motion render the true end state) */
+  var cuToken=0;
+  function snapNums(){
+    [].slice.call(root.querySelectorAll(".plc-num")).forEach(function(el){
+      el.textContent=el.getAttribute("data-n");
+    });
+  }
+  function countUp(scene){
+    cuToken++;                      /* cancel any run still in flight */
+    snapNums();                     /* leave non-active scenes at final values */
+    if(reduced())return;
+    var tok=cuToken;
+    [].slice.call(scene.querySelectorAll(".plc-num")).forEach(function(el,j){
+      var target=parseInt(el.getAttribute("data-n"),10);
+      if(isNaN(target))return;
+      var delay=300+j*90,dur=800,t0=null;
+      function step(ts){
+        if(tok!==cuToken){el.textContent=String(target);return;}
+        if(t0===null)t0=ts;
+        var p=(ts-t0-delay)/dur;
+        if(p>=1){el.textContent=String(target);return;}
+        var e=p<0?0:1-Math.pow(1-p,3);   /* ease-out cubic */
+        el.textContent=String(Math.round(target*e));
+        requestAnimationFrame(step);
+      }
+      el.textContent="0";
+      requestAnimationFrame(step);
+    });
+  }
+
   function choreo(){
     /* scene 2: press the pill, then reorder */
     clearTimeout(sortT);
@@ -561,6 +637,8 @@
       /* reset after the exit fade so rows don't jump mid-transition */
       sortT=setTimeout(function(){s2.classList.remove("is-sorted");},700);
     }
+    /* every scene: restart the % count-ups on entry */
+    countUp(scenes[idx]);
   }
 
   function setScene(k,dir){
@@ -624,7 +702,7 @@
   });
 
   function onMotionChange(){
-    if(reduced()){pause();s2.classList.add("is-sorted");}
+    if(reduced()){pause();s2.classList.add("is-sorted");cuToken++;snapNums();}
     else{schedule();}
   }
   if(mq){
@@ -635,7 +713,7 @@
   /* init */
   scenes.forEach(function(s,j){s.setAttribute("aria-hidden",j===0?"false":"true");});
   if(reduced()){s2.classList.add("is-sorted");root.classList.add("is-paused");}
-  else{schedule();}
+  else{countUp(scenes[0]);schedule();}
 })();
 </script>
 </section>
