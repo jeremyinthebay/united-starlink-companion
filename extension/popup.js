@@ -8,11 +8,31 @@ var formEl = document.getElementById("usl-form");
 var goEl = document.getElementById("usl-go");
 var statusEl = document.getElementById("usl-status");
 var resultsEl = document.getElementById("usl-results");
+var airlineEl = document.getElementById("usl-airline");
+var creditEl = document.getElementById("usl-credit");
 
-var activeTab = null;      // active browser tab (if united.com with a route)
+var activeTab = null;      // active browser tab (if united.com/alaskaair.com with a route)
 var tabRoute = null;       // {o,d} parsed from that tab
 var pageFlights = {};      // fn -> times string, as found on the page
 var lastData = null, lastO = null, lastD = null;
+
+/* ── per-airline routing (1.6) ── */
+var TRACKER_HOST = { UA: "unitedstarlinktracker.com", AS: "alaskastarlinktracker.com" };
+var ALASKA_ORIGINS = ["https://www.alaskaair.com/*", "https://alaskaair.com/*"];
+
+function airline() {
+  var v = airlineEl && airlineEl.value ? airlineEl.value.toUpperCase() : "UA";
+  return TRACKER_HOST[v] ? v : "UA";
+}
+function setAirline(a) {
+  a = TRACKER_HOST[String(a || "").toUpperCase()] ? String(a).toUpperCase() : "UA";
+  if (airlineEl) airlineEl.value = a;
+  updateCredit();
+  return a;
+}
+function updateCredit() {
+  if (creditEl) creditEl.textContent = "data: " + TRACKER_HOST[airline()];
+}
 
 function pctClass(p) {
   if (p >= 50) return "usl-pct-hi";
@@ -64,7 +84,7 @@ function renderFlights(flights, o, d) {
     row.appendChild(right);
     if (times !== undefined && onPage) {
       row.classList.add("usl-clickable");
-      row.title = "Scroll the united.com tab to " + f.fn;
+      row.title = "Scroll the booking tab to " + f.fn;
       row.addEventListener("click", function () { jumpTo(f.fn); });
     } else if (onPage) {
       row.classList.add("usl-ghost");
@@ -107,11 +127,21 @@ function renderEmpty(o, d) {
   var wrap = el("div", "usl-empty");
   wrap.appendChild(document.createTextNode("No Starlink history yet for this route. Try the "));
   var link = el("a", null, "full route planner");
-  link.href = "https://unitedstarlinktracker.com/route-planner/" + o + "/" + d;
+  link.href = airline() === "AS"
+    ? "https://alaskastarlinktracker.com/"
+    : "https://unitedstarlinktracker.com/route-planner/" + o + "/" + d;
   link.target = "_blank";
   link.rel = "noopener";
   wrap.appendChild(link);
   wrap.appendChild(document.createTextNode("."));
+  return wrap;
+}
+
+// Alaska's route tool answers with a prose summary instead of a flight table.
+function renderNote(note) {
+  if (!note) return null;
+  var wrap = el("div", "usl-empty", note);
+  wrap.appendChild(document.createTextNode(" · data: " + TRACKER_HOST[airline()]));
   return wrap;
 }
 
@@ -124,6 +154,8 @@ function renderResults(o, d, data) {
   if (itinsBlock) { resultsEl.appendChild(itinsBlock); any = true; }
   var depsBlock = renderDeps(data.deps || []);
   if (depsBlock) { resultsEl.appendChild(depsBlock); any = true; }
+  var noteBlock = renderNote(data.note);
+  if (noteBlock) { resultsEl.appendChild(noteBlock); any = true; }
   if (!any) resultsEl.appendChild(renderEmpty(o, d));
 }
 
@@ -147,10 +179,11 @@ function loadRoute(o, d) {
   fromEl.value = o;
   toEl.value = d;
   goEl.disabled = true;
-  setStatus("Loading " + o + " → " + d + "…");
+  updateCredit();
+  setStatus("Loading " + airline() + " " + o + " → " + d + "…");
   clearResults();
 
-  chrome.runtime.sendMessage({ type: "routeData", o: o, d: d }, function (res) {
+  chrome.runtime.sendMessage({ type: "routeData", o: o, d: d, airline: airline() }, function (res) {
     goEl.disabled = false;
     if (chrome.runtime.lastError || !res) {
       setStatus("Could not reach the extension background page.");
@@ -168,14 +201,27 @@ function loadRoute(o, d) {
   });
 }
 
-function parseUnitedUrl(url) {
+// Route + airline from the active tab's URL. united.com and alaskaair.com both
+// carry the O/D pair in the query string (under different param names).
+function parseTabUrl(url) {
   try {
     var u = new URL(url);
-    if (!/(^|\.)united\.com$/.test(u.hostname)) return null;
     var params = u.searchParams;
-    var o = params.get("f") || params.get("origin") || params.get("Origin");
-    var d = params.get("t") || params.get("destination") || params.get("Destination");
-    if (o && d) return { o: o.toUpperCase(), d: d.toUpperCase() };
+    var o, d;
+    if (/(^|\.)united\.com$/.test(u.hostname)) {
+      o = params.get("f") || params.get("origin") || params.get("Origin");
+      d = params.get("t") || params.get("destination") || params.get("Destination");
+      if (o && d) return { o: o.toUpperCase(), d: d.toUpperCase(), airline: "UA" };
+      return null;
+    }
+    if (/(^|\.)alaskaair\.com$/.test(u.hostname)) {
+      o = params.get("O") || params.get("o") || params.get("origin") || params.get("from");
+      d = params.get("D") || params.get("d") || params.get("destination") || params.get("to");
+      // Still worth flagging the tab as Alaska even with no parsable route: the
+      // content script may know the route from the page itself.
+      if (o && d) return { o: o.toUpperCase(), d: d.toUpperCase(), airline: "AS" };
+      return { o: null, d: null, airline: "AS" };
+    }
     return null;
   } catch (e) {
     return null;
@@ -197,23 +243,74 @@ formEl.addEventListener("submit", function (e) {
 function init() {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     var tab = tabs && tabs[0];
-    var urlRoute = tab && tab.url ? parseUnitedUrl(tab.url) : null;
+    var urlRoute = tab && tab.url ? parseTabUrl(tab.url) : null;
+    syncEnableButton(tab);
     if (!urlRoute) {
       setStatus("Enter a route to check Starlink odds.");
       return;
     }
     activeTab = tab;
+    setAirline(urlRoute.airline);
     // Ask the content script which leg is actually being shown (round trips:
     // the URL still says outbound while the RETURN list is on screen).
     chrome.tabs.sendMessage(tab.id, { type: "pageContext" }, function (pc) {
       void chrome.runtime.lastError;
+      if (pc && pc.airline) setAirline(pc.airline);
       var route = pc && pc.o && pc.d ? { o: pc.o, d: pc.d } : urlRoute;
-      tabRoute = route;
+      if (!route.o || !route.d) {
+        setStatus("Enter a route to check Starlink odds.");
+        return;
+      }
+      tabRoute = { o: route.o, d: route.d };
       loadRoute(route.o, route.d);
     });
   });
 }
 
+/* ── optional alaskaair.com permission ─────────────────────────────────────
+ * chrome.permissions.request() only works from a user gesture, so it lives on
+ * a popup button. Granting fires permissions.onAdded in the service worker,
+ * which registers content.js on alaskaair.com (syncDynamicScripts). */
+var enableBtn = document.getElementById("usl-enable-alaska");
+
+function syncEnableButton(tab) {
+  if (!enableBtn || !chrome.permissions) return;
+  var onAlaska = !!(tab && tab.url && /^https:\/\/(www\.)?alaskaair\.com\//.test(tab.url));
+  chrome.permissions.contains({ origins: ALASKA_ORIGINS }, function (granted) {
+    void chrome.runtime.lastError;
+    // Offer it on an Alaska tab, or any time it simply isn't enabled yet.
+    enableBtn.hidden = !!granted;
+    enableBtn.textContent = onAlaska
+      ? "Enable Starlink odds on this alaskaair.com page"
+      : "Enable on alaskaair.com";
+  });
+}
+
+if (enableBtn) {
+  enableBtn.addEventListener("click", function () {
+    try {
+      chrome.permissions.request({ origins: ALASKA_ORIGINS }, function (granted) {
+        void chrome.runtime.lastError;
+        if (granted) {
+          enableBtn.hidden = true;
+          setStatus("Enabled on alaskaair.com — reload the tab to see badges.");
+          setAirline("AS");
+        } else {
+          setStatus("alaskaair.com access not granted.");
+        }
+      });
+    } catch (e) {
+      setStatus("Could not request permission.");
+    }
+  });
+}
+
+if (airlineEl) airlineEl.addEventListener("change", function () {
+  updateCredit();
+  if (fromEl.value.length === 3 && toEl.value.length === 3) loadRoute(fromEl.value, toEl.value);
+});
+
+updateCredit();
 init();
 
 
@@ -267,7 +364,8 @@ function tripLine(t) {
     var was = lastPublished(t);
     if (was)
       return { cls: "usl-t-swap", txt: "⏳ assignment withdrawn — was " + statusGlyph(was.status) + " " + was.tail };
-    return { cls: "usl-t-early", txt: "⏳ " + (t.prob != null ? "~" + t.prob + "% · " : "") + "tail publishes ~48h out" };
+    return { cls: "usl-t-early", txt: "⏳ " + (t.prob != null ? "~" + t.prob + "% · " : "") +
+      (t.typeDerived ? "odds derived from aircraft type · " : "") + "tail publishes ~48h out" };
   }
   if (t.lastStatus === "invalid")
     return { cls: "usl-t-no", txt: "⚠ flight number not recognized" +
@@ -292,7 +390,7 @@ function renderHistory(t) {
 function renderTrips(trips) {
   tripsEl.innerHTML = "";
   if (!trips.length) {
-    var e = el("div", "usl-empty", "No guarded trips. Add one below, or click the ☆ next to any badge on united.com.");
+    var e = el("div", "usl-empty", "No guarded trips. Add one below, or click the ☆ next to any badge on united.com or alaskaair.com.");
     e.style.padding = "4px 2px";
     tripsEl.appendChild(e);
     return;
@@ -338,7 +436,9 @@ function loadTrips() {
 watchForm.addEventListener("submit", function (e) {
   e.preventDefault();
   var fn = (watchFn.value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (!/^UA\d{1,4}$/.test(fn)) { watchStatus.textContent = "Enter a flight like UA1812."; return; }
+  // Bare digits inherit the airline currently selected above.
+  if (/^\d{1,4}$/.test(fn)) fn = airline() + fn;
+  if (!/^(?:UA|AS)\d{1,4}$/.test(fn)) { watchStatus.textContent = "Enter a flight like UA1812 or AS1."; return; }
   if (!watchDate.value) { watchStatus.textContent = "Pick a date."; return; }
   watchStatus.textContent = "Adding + checking…";
   chrome.runtime.sendMessage({ type: "tripAdd", fn: fn, date: watchDate.value }, function (res) {

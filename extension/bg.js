@@ -1,12 +1,47 @@
-// bg.js — MV3 service worker. Proxies unitedstarlinktracker.com data for
+// bg.js — MV3 service worker. Proxies the Starlink tracker data for
 // content.js / popup.js, with a 6h chrome.storage.local cache.
 
-const API_BASE = "https://unitedstarlinktracker.com";
+/* ── per-airline API routing (1.6) ─────────────────────────────────────────
+ * Same developer, same API shape, two hosts. Everything below routes by a
+ * two-letter airline code that defaults to "UA", so every pre-1.6 call site
+ * keeps its exact behavior (same URLs, same cache keys) when it passes nothing.
+ * ─────────────────────────────────────────────────────────────────────────── */
+const API_BASES = {
+  UA: "https://unitedstarlinktracker.com",
+  AS: "https://alaskastarlinktracker.com",
+};
+// Operating-carrier prefixes that belong to a tracker (OO/QX fly Alaska regional).
+const AIRLINE_BY_PREFIX = { UA: "UA", AS: "AS", OO: "AS", QX: "AS" };
+// Note: alaskastarlinktracker.com is NOT in host_permissions and does not need
+// to be — it answers with `access-control-allow-origin: *` on both /api/* and
+// /mcp (preflight included), so the worker's fetch succeeds under plain CORS.
+// If that ever tightens, add the host to manifest host_permissions.
+
+function normAirline(a) {
+  const k = String(a || "").toUpperCase();
+  return API_BASES[k] ? k : "UA";
+}
+// "AS1234" → "AS"; anything unrecognized → "UA" (the pre-1.6 default).
+function airlineOf(fn) {
+  const m = String(fn || "").toUpperCase().match(/^([A-Z]{2})\d{1,4}$/);
+  return (m && AIRLINE_BY_PREFIX[m[1]]) || "UA";
+}
+function apiBase(airline) {
+  return API_BASES[normAirline(airline)];
+}
+
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const FETCH_TIMEOUT_MS = 9000;
 
-function cacheKey(o, d) {
-  return "usl:" + o + "-" + d;
+// United keeps the original "usl:SFO-SEA" shape so existing cached entries stay
+// valid; every other airline is namespaced so routes can never collide.
+function cacheKey(o, d, airline) {
+  const a = normAirline(airline);
+  return a === "UA" ? "usl:" + o + "-" + d : "usl:" + a + ":" + o + "-" + d;
+}
+function predictCacheKey(fn, airline) {
+  const a = normAirline(airline);
+  return a === "UA" ? "uslpf:" + fn : "uslpf:" + a + ":" + fn;
 }
 
 async function fetchWithTimeout(url, opts) {
@@ -46,7 +81,8 @@ function extractMcpText(rawBody) {
 
 function parseFlights(text) {
   if (!text) return [];
-  const re = /^\s*(UA\d+)\s+\[(\w+)\]\s+\(([A-Z]{3})-([A-Z]{3})\)\s+(\d+)%\s+\((\d+) obs · (\w+) confidence\)/gm;
+  // Two-letter operating carrier, not just UA: Alaska's tracker returns AS/OO/QX.
+  const re = /^\s*([A-Z]{2}\d+)\s+\[(\w+)\]\s+\(([A-Z]{3})-([A-Z]{3})\)\s+(\d+)%\s+\((\d+) obs · (\w+) confidence\)/gm;
   const out = [];
   let m;
   while ((m = re.exec(text)) !== null) {
@@ -62,7 +98,7 @@ function parseFlights(text) {
 
 function parseDeps(text) {
   if (!text) return [];
-  const re = /^(UA\d+)\s+([A-Z]{3})→([A-Z]{3})\s+dep\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})Z\s+\(tail\s+(N[A-Z0-9]+)\)/gm;
+  const re = /^([A-Z]{2}\d+)\s+([A-Z]{3})→([A-Z]{3})\s+dep\s+(\d{4}-\d{2}-\d{2})\s+(\d{2}:\d{2})Z\s+\(tail\s+(N[A-Z0-9]+)\)/gm;
   const out = [];
   let m;
   while ((m = re.exec(text)) !== null) {
@@ -93,16 +129,16 @@ function mapItineraries(json) {
   }));
 }
 
-async function fetchPlanRoute(o, d) {
-  const url = `${API_BASE}/api/plan-route?origin=${o}&destination=${d}`;
+async function fetchPlanRoute(o, d, airline) {
+  const url = `${apiBase(airline)}/api/plan-route?origin=${o}&destination=${d}`;
   const res = await fetchWithTimeout(url, { method: "GET" });
   if (!res.ok) throw new Error("plan-route http " + res.status);
   const json = await res.json();
   return mapItineraries(json);
 }
 
-async function mcpCall(toolName, args) {
-  const res = await fetchWithTimeout(`${API_BASE}/mcp`, {
+async function mcpCall(toolName, args, airline) {
+  const res = await fetchWithTimeout(`${apiBase(airline)}/mcp`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -120,61 +156,86 @@ async function mcpCall(toolName, args) {
   return extractMcpText(rawBody);
 }
 
-async function fetchFlights(o, d) {
-  const text = await mcpCall("predict_route_starlink", {
-    origin: o,
-    destination: d,
-    limit: 30,
-  });
-  return parseFlights(text);
+/* Alaska's predict_route_starlink answers with a one-line prose summary instead
+ * of a per-flight table (its odds are equipment-type-derived, not per flight
+ * number). Keep it as a display-only note: strip markdown, drop the trailing
+ * "use check_flight…" instruction aimed at chat assistants, and cap the length.
+ * It is rendered escaped, and nothing in it ever steers control flow. */
+function summarizeRouteText(text) {
+  if (!text) return null;
+  let s = String(text).replace(/[*_`#>]/g, " ").replace(/\s+/g, " ").trim();
+  s = s.replace(/\s*(For a specific flight|For dates beyond|Use |Call )[^.]*\.?\s*$/i, "").trim();
+  if (s.length > 200) s = s.slice(0, 197).trim() + "…";
+  return s.length >= 8 ? s : null;
 }
 
-async function fetchDeps(o, d) {
-  const text = await mcpCall("search_starlink_flights", {
-    origin: o,
-    destination: d,
-    limit: 12,
-  });
+async function fetchFlights(o, d, airline) {
+  const text = await mcpCall(
+    "predict_route_starlink",
+    { origin: o, destination: d, limit: 30 },
+    airline
+  );
+  const flights = parseFlights(text);
+  // Only surface the note when there is no table to show, and never for United —
+  // its UI is byte-for-byte unchanged by this release.
+  const useNote = !flights.length && normAirline(airline) !== "UA";
+  return { flights, note: useNote ? summarizeRouteText(text) : null };
+}
+
+async function fetchDeps(o, d, airline) {
+  const text = await mcpCall(
+    "search_starlink_flights",
+    { origin: o, destination: d, limit: 12 },
+    airline
+  );
   return parseDeps(text);
 }
 
-async function getRouteData(o, d, force) {
-  const key = cacheKey(o, d);
+async function getRouteData(o, d, force, airline) {
+  const a = normAirline(airline);
+  const key = cacheKey(o, d, a);
   const cached = await chrome.storage.local.get(key);
   const entry = cached[key];
   if (!force && entry && Date.now() - entry.ts < CACHE_TTL_MS) {
     return {
       ok: true,
+      airline: a,
       flights: entry.flights,
       deps: entry.deps,
       itins: entry.itins,
+      note: entry.note || null,
       ts: entry.ts,
       cached: true,
     };
   }
 
   const [itinsRes, flightsRes, depsRes] = await Promise.allSettled([
-    fetchPlanRoute(o, d),
-    fetchFlights(o, d),
-    fetchDeps(o, d),
+    fetchPlanRoute(o, d, a),
+    fetchFlights(o, d, a),
+    fetchDeps(o, d, a),
   ]);
 
   const itins = itinsRes.status === "fulfilled" ? itinsRes.value : [];
-  let flights = flightsRes.status === "fulfilled" ? flightsRes.value : [];
+  const fr = flightsRes.status === "fulfilled" ? flightsRes.value : { flights: [], note: null };
+  let flights = fr.flights || [];
+  const note = fr.note || null;
   const deps = depsRes.status === "fulfilled" ? depsRes.value : [];
 
-  flights = flights.slice().sort((a, b) => b.prob - a.prob);
+  flights = flights.slice().sort((a2, b) => b.prob - a2.prob);
 
   const ts = Date.now();
-  const ok = flights.length > 0 || itins.length > 0;
+  // United's success test is untouched. Airlines whose route tool returns prose
+  // (Alaska) count confirmed departures or the summary line as a usable answer.
+  const ok = flights.length > 0 || itins.length > 0 ||
+    (a !== "UA" && (deps.length > 0 || !!note));
 
   if (ok) {
     await chrome.storage.local.set({
-      [key]: { ts, flights, deps, itins },
+      [key]: { ts, flights, deps, itins, note },
     });
   }
 
-  return { ok, flights, deps, itins, ts, cached: false };
+  return { ok, airline: a, flights, deps, itins, note, ts, cached: false };
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -191,8 +252,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       // Duplicate registration is a silent no-op (content.js re-sends on star
       // click); only brand-new trips are validated.
       if (!trips.some((t) => t.fn === fn && t.date === date)) {
-        if (!/^UA\d{1,4}$/.test(fn) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-          sendResponse({ ok: false, error: "Enter a flight like UA1812 and a date.", trips });
+        if (!/^(?:UA|AS)\d{1,4}$/.test(fn) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          sendResponse({ ok: false, error: "Enter a flight like UA1812 or AS1 and a date.", trips });
           return;
         }
         if (daysUntil(date) < 0) {
@@ -231,13 +292,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     (async () => {
       const out = {};
       const fns = (msg.fns || []).slice(0, 25);
+      // Each flight number carries its own airline; msg.airline is only a hint
+      // for callers that pass bare numbers. Default stays United.
+      const hint = normAirline(msg.airline);
       for (const fn of fns) {
-        if (!/^UA\d{1,4}$/.test(fn)) continue;
-        const key = "uslpf:" + fn;
+        if (!/^(?:UA|AS)\d{1,4}$/.test(fn)) continue;
+        const a = /^(?:UA|AS)/.test(fn) ? airlineOf(fn) : hint;
+        const key = predictCacheKey(fn, a);
         const cached = await chrome.storage.local.get(key);
         if (cached[key] && Date.now() - cached[key].ts < CACHE_TTL_MS) { out[fn] = cached[key].v; continue; }
         try {
-          const r = await fetchWithTimeout(API_BASE + "/api/predict-flight?flight_number=" + fn);
+          const r = await fetchWithTimeout(apiBase(a) + "/api/predict-flight?flight_number=" + fn);
           const j = await r.json();
           const v = j && typeof j.probability === "number"
             ? { prob: Math.round(j.probability * 100), obs: j.n_observations || 0, conf: j.confidence || "low" }
@@ -254,15 +319,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type !== "routeData") return false;
   const o = (msg.o || "").toUpperCase();
   const d = (msg.d || "").toUpperCase();
+  const airline = normAirline(msg.airline); // optional; defaults to "UA"
   if (!o || !d) {
-    sendResponse({ ok: false, flights: [], deps: [], itins: [], ts: Date.now(), cached: false });
+    sendResponse({ ok: false, airline, flights: [], deps: [], itins: [], ts: Date.now(), cached: false });
     return true;
   }
-  getRouteData(o, d, !!msg.force)
+  getRouteData(o, d, !!msg.force, airline)
     .then(sendResponse)
     .catch((err) => {
       sendResponse({
         ok: false,
+        airline,
         error: String(err && err.message ? err.message : err),
         flights: [],
         deps: [],
@@ -348,9 +415,14 @@ function daysUntil(dateStr) {
   return Math.round((Date.parse(dateStr + "T12:00:00") - Date.now()) / 864e5);
 }
 
+/* Wording differs per tracker for the same three states — United says
+ * "scheduled on a verified Starlink aircraft" / "assignment not yet published",
+ * Alaska says "assigned to a Starlink aircraft" / "no assignment data". Both
+ * shapes are matched; the extracted fields (tail, route, Departs …Z) are
+ * identical. Everything here is mechanical — embedded prose is never obeyed. */
 function parseCheck(text) {
   if (!text) return { status: "unknown" };
-  if (/is scheduled on a verified Starlink aircraft/.test(text)) {
+  if (/is (?:scheduled on a verified|assigned to a) Starlink aircraft/.test(text)) {
     const tail = (text.match(/tail (N[A-Z0-9]+)/) || [])[1];
     const rt = text.match(/\(([A-Z]{3})→([A-Z]{3})\)/);
     const dep = (text.match(/Departs ([0-9T:.\-]+Z)/) || [])[1];
@@ -365,11 +437,12 @@ function parseCheck(text) {
     alts.sort((a, b) => b.pct - a.pct);
     return { status: "no", tail: no[1], equip: no[2], alts };
   }
-  if (/assignment not yet published/i.test(text)) {
+  if (/assignment not yet published|no assignment data/i.test(text)) {
     const p = (text.match(/~?(\d+)% Starlink probability/) || [])[1];
-    return { status: "early", prob: p ? parseInt(p, 10) : null };
+    const typed = /Starlink status is set by the operating subfleet|aircraft equipped\)/.test(text);
+    return { status: "early", prob: p ? parseInt(p, 10) : null, typeDerived: typed };
   }
-  if (/doesn't exist|outside the UA/.test(text)) return { status: "invalid" };
+  if (/doesn't exist|outside the (?:UA|AS)/.test(text)) return { status: "invalid" };
   return { status: "unknown" };
 }
 
@@ -415,6 +488,7 @@ function applyCheckResult(trip, res, now) {
   t.lastStatus = next;
   t.tail = nextTail;
   if (res.prob != null) t.prob = res.prob;
+  t.typeDerived = !!res.typeDerived; // Alaska: odds come from the aircraft type
   t.equip = res.equip || null;
   t.alts = res.alts || null;
   t.routeSeen = res.route || t.routeSeen || null;
@@ -468,7 +542,12 @@ async function budgetTake(n) {
 
 async function checkTrip(trip) {
   try {
-    const text = await mcpCall("check_flight", { flight_number: trip.fn, date: trip.date });
+    // Route by the trip's own flight-number prefix: AS trips hit Alaska's MCP.
+    const text = await mcpCall(
+      "check_flight",
+      { flight_number: trip.fn, date: trip.date },
+      airlineOf(trip.fn)
+    );
     return parseCheck(text);
   } catch (e) {
     return { status: "unknown", err: String(e && e.message ? e.message : e) };
@@ -507,7 +586,7 @@ async function suggestAlt(trip, res) {
   if (rm) {
     try {
       if (await budgetTake(1)) {
-        const rd = await getRouteData(rm[1], rm[2], false);
+        const rd = await getRouteData(rm[1], rm[2], false, airlineOf(trip.fn));
         if (rd && !rd.cached) await budgetTake(1); // an uncached lookup costs a 2nd MCP call
         const dep = ((rd && rd.deps) || []).find((x) => x.date === trip.date && x.fn !== trip.fn);
         if (dep) {
