@@ -19,7 +19,7 @@
   let data = null, panelEl = null, scanScheduled = false;
   let probMap = new Map();
   let registry = new Map();
-  let keepSorted = false, desiredOrder = null, lastSortTs = 0;
+  let keepSorted = false, autoSort = false, desiredOrder = null, lastSortTs = 0;
   let watched = new Set(); // "UA1812|2026-07-25"
   let pendingPredict = new Set();
   function requestPredictions(fns) {
@@ -42,6 +42,7 @@
       watched = new Set(res.trips.map((t) => t.fn + "|" + t.date));
   }); } catch {}
   try { chrome.storage.local.get("uslKeepSorted", (v) => { keepSorted = !!v.uslKeepSorted; }); } catch {}
+  try { chrome.storage.local.get("uslAutoSort", (v) => { autoSort = !!v.uslAutoSort; if (autoSort) scheduleScan(); }); } catch {}
 
   /* ── context: route + leg phase + date ── */
   function getContext() {
@@ -167,6 +168,7 @@
     if (registered) { updatePanelSortBtn(); refreshPanelTimes(); }
     if (NAVAN && navanWants.length) requestPredictions([...new Set(navanWants)]);
     maybeResort();
+    maybeAutoSort();
   }
   function scheduleScan() {
     if (scanScheduled) return;
@@ -247,11 +249,27 @@
   }
   /* Re-assert the sort after United re-renders (opt-in, loop-guarded). */
   function maybeResort() {
-    if (!keepSorted || !desiredOrder || Date.now() - lastSortTs < 1500) return;
+    if ((!keepSorted && !autoSort) || !desiredOrder || Date.now() - lastSortTs < 1500) return;
     const P = findContainer();
     if (!P) return;
     const now = currentOrder(P);
     if (now.join(",") !== desiredOrder.join(",")) sortPage();
+  }
+  /* Auto-sort once on load (opt-in) after odds for the on-page flights have settled;
+     maybeResort() then keeps it sorted through United's re-renders. */
+  function maybeAutoSort() {
+    if (!autoSort || desiredOrder || pendingPredict.size) return;
+    const P = findContainer();
+    if (!P) return;
+    const units = [...P.children].filter((k) => FN_RE.test(k.textContent || ""));
+    if (units.length < 2) return;
+    const withOdds = units.filter((u) => {
+      const m = (u.textContent || "").match(FN_RE);
+      const hit = m ? probMap.get("UA" + m[1]) : null;
+      return hit && hit.prob >= 0;
+    }).length;
+    if (withOdds < 2) return;
+    sortPage();
   }
 
   /* ── panel ── */
@@ -263,6 +281,8 @@
     btn.style.display = n >= 1 ? "" : "none";
     const kc = panelEl.querySelector(".usl-keep-wrap");
     if (kc) kc.style.display = n >= 1 ? "flex" : "none";
+    const ac = panelEl.querySelector(".usl-auto-wrap");
+    if (ac) ac.style.display = n >= 1 ? "flex" : "none";
   }
   function renderPanel() {
     if (panelEl) panelEl.remove();
@@ -287,7 +307,9 @@
             `<span class="usl-badge ${cls(f.prob)}">${f.prob}%</span></div>`).join("")
         : `<div class="usl-row">No Starlink history on this route yet.</div>`) +
       (flights.length ? `<button class="usl-sortbtn" style="display:none">⇅ Sort page by Starlink odds</button>
-        <label class="usl-keep-wrap" style="display:none;font-size:11.5px;color:#93a1c0;margin-top:6px;gap:6px;align-items:center;cursor:pointer">
+        <label class="usl-auto-wrap" style="display:none;font-size:11.5px;color:#93a1c0;margin-top:6px;gap:6px;align-items:center;cursor:pointer">
+        <input type="checkbox" class="usl-auto"> auto-sort by odds when the page loads</label>
+        <label class="usl-keep-wrap" style="display:none;font-size:11.5px;color:#93a1c0;margin-top:4px;gap:6px;align-items:center;cursor:pointer">
         <input type="checkbox" class="usl-keep"> keep sorted when the page updates</label>` : "") +
       (itin ? `<div class="usl-row" style="border-top:1px solid rgba(148,178,255,.14);margin-top:6px;padding-top:8px">` +
         `<span>via ${esc(itin.via.join("+"))} (connection)</span><span class="usl-badge usl-mid">${Math.round(itin.joint)}%</span></div>` : "") +
@@ -328,6 +350,16 @@
         keepSorted = keep.checked;
         chrome.storage.local.set({ uslKeepSorted: keepSorted });
         if (keepSorted && !desiredOrder) sortPage();
+      });
+    }
+    const auto = p.querySelector(".usl-auto");
+    if (auto) {
+      auto.checked = autoSort;
+      auto.addEventListener("change", () => {
+        autoSort = auto.checked;
+        chrome.storage.local.set({ uslAutoSort: autoSort });
+        desiredOrder = null;
+        if (autoSort) maybeAutoSort();
       });
     }
     document.documentElement.appendChild(p);
