@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Starlink Odds for United Flights",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "See United flights' Starlink WiFi odds while you book: badges + one-click or auto sort on united.com and Navan. Unofficial.",
   "permissions": [
     "storage",

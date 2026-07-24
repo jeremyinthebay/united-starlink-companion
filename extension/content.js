@@ -16,6 +16,7 @@
   const TIME_RE = /\b\d{1,2}:\d{2}\s?[ap]\.?m\.?/gi;
   let ctx = null;            // {o,d,date,phase} — the ACTIVE leg
   let ctxKey = "";
+  let navanCtxCache = null, navanCtxKey = "", navanSig = "";
   let data = null, panelEl = null, scanScheduled = false;
   let probMap = new Map();
   let registry = new Map();
@@ -44,8 +45,44 @@
   try { chrome.storage.local.get("uslKeepSorted", (v) => { keepSorted = !!v.uslKeepSorted; }); } catch {}
   try { chrome.storage.local.get("uslAutoSort", (v) => { autoSort = !!v.uslAutoSort; if (autoSort) scheduleScan(); }); } catch {}
 
+  /* ── Navan: derive route context from the DOM (no URL params there) ── */
+  function getNavanContext() {
+    const txt = (document.body && document.body.innerText) || "";
+    const legO = (txt.match(/Depart from\s*([A-Z]{3})/) || [])[1] || "";
+    const cacheKey = location.pathname + "|" + legO;
+    if (navanCtxCache && navanCtxKey === cacheKey) return navanCtxCache;
+    let o, d;
+    // the trip strip is a stable ".flight-header__route" whose text is the two
+    // airport codes with the swap glyph as an icon (e.g. innerText "DENSFO").
+    let el = document.querySelector(".flight-header__route");
+    if (!el) el = [...document.querySelectorAll("div, span, button, h1, h2, h3")].find((e) =>
+      e.children.length <= 4 && /^[A-Z]{3}[^A-Z]{0,3}[A-Z]{3}$/.test((e.textContent || "").trim())
+      && !e.closest(".flight-search-results__option"));
+    if (el) { const m = (el.textContent || "").trim().match(/([A-Z]{3})[^A-Z]{0,3}([A-Z]{3})/); if (m) { o = m[1]; d = m[2]; } }
+    if (!/^[A-Z]{3}$/.test(o || "") || !/^[A-Z]{3}$/.test(d || "") || o === d) return null;
+    const isReturn = legO && legO === d;              // showing the return leg
+    if (isReturn) { const t = o; o = d; d = t; }
+    const c = { o, d, date: "", phase: isReturn ? "return" : "depart", navan: true };
+    navanCtxCache = c; navanCtxKey = cacheKey;
+    return c;
+  }
+  // Panel ranked list on Navan is built from the on-page badged flights (there is
+  // no route-data fetch on Navan — the per-flight badge path stays untouched).
+  function navanTopFlights() {
+    const seen = new Set(), arr = [];
+    for (const [fn, r] of registry.entries()) {
+      if (!r.rowEl.isConnected || seen.has(fn)) continue;
+      const hit = probMap.get(fn);
+      if (!hit || typeof hit.prob !== "number") continue;
+      seen.add(fn);
+      arr.push({ fn, prob: hit.prob });
+    }
+    return arr.sort((a, b) => b.prob - a.prob).slice(0, 6);
+  }
+
   /* ── context: route + leg phase + date ── */
   function getContext() {
+    if (NAVAN) return getNavanContext();
     let o, d, dep, ret;
     try {
       const p = new URLSearchParams(location.search);
@@ -70,7 +107,7 @@
     if (isNaN(t)) return "";
     return new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   }
-  const depsRelevant = () => ctx && daysOut(ctx.date) <= 3;
+  const depsRelevant = () => ctx && !!ctx.date && daysOut(ctx.date) <= 3;
 
   function loadData(r, force) {
     return new Promise((resolve) => {
@@ -215,7 +252,7 @@
     const badge = document.querySelector(".usl-badge");
     if (!badge) return null;
     let best = null, bestScore = 0, e = badge.parentElement;
-    for (let i = 0; i < 14 && e && e !== document.body; i++, e = e.parentElement) {
+    for (let i = 0; i < 20 && e && e !== document.body; i++, e = e.parentElement) {
       const fns = [...e.children]
         .map((k) => ((k.textContent || "").match(FN_RE) || [])[1]).filter(Boolean);
       const distinct = new Set(fns).size;
@@ -258,7 +295,7 @@
   /* Auto-sort once on load (opt-in) after odds for the on-page flights have settled;
      maybeResort() then keeps it sorted through United's re-renders. */
   function maybeAutoSort() {
-    if (!autoSort || desiredOrder || pendingPredict.size) return;
+    if (!autoSort || desiredOrder) return;
     const P = findContainer();
     if (!P) return;
     const units = [...P.children].filter((k) => FN_RE.test(k.textContent || ""));
@@ -291,7 +328,7 @@
     const p = document.createElement("div");
     p.className = "usl-panel";
     chrome.storage.local.get("uslCollapsed", (v) => { if (v.uslCollapsed) p.classList.add("usl-collapsed"); });
-    const flights = (data && data.flights || []).slice(0, 6);
+    const flights = ctx.navan ? navanTopFlights() : (data && data.flights || []).slice(0, 6);
     const rel = depsRelevant();
     const deps = rel ? (data && data.deps || []).slice(0, 3) : [];
     const itin = (data && data.itins || []).find((it) => it.via && it.via.length && it.coverage === "full");
@@ -410,6 +447,18 @@
     const c = getContext();
     if (!c) { if (panelEl) { panelEl.remove(); panelEl = null; } ctx = null; ctxKey = ""; return; }
     const key = `${c.o}-${c.d}|${c.date}|${c.phase}`;
+    if (c.navan) {
+      // Navan: badges come from scan()/predictions; just (re)render the panel from
+      // the on-page flights and let sortPage/auto-sort/keep-sorted do their thing.
+      const routeChanged = !ctx || c.o !== ctx.o || c.d !== ctx.d || c.phase !== ctx.phase;
+      ctx = c; ctxKey = key;
+      if (routeChanged) { desiredOrder = null; navanSig = ""; }
+      scheduleScan();
+      const sig = navanTopFlights().map((f) => f.fn + f.prob).join(",");
+      if (!panelEl || !panelEl.isConnected || sig !== navanSig) { navanSig = sig; renderPanel(); }
+      refreshPanelTimes();
+      return;
+    }
     if (key === ctxKey && data) {
       if (!panelEl || !panelEl.isConnected) renderPanel();
       refreshPanelTimes();
