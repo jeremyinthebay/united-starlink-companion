@@ -179,6 +179,10 @@ async function getRouteData(o, d, force) {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg) return false;
+  if (msg.type === "getSelectors") {
+    getStoredSelectors().then((cfg) => sendResponse({ ok: true, cfg: cfg || null }));
+    return true;
+  }
   if (msg.type === "tripAdd") {
     (async () => {
       const trips = await getTrips();
@@ -368,3 +372,105 @@ async function runTripChecks(force) {
 chrome.alarms.create("uslTripCheck", { periodInMinutes: 180, delayInMinutes: 1 });
 chrome.alarms.onAlarm.addListener((a) => { if (a.name === "uslTripCheck") runTripChecks(false); });
 if (chrome.runtime.onStartup) chrome.runtime.onStartup.addListener(() => runTripChecks(false));
+
+/* ══ 1.6 bridge groundwork ══════════════════════════════════════════════════
+ * Two additive capabilities, both fail-silent by design:
+ *   (a) a remotely-hosted selector manifest, so site-markup breakage can be
+ *       fixed without shipping a new extension build;
+ *   (b) dynamic content-script registration for OPTIONAL host permissions,
+ *       so a user can opt in to extra carrier sites at runtime.
+ * Nothing above this line is modified, and nothing here may ever throw in the
+ * service worker — every entry point is wrapped in try/catch.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── (a) remote selector manifest ────────────────────────────────────────── */
+const SELECTORS_URL = "https://smithfamai.com/unitedstarlink/assets/selectors.json";
+const SEL_CFG_KEY = "uslSelCfg";
+const SEL_ALARM = "uslSelectorsRefresh";
+
+// Shape check: { version: <number>, selectors: { ...string|number } }.
+// Anything else is treated as corrupt and discarded — we never partially apply.
+function isValidSelectorCfg(json) {
+  return !!json
+    && typeof json === "object"
+    && !Array.isArray(json)
+    && typeof json.version === "number"
+    && !!json.selectors
+    && typeof json.selectors === "object"
+    && !Array.isArray(json.selectors);
+}
+
+async function getStoredSelectors() {
+  try {
+    const v = await chrome.storage.local.get(SEL_CFG_KEY);
+    const entry = v[SEL_CFG_KEY];
+    return entry && entry.cfg ? entry.cfg : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// The remote file may legitimately 404 until it is deployed. That must be a
+// no-op: we keep whatever is already cached (or nothing) and stay quiet.
+async function refreshSelectors() {
+  try {
+    const res = await fetchWithTimeout(SELECTORS_URL, { method: "GET" });
+    if (!res || !res.ok) return;
+    const json = await res.json();
+    if (!isValidSelectorCfg(json)) return;
+    await chrome.storage.local.set({ [SEL_CFG_KEY]: { ts: Date.now(), cfg: json } });
+  } catch (e) {
+    /* silent: offline, 404, bad JSON, timeout — all harmless */
+  }
+}
+
+/* ── (b) dynamic content scripts for optional hosts ──────────────────────── */
+const DYN_ALASKA_ID = "usl-dyn-alaska";
+const ALASKA_MATCHES = ["https://www.alaskaair.com/*", "https://alaskaair.com/*"];
+
+// Register content.js/content.css on alaskaair.com only while the user has
+// actually granted the optional host permission; unregister the moment they
+// revoke it. Static united.com/navan registration is untouched.
+async function syncDynamicScripts() {
+  try {
+    const granted = await chrome.permissions.contains({ origins: ALASKA_MATCHES });
+    let existing = [];
+    try {
+      existing = await chrome.scripting.getRegisteredContentScripts({ ids: [DYN_ALASKA_ID] });
+    } catch (e) {
+      existing = [];
+    }
+    const isRegistered = Array.isArray(existing) && existing.length > 0;
+
+    if (granted) {
+      if (isRegistered) return; // already live — nothing to do
+      await chrome.scripting.registerContentScripts([
+        {
+          id: DYN_ALASKA_ID,
+          matches: ALASKA_MATCHES,
+          js: ["content.js"],
+          css: ["content.css"],
+          runAt: "document_idle",
+          persistAcrossSessions: true,
+        },
+      ]);
+    } else if (isRegistered) {
+      await chrome.scripting.unregisterContentScripts({ ids: [DYN_ALASKA_ID] });
+    }
+  } catch (e) {
+    /* silent: never let permission/registration churn kill the worker */
+  }
+}
+
+/* ── wiring ──────────────────────────────────────────────────────────────── */
+try {
+  chrome.alarms.create(SEL_ALARM, { periodInMinutes: 1440, delayInMinutes: 2 });
+  chrome.alarms.onAlarm.addListener((a) => { if (a && a.name === SEL_ALARM) refreshSelectors(); });
+  if (chrome.permissions && chrome.permissions.onAdded)
+    chrome.permissions.onAdded.addListener(() => syncDynamicScripts());
+  if (chrome.permissions && chrome.permissions.onRemoved)
+    chrome.permissions.onRemoved.addListener(() => syncDynamicScripts());
+  // once per service-worker startup
+  refreshSelectors();
+  syncDynamicScripts();
+} catch (e) {}

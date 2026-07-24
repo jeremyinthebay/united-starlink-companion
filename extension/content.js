@@ -22,6 +22,11 @@
   let registry = new Map();
   let keepSorted = false, autoSort = false, desiredOrder = null, lastSortTs = 0;
   let watched = new Set(); // "UA1812|2026-07-25"
+  // Selector/tuning values, overridable by the remotely-hosted manifest the
+  // service worker caches. Absent a remote config these defaults are used
+  // verbatim, so behavior is unchanged.
+  const DEFAULT_SEL = { navanRoute: ".flight-header__route", rowDepth: 8, containerDepth: 20 };
+  let SEL = DEFAULT_SEL;
   let pendingPredict = new Set();
   function requestPredictions(fns) {
     const need = fns.filter((f) => !probMap.has(f) && !pendingPredict.has(f));
@@ -38,6 +43,10 @@
       });
     } catch (e) {}
   }
+  try { chrome.runtime.sendMessage({ type: "getSelectors" }, (res) => {
+    if (chrome.runtime.lastError || !res || !res.ok) return;
+    if (res.cfg && res.cfg.selectors) SEL = Object.assign({}, DEFAULT_SEL, res.cfg.selectors);
+  }); } catch {}
   try { chrome.runtime.sendMessage({ type: "tripList" }, (res) => {
     if (!chrome.runtime.lastError && res && res.trips)
       watched = new Set(res.trips.map((t) => t.fn + "|" + t.date));
@@ -54,7 +63,7 @@
     let o, d;
     // the trip strip is a stable ".flight-header__route" whose text is the two
     // airport codes with the swap glyph as an icon (e.g. innerText "DENSFO").
-    let el = document.querySelector(".flight-header__route");
+    let el = document.querySelector(SEL.navanRoute);
     if (!el) el = [...document.querySelectorAll("div, span, button, h1, h2, h3")].find((e) =>
       e.children.length <= 4 && /^[A-Z]{3}[^A-Z]{0,3}[A-Z]{3}$/.test((e.textContent || "").trim())
       && !e.closest(".flight-search-results__option"));
@@ -132,7 +141,7 @@
 
   function findRow(el) {
     let e = el;
-    for (let i = 0; i < 8 && e && e !== document.body; i++, e = e.parentElement) {
+    for (let i = 0; i < SEL.rowDepth && e && e !== document.body; i++, e = e.parentElement) {
       const txt = e.textContent || "";
       const times = txt.match(TIME_RE);
       if (times && times.length) return { rowEl: e, times: times.slice(0, 2).join(" – ") };
@@ -252,7 +261,7 @@
     const badge = document.querySelector(".usl-badge");
     if (!badge) return null;
     let best = null, bestScore = 0, e = badge.parentElement;
-    for (let i = 0; i < 20 && e && e !== document.body; i++, e = e.parentElement) {
+    for (let i = 0; i < SEL.containerDepth && e && e !== document.body; i++, e = e.parentElement) {
       const fns = [...e.children]
         .map((k) => ((k.textContent || "").match(FN_RE) || [])[1]).filter(Boolean);
       const distinct = new Set(fns).size;
