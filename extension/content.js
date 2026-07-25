@@ -815,18 +815,32 @@
     if (!ctx || !ctx.date || el.querySelector(".usl-watch")) return;
     const w = document.createElement("span");
     const key = fn + "|" + ctx.date;
-    const on = watched.has(key);
-    w.className = "usl-watch" + (on ? " usl-watching" : "");
-    w.textContent = on ? "★" : "☆";
-    w.title = on ? "Guarded — manage in the extension popup"
-      : "Guard " + fn + " on " + ctx.date + " — alerts from booking to boarding if its Starlink tail changes.";
+    const date = ctx.date;
+    const route = ctx.o + "-" + ctx.d;
+    // Two titles, one per state — the star is a toggle, so both are needed on
+    // every flip (the popup is not the only way to stop guarding a flight).
+    const OFF_TITLE = "Guard " + fn + " on " + date + " — alerts from booking to boarding if its Starlink tail changes.";
+    const ON_TITLE = "Guarding — click to unguard (or manage in the popup)";
+    const paint = (on) => {
+      w.textContent = on ? "★" : "☆";
+      w.classList.toggle("usl-watching", on);
+      w.title = on ? ON_TITLE : OFF_TITLE;
+    };
+    paint(watched.has(key));
     w.addEventListener("click", (ev) => {
       ev.stopPropagation(); ev.preventDefault();
-      if (watched.has(key)) return;
-      watched.add(key);
-      w.textContent = "★"; w.classList.add("usl-watching");
-      w.title = "Guarded — manage in the extension popup";
-      try { chrome.runtime.sendMessage({ type: "tripAdd", fn, date: ctx.date, route: ctx.o + "-" + ctx.d }, () => { void chrome.runtime.lastError; }); } catch {}
+      const on = watched.has(key);
+      // Optimistic: flip the UI first, then tell bg.js. Both handlers are
+      // idempotent, so a dropped message just leaves the popup as the truth.
+      if (on) {
+        watched.delete(key);
+        paint(false);
+        try { chrome.runtime.sendMessage({ type: "tripRemove", fn, date }, () => { void chrome.runtime.lastError; }); } catch {}
+      } else {
+        watched.add(key);
+        paint(true);
+        try { chrome.runtime.sendMessage({ type: "tripAdd", fn, date, route }, () => { void chrome.runtime.lastError; }); } catch {}
+      }
     });
     el.appendChild(w);
   }
