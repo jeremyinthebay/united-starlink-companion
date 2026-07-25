@@ -708,7 +708,7 @@ if (chrome.runtime.onStartup) chrome.runtime.onStartup.addListener(() => runTrip
  * ─────────────────────────────────────────────────────────────────────────── */
 
 /* ── (a) remote selector manifest ────────────────────────────────────────── */
-const SELECTORS_URL = "https://smithfamai.com/unitedstarlink/assets/selectors.json";
+const SELECTORS_URL = "https://wifiodds.com/assets/selectors.json";
 const SEL_CFG_KEY = "uslSelCfg";
 const SEL_ALARM = "uslSelectorsRefresh";
 

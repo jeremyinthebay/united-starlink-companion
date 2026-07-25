@@ -7,7 +7,7 @@ account (payment) and clicking Submit.
 1. Go to https://chrome.google.com/webstore/devconsole and sign in with your Google account.
 2. Pay the **$5 one-time** developer registration fee and verify your email.
 3. (Recommended) In *Account* settings, set publisher name (e.g. "Smith Family Labs") and
-   verify the `smithfamai.com` publisher website.
+   verify the `wifiodds.com` publisher website.
 
 ## Create the item
 1. Developer Dashboard → **+ New item** → upload `store-assets/extension-upload.zip`.
@@ -60,7 +60,7 @@ account (payment) and clicking Submit.
      - Host `united.com` — content script that displays the odds badges on search results.
      - Host `unitedstarlinktracker.com` — fetches route-level statistics from its public API.
    - Data usage: check **"Does not collect or use user data"**.
-   - Privacy policy URL: `https://smithfamai.com/unitedstarlink/privacy.html`
+   - Privacy policy URL: `https://wifiodds.com/privacy.html`
 4. **Distribution tab:** Public (or Unlisted first, to soft-launch — the install link still
    works and you can flip to Public later). All regions. Free.
 5. **Submit for review.** Typical review is 1–3 days for a small-permission MV3 extension.
@@ -131,7 +131,7 @@ on an existing item — the extension ID, install base and reviews carry over).
   Amazon Leo or Viasat) directly on airline booking pages, so the traveler can pick a
   better-connected flight."
 - **Data usage:** still **"Does not collect or use user data."**
-- **Privacy policy URL:** `https://smithfamai.com/unitedstarlink/privacy.html`
+- **Privacy policy URL:** `https://wifiodds.com/privacy.html`
 
 ### Permission justifications (v2.0)
 

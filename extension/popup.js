@@ -10,6 +10,7 @@ var statusEl = document.getElementById("usl-status");
 var resultsEl = document.getElementById("usl-results");
 var airlineEl = document.getElementById("usl-airline");
 var creditEl = document.getElementById("usl-credit");
+var fullLinkEl = document.getElementById("usl-full-link");
 
 var activeTab = null;      // active browser tab (if united.com/alaskaair.com with a route)
 var tabRoute = null;       // {o,d} parsed from that tab
@@ -18,6 +19,7 @@ var lastData = null, lastO = null, lastD = null;
 
 /* ── per-airline routing (1.6) ── */
 var TRACKER_HOST = { UA: "unitedstarlinktracker.com", AS: "alaskastarlinktracker.com" };
+var WIFIODDS_URL = { UA: "https://wifiodds.com/united/", AS: "https://wifiodds.com/alaska/" };
 var ALASKA_ORIGINS = ["https://www.alaskaair.com/*", "https://alaskaair.com/*"];
 
 function airline() {
@@ -32,6 +34,7 @@ function setAirline(a) {
 }
 function updateCredit() {
   if (creditEl) creditEl.textContent = "data: " + TRACKER_HOST[airline()];
+  if (fullLinkEl) fullLinkEl.href = WIFIODDS_URL[airline()];
 }
 
 function pctClass(p) {

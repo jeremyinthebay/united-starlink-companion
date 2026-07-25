@@ -467,7 +467,7 @@
       `<div style="margin-top:10px;font-size:11.5px">` +
       (ALASKA
         ? `data: <a href="https://alaskastarlinktracker.com" target="_blank" rel="noopener" style="color:#8ecdff">alaskastarlinktracker.com ↗</a>`
-        : `<a href="https://smithfamai.com/unitedstarlink/" target="_blank" rel="noopener" style="color:#8ecdff">full plan ↗</a>` +
+        : `<a href="https://wifiodds.com/united/" target="_blank" rel="noopener" style="color:#8ecdff">full plan ↗</a>` +
           ` · <a href="https://unitedstarlinktracker.com" target="_blank" rel="noopener" style="color:#8ecdff">tracker ↗</a>`) +
       (typed ? `<span style="opacity:.55"> · odds derived from aircraft type</span>` : "") +
       (rel ? `<span style="opacity:.55"> · ✓ = confirmed Starlink tail</span>` : "") + `</div>` +
