@@ -153,6 +153,21 @@
 }
 .usl-watching{opacity:1}
 
+/* v1.6 — read-only "you're guarding this" marker inside the panel's ranked rows.
+ * Separate class from .usl-watch on purpose: no cursor, no hover scale, no click
+ * handler. The panel background is always dark, so no halo is needed. Sized down
+ * (.95em) so it reads as an annotation next to the fn rather than a second
+ * best-flight badge — the i===0 "⭐ " prefix stays the bigger glyph. */
+.usl-guarded{
+  margin-left:5px;
+  display:inline-block;
+  font-size:.95em;
+  line-height:1;
+  vertical-align:middle;
+  color:#ffd166;
+  cursor:default;
+}
+
 /* v1.5 — high-contrast filled badges (override earlier translucent style) */
 .usl-badge{font-size:13px;font-weight:800;padding:3px 11px;color:#fff;background:#64748B;border:none;box-shadow:0 1px 3px rgba(0,0,0,.28);letter-spacing:.2px;line-height:1.5}
 .usl-badge.usl-hi{color:#fff;background:#0B8A47;border:none}

@@ -847,6 +847,8 @@
         paint(true);
         try { chrome.runtime.sendMessage({ type: "tripAdd", fn, date, route }, () => { void chrome.runtime.lastError; }); } catch {}
       }
+      // Keep the panel's ranked list in step with the row that was just clicked.
+      refreshPanelGuards();
     });
     el.appendChild(w);
   }
@@ -963,7 +965,9 @@
       (flights.length
         ? flights.map((f, i) =>
             `<div class="usl-row usl-jump" data-fn="${esc(f.fn)}">` +
-            `<span>${i === 0 ? "⭐ " : ""}${esc(f.fn)}${probMap.get(f.fn) && probMap.get(f.fn).dep ? " ✓" : ""}<span class="usl-time" data-time="${esc(f.fn)}"></span></span>` +
+            `<span>${i === 0 ? "⭐ " : ""}${esc(f.fn)}${probMap.get(f.fn) && probMap.get(f.fn).dep ? " ✓" : ""}` +
+            (isGuarded(f.fn) ? GUARD_MARK : "") +
+            `<span class="usl-time" data-time="${esc(f.fn)}"></span></span>` +
             `<span class="usl-badge ${cls(f.prob)}">${f.prob}%</span></div>`).join("")
         : `<div class="usl-row" style="display:block;line-height:1.45">${esc(note || "No Starlink history on this route yet.")}</div>`) +
       (flights.length ? `<button class="usl-sortbtn" style="display:none">⇅ Sort page by Starlink odds</button>
@@ -1030,6 +1034,35 @@
     panelEl = p;
     refreshPanelTimes();
     updatePanelSortBtn();
+  }
+  // The panel's ranked rows get a gold ★ for flights this browser is guarding.
+  // Deliberately a DIFFERENT class from .usl-watch: that one is the clickable
+  // toggle on the page row, this is a read-only marker (no click handler, no
+  // hover scale). Same gold so the two read as one feature.
+  const GUARD_MARK = `<span class="usl-guarded" title="Guarding this flight">★</span>`;
+  function isGuarded(fn) { return !!(ctx && ctx.date && watched.has(fn + "|" + ctx.date)); }
+  // Lighter than renderPanel(): mutates the markers in place. renderPanel()
+  // re-reads uslCollapsed ASYNCHRONOUSLY (storage.local.get callback), so a full
+  // re-render on every star click would flash the panel open for a frame on a
+  // collapsed panel. Patching the two spans avoids the round trip entirely.
+  function refreshPanelGuards() {
+    if (!panelEl) return;
+    panelEl.querySelectorAll(".usl-jump").forEach((row) => {
+      const label = row.firstElementChild;
+      if (!label) return;
+      const cur = label.querySelector(".usl-guarded");
+      const want = isGuarded(row.dataset.fn);
+      if (want && !cur) {
+        const m = document.createElement("span");
+        m.className = "usl-guarded";
+        m.title = "Guarding this flight";
+        m.textContent = "★";
+        // Same slot renderPanel() uses: after the fn (and its ✓), before the time.
+        label.insertBefore(m, label.querySelector(".usl-time"));
+      } else if (!want && cur) {
+        cur.remove();
+      }
+    });
   }
   function refreshPanelTimes() {
     if (!panelEl) return;
