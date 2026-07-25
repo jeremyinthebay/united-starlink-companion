@@ -341,6 +341,67 @@
     }
     return keys;
   }
+
+  /* ── operating carrier (1.6) ───────────────────────────────────────────────
+   * CONFIRMED LIVE BUG: a row marketed "Alaska" whose label also said
+   * "Operated by … as Hawaiian …" was chipped 28 (Alaska's coarse score) when
+   * the metal is an ex-Hawaiian widebody — Starlink-equipped, and scored 69
+   * under `hawaiian` in airlines.js (which is exactly where airlines.js says
+   * the ex-HA widebodies are counted). The wifi is a property of the AIRCRAFT,
+   * so the score must follow the OPERATING carrier, up or down: truth over
+   * marketing.
+   *
+   * Both word orders are accepted, because GF/airline prose uses both slots
+   * ("Operated by Hawaiian as Alaska", "Operated by Alaska as Hawaiian") and
+   * either way the non-marketing carrier named in the operating clause is the
+   * one whose fleet is flying. What matters is that exactly ONE other mapped
+   * carrier is named — see the ambiguity guard below.
+   *
+   * REGIONALS ARE NOT AN OVERRIDE. "Operated by SkyWest as United Express" is a
+   * United row: SkyWest owns no wifi programme of its own, and the UA/AS fleet
+   * counts in airlines.js already include the regional aircraft. Those brands
+   * are stripped before matching so they can never move the score. */
+  const GF_REGIONALS =
+    /\b(?:Sky\s?West|Horizon\s?Air|Horizon|Republic(?:\s+Airways)?|Mesa(?:\s+Airlines)?|Envoy(?:\s+Air)?|Endeavor(?:\s+Air)?|Piedmont|PSA(?:\s+Airlines)?|Air\s+Wisconsin|CommuteAir|GoJet|Trans\s?States|Compass(?:\s+Airlines)?|Express\s?Jet|Cape\s+Air|Contour|Silver)\b/gi;
+  // "Operated by <clause>" — the clause is bounded so it can never run into the
+  // next sentence of the ARIA label and swallow half the itinerary.
+  const GF_OPERATED_BY = /\boperated\s+by\s+([^.;:()|•·]{2,90})/i;
+  // Itinerary prose that must never be inside the clause: airport, city and
+  // route wording is a rich source of accidental carrier matches.
+  const GF_OP_STOP = /\b(?:Leaves|Leave|Departs?|Arrives?|Arrival|Nonstop|Non-stop|stops?\s+flight|Layover|Overnight|Total\s+duration|Selected|Price|dollars)\b/i;
+
+  /* gfOperatedClause(text) → the bounded "operated by …" clause, or "". */
+  function gfOperatedClause(text) {
+    if (!text || typeof text !== "string") return "";
+    const m = text.match(GF_OPERATED_BY);
+    if (!m || !m[1]) return "";
+    let seg = m[1];
+    const cut = seg.search(GF_OP_STOP);
+    if (cut > 0) seg = seg.slice(0, cut);
+    else if (cut === 0) return "";
+    return seg;
+  }
+
+  /* gfOperating(text, marketingKey) → an airline key to score INSTEAD of the
+   * marketing carrier, or null to keep the marketing carrier.
+   *
+   * THE AMBIGUITY GUARD IS THE POINT. It returns a key only when the clause
+   * names exactly one mapped carrier other than the marketing one. Zero other
+   * carriers (the ordinary "Operated by Alaska Airlines" on an Alaska row, or a
+   * pure-regional operator) and two-or-more (a codeshare word-salad we cannot
+   * resolve) both fall back to marketing — a wrong score is worse than a coarse
+   * one. */
+  function gfOperating(text, marketingKey) {
+    const seg = gfOperatedClause(text);
+    if (!seg) return null;
+    const keys = gfDetect(seg.replace(GF_REGIONALS, " "));
+    const cand = [];
+    for (let i = 0; i < keys.length; i++) {
+      if (keys[i] === marketingKey) continue;
+      if (cand.indexOf(keys[i]) < 0) cand.push(keys[i]);
+    }
+    return cand.length === 1 ? cand[0] : null;
+  }
   /* ==USL-GF-MATCHER-END== */
 
   // Tier 2 flight-number extraction, only for the two instrumented carriers.
@@ -442,14 +503,21 @@
 
   /* Compute what the chip should say. Split from the write so the write can be
    * skipped when nothing changed — see gfChipFill(). */
-  function gfChipState(key, fn, hit) {
+  function gfChipState(key, fn, hit, op) {
     const a = scoreAirline(key);
     if (!a) return null;
     const entry = WIFI_AIRLINES[key] || {};
+    // op = {name, marketedAs} when the row's operating carrier ≠ its marketing
+    // carrier and we moved the score onto the operating one.
+    const opSig = op ? "|op:" + op.name : "";
+    const opNote = op
+      ? " · operated by " + op.name + " — scored on operating carrier" +
+        (op.marketedAs ? " (marketed as " + op.marketedAs + ")" : "")
+      : "";
     if (hit && typeof hit.prob === "number") {
       // Tier 2: live per-flight odds replace the static score.
       return {
-        sig: "live|" + fn + "|" + hit.prob + "|" + (hit.dep ? hit.dep.tail : "") + "|" + (hit.conf || ""),
+        sig: "live|" + fn + "|" + hit.prob + "|" + (hit.dep ? hit.dep.tail : "") + "|" + (hit.conf || "") + opSig,
         cn: "usl-badge usl-gf-chip usl-gf-live " + cls(hit.prob),
         tx: "🛰️ " + hit.prob + "%" + (hit.dep ? " ✓" : ""),
         ti: fn + ": " +
@@ -459,28 +527,29 @@
               (hit.obs || 0) + " recent departures)") +
           (hit.dep ? " — CONFIRMED Starlink tail " + hit.dep.tail : "") +
           " · data: " + (key === "alaska" ? "alaskastarlinktracker.com" : "unitedstarlinktracker.com") +
-          " · " + GF_CREDIT,
+          opNote + " · " + GF_CREDIT,
       };
     }
     if (hit === null) {
       // Known-unknown: the tracker has this flight number and has no history.
       return {
-        sig: "na|" + fn,
+        sig: "na|" + fn + opSig,
         cn: "usl-badge usl-gf-chip usl-na",
         tx: "🛰️ n/a",
-        ti: fn + ": no Starlink-assignment history for this flight number yet · " + GF_CREDIT,
+        ti: fn + ": no Starlink-assignment history for this flight number yet" +
+          opNote + " · " + GF_CREDIT,
       };
     }
     // Tier 1: static ConnectScore.
     const fleet = a.fleet ? a.equipped + " of " + a.fleet + " aircraft" : "fleetwide";
     const freeTxt = GF_FREE_TEXT[String(entry.free || "unknown").toLowerCase()] || "";
     return {
-      sig: "cs|" + key + "|" + a.score,
+      sig: "cs|" + key + "|" + a.score + opSig,
       cn: "usl-badge usl-gf-chip " + cls(a.score),
       tx: "🛰️ " + a.score,
       ti: a.name + " · ConnectScore " + a.score + " (" + a.label + ") — " +
         a.systemLabel + " on " + fleet + (freeTxt ? ", " + freeTxt : "") + ". " +
-        (a.note || "") + " · " + GF_CREDIT,
+        (a.note || "") + opNote + " · " + GF_CREDIT,
     };
   }
 
@@ -490,8 +559,8 @@
    * an unchanged chip every pass is therefore a self-sustaining 700 ms loop for
    * as long as the tab is open. The dataset write below is safe because we
    * observe childList/subtree only, never attributes. */
-  function gfChipFill(chip, key, fn, hit) {
-    const s = gfChipState(key, fn, hit);
+  function gfChipFill(chip, key, fn, hit, op) {
+    const s = gfChipState(key, fn, hit, op);
     if (!s) return;
     if (chip.dataset.gfSig === s.sig) return;
     chip.dataset.gfSig = s.sig;
@@ -544,9 +613,37 @@
           if (!WIFI_AIRLINES[keys[k]]) continue;
           present.set(keys[k], (present.get(keys[k]) || 0) + 1);
         }
-        const key = keys[0];
-        if (!WIFI_AIRLINES[key]) continue;
-        const fn = gfFnIn(text, key);
+        const marketKey = keys[0];
+        if (!WIFI_AIRLINES[marketKey]) continue;
+
+        /* Score the metal, not the ticket. When the row names an unambiguous
+         * operating carrier that is not the marketing one, that carrier's fleet
+         * is what is flying, so its ConnectScore is the honest answer — higher
+         * (ex-Hawaiian widebody on an Alaska ticket: 28 → 69) or lower.
+         *
+         * Tier 2 is deliberately given up in that case: a per-flight number is
+         * the MARKETING carrier's (AS1234), and its tail-assignment history
+         * describes the marketing carrier's own fleet — the wrong aircraft pool.
+         * A coarse score about the right metal beats a precise one about the
+         * wrong metal. Ordinary rows (including regional-operated ones, which
+         * gfOperating() refuses to override) keep live odds exactly as before. */
+        let key = marketKey;
+        let op = null;
+        try {
+          const opKey = gfOperating(text, marketKey);
+          if (opKey && opKey !== marketKey && WIFI_AIRLINES[opKey]) {
+            key = opKey;
+            op = {
+              name: WIFI_AIRLINES[opKey].name,
+              marketedAs: WIFI_AIRLINES[marketKey].name,
+            };
+          }
+        } catch (e) { key = marketKey; op = null; }
+        // The operating carrier is normally already counted (its name is in the
+        // row text), but never assume it — the panel must list what we scored.
+        if (op && !present.has(key)) present.set(key, 1);
+
+        const fn = op ? null : gfFnIn(text, key);
         const hit = fn ? (probMap.has(fn) ? probMap.get(fn) : undefined) : undefined;
         if (fn && hit === undefined) want.push(fn);
 
@@ -563,7 +660,7 @@
         // Re-fill every pass: cheap, idempotent, and how Tier 1 upgrades to
         // Tier 2 once the odds arrive.
         chip.dataset.gfFn = fn || "";
-        gfChipFill(chip, key, fn, hit);
+        gfChipFill(chip, key, fn, hit, op);
       } catch (e) { /* one bad row never stops the rest */ }
     }
     gfPresent = present;

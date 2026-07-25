@@ -118,9 +118,39 @@
 .usl-ghost{opacity:.45;cursor:default}
 .usl-ghost:hover{background:transparent}
 
-/* v1.4 trip monitor */
-.usl-watch{cursor:pointer;margin-left:5px;color:#ffd166;opacity:.55;font-size:14px;vertical-align:middle}
-.usl-watch:hover{opacity:1}
+/* v1.4 trip monitor — unfilled state restyled in 1.6 (see below).
+ * The original was pale gold at opacity .55: a hairline yellow outline on a
+ * white united.com row, which a human tester called "INCREDIBLY hard to see".
+ * Unfilled is now DARK with a white halo, so the glyph carries its own contrast
+ * on light rows (dark ink) and on dark ones (the halo). The watched ★ gold is
+ * unchanged — it just opts out of the halo and the hover animation. */
+.usl-watch{
+  cursor:pointer;
+  margin-left:6px;
+  display:inline-block;
+  font-size:1.15em;
+  line-height:1;
+  vertical-align:middle;
+  color:#1F2937;                 /* slate-800 outline star */
+  opacity:1;                     /* no fading — dimming is what hid it before */
+  text-shadow:0 0 2px #fff, 0 0 4px rgba(255,255,255,.9), 0 1px 0 rgba(255,255,255,.7);
+  transition:color .12s ease, transform .12s ease, text-shadow .12s ease;
+}
+/* Clickability hint: it warms toward the gold "watched" colour and grows. */
+.usl-watch:hover,
+.usl-watch:focus-visible{
+  color:#B45309;                 /* amber-700 */
+  transform:scale(1.2);
+  text-shadow:0 0 2px #fff, 0 0 7px rgba(255,209,102,.95);
+}
+/* Watched: the v1.4 gold, kept as-is. */
+.usl-watch.usl-watching,
+.usl-watch.usl-watching:hover{
+  color:#ffd166;
+  opacity:1;
+  transform:none;
+  text-shadow:none;
+}
 .usl-watching{opacity:1}
 
 /* v1.5 — high-contrast filled badges (override earlier translucent style) */
