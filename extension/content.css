@@ -132,3 +132,10 @@
 .usl-badge.usl-na{color:#fff;background:#64748B;border:none;opacity:.92}
 .usl-badge.usl-best-badge{color:#fff;background:#0B8A47;border:none;box-shadow:0 0 0 2.5px rgba(11,138,71,.4),0 1px 4px rgba(0,0,0,.3)}
 .usl-panel .usl-badge{font-size:12px;padding:2px 9px}
+
+/* v2.0 — Google Flights chips.
+   Compact, and NEVER position/float/display-block: GF result rows are tight
+   flex/grid cells and a chip that changes layout is how you break someone's
+   search page. inline-flex + a small font is the whole design. */
+.usl-gf-chip{font-size:11.5px;padding:2px 8px;margin-left:6px;vertical-align:middle;flex:0 0 auto}
+.usl-gf-chip.usl-gf-live{box-shadow:0 0 0 2px rgba(142,205,255,.35),0 1px 3px rgba(0,0,0,.28)}

@@ -21,6 +21,12 @@ var lastData = null, lastO = null, lastD = null;
 var TRACKER_HOST = { UA: "unitedstarlinktracker.com", AS: "alaskastarlinktracker.com" };
 var WIFIODDS_URL = { UA: "https://wifiodds.com/united/", AS: "https://wifiodds.com/alaska/" };
 var ALASKA_ORIGINS = ["https://www.alaskaair.com/*", "https://alaskaair.com/*"];
+// Google Flights lives at www.google.com/travel/flights. Chrome grants optional
+// host permissions per ORIGIN, so the request has to be the whole origin — the
+// injection itself is narrowed to /travel/* by the dynamic registration in
+// bg.js, and content.js narrows again to flights search/results pages. Say so
+// on the button's tooltip: users are (rightly) wary of "all of google.com".
+var GFLIGHTS_ORIGINS = ["https://www.google.com/*"];
 
 function airline() {
   var v = airlineEl && airlineEl.value ? airlineEl.value.toUpperCase() : "UA";
@@ -248,6 +254,7 @@ function init() {
     var tab = tabs && tabs[0];
     var urlRoute = tab && tab.url ? parseTabUrl(tab.url) : null;
     syncEnableButton(tab);
+    syncGFlightsButton(tab);
     if (!urlRoute) {
       setStatus("Enter a route to check Starlink odds.");
       return;
@@ -300,6 +307,45 @@ if (enableBtn) {
           setAirline("AS");
         } else {
           setStatus("alaskaair.com access not granted.");
+        }
+      });
+    } catch (e) {
+      setStatus("Could not request permission.");
+    }
+  });
+}
+
+/* ── optional Google Flights permission (v2.0) ─────────────────────────────
+ * Same gesture-bound pattern as Alaska above. Granting fires
+ * permissions.onAdded, and syncDynamicScripts() registers airlines.js +
+ * content.js on https://www.google.com/travel/* only. */
+var gfBtn = document.getElementById("usl-enable-gflights");
+
+function syncGFlightsButton(tab) {
+  if (!gfBtn || !chrome.permissions) return;
+  var onGF = !!(tab && tab.url && /^https:\/\/www\.google\.com\/travel\/flights/.test(tab.url));
+  chrome.permissions.contains({ origins: GFLIGHTS_ORIGINS }, function (granted) {
+    void chrome.runtime.lastError;
+    gfBtn.hidden = !!granted;
+    gfBtn.textContent = onGF
+      ? "Enable ConnectScore on this Google Flights page"
+      : "Enable on Google Flights";
+    gfBtn.title = "Chrome asks for all of www.google.com because permissions are " +
+      "per-site. The extension only ever runs on google.com/travel/flights search " +
+      "results — never on Search, Gmail, or any checkout page.";
+  });
+}
+
+if (gfBtn) {
+  gfBtn.addEventListener("click", function () {
+    try {
+      chrome.permissions.request({ origins: GFLIGHTS_ORIGINS }, function (granted) {
+        void chrome.runtime.lastError;
+        if (granted) {
+          gfBtn.hidden = true;
+          setStatus("Enabled on Google Flights — reload the tab to see ConnectScore chips.");
+        } else {
+          setStatus("Google Flights access not granted.");
         }
       });
     } catch (e) {

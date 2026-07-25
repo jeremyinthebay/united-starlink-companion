@@ -1,4 +1,5 @@
-/* Starlink odds — content script for united.com / Navan / alaskaair.com (v1.6)
+/* Starlink odds — content script for united.com / Navan / alaskaair.com /
+ * Google Flights (v2.0)
  * - Badges + n/a pills on every flight row; full-page sort by odds.
  * - Round-trip aware: when United shows the RETURN leg, everything flips to the
  *   reverse route automatically.
@@ -18,6 +19,26 @@
   // content script (optional host permission). Navan stays UA-only on purpose —
   // it lists several carriers and mixed matching would regress United there.
   const ALASKA = /(^|\.)alaskaair\.com$/.test(location.hostname);
+  /* ── Google Flights (2.0) ─────────────────────────────────────────────────
+   * GFLIGHTS is the HOST flag (the injection match is already narrowed to
+   * /travel/* in the manifest / dynamic registration). GF_ACTIVE is the much
+   * stricter render gate: flights search/results only, and never anything that
+   * smells like checkout, payment or a booking hand-off. When GFLIGHTS is true
+   * and GF_ACTIVE is false the script does NOTHING AT ALL — it must not fall
+   * through to the united.com scanner, which would badge "United 1812" text on
+   * a page we have no business touching. */
+  const GFLIGHTS = location.hostname === "www.google.com" &&
+    location.pathname.indexOf("/travel") === 0;
+  const GF_RESULTS_PATH = /^\/travel\/flights(\/|$)/;
+  const GF_DENY_PATH = /(?:checkout|payment|payments|purchase|billing|pay|book(?:ing)?-?confirm|confirmation)/i;
+  const GF_ACTIVE = GFLIGHTS &&
+    GF_RESULTS_PATH.test(location.pathname) &&
+    !GF_DENY_PATH.test(location.pathname);
+  // Hard stop before anything else is even defined: on a www.google.com/travel
+  // path that is not a flights search/results page — Explore, Hotels, a booking
+  // hand-off, anything checkout-shaped — we install no observer, no interval and
+  // no message listener, and touch no DOM.
+  if (GFLIGHTS && !GF_ACTIVE) return;
   const AIRLINE = ALASKA ? "AS" : "UA";
   const TRACKER = ALASKA ? "alaskastarlinktracker.com" : "unitedstarlinktracker.com";
   // The trailing lookahead keeps "Alaska 737-900" (an aircraft type) from being
@@ -27,8 +48,11 @@
     : /\b(?:UA|United)\s?(\d{2,4})\b/;
   // Odds fetched per-flight (rather than from a route table) on sites where the
   // tracker has no per-route flight list.
-  const PAGE_PREDICT = NAVAN || ALASKA;
+  const PAGE_PREDICT = NAVAN || ALASKA || GFLIGHTS;
   const TIME_RE = /\b\d{1,2}:\d{2}\s?[ap]\.?m\.?/gi;
+  // Non-global twin of TIME_RE. .test() on a /g regex advances lastIndex and
+  // silently alternates true/false across calls — never use TIME_RE for tests.
+  const TIME_ONE = /\b\d{1,2}:\d{2}\s?[ap]\.?m\.?/i;
   let ctx = null;            // {o,d,date,phase} — the ACTIVE leg
   let ctxKey = "", dataKey = "";
   let navanCtxCache = null, navanCtxKey = "", navanSig = "";
@@ -43,11 +67,23 @@
   // alaskaRoute is a best-guess hook for alaskaair.com's search summary; it is
   // optional — the URL params and the "SEA to SFO" text scan both work without
   // it, and the remote manifest can patch it in once the real markup is known.
+  //
+  // Google Flights keys are deliberately generic. GF ships obfuscated, rotating
+  // class names (".pIav2d", ".Rk10dc"), so NOTHING here may reference one: the
+  // row selector is a plain structural "ul li" and every actual decision is made
+  // from ARIA labels and visible text (a time range + an airline name). The
+  // length window is what keeps the outermost-wins pass from mistaking the whole
+  // results list for a single row. All of it is remote-patchable via the
+  // selector manifest if Google reshuffles the structure.
   const DEFAULT_SEL = {
     navanRoute: ".flight-header__route",
     alaskaRoute: "[data-testid='search-summary'], .search-summary, .fare-header__route",
     rowDepth: 8,
     containerDepth: 20,
+    gfRow: "ul li",
+    gfMinLen: 30,
+    gfMaxLen: 1200,
+    gfMaxRows: 120,
   };
   let SEL = DEFAULT_SEL;
   let pendingPredict = new Set();
@@ -229,6 +265,361 @@
   }
   const cls = (p) => (p >= 50 ? "usl-hi" : p >= 35 ? "usl-mid" : p >= 20 ? "usl-low" : "usl-no");
 
+  /* ══ Google Flights overlay (2.0) ══════════════════════════════════════════
+   * GF is the first MULTI-AIRLINE surface, and it is nothing like united.com:
+   *   · a collapsed result row usually has no flight number at all, only an
+   *     airline name in an ARIA label ("Nonstop flight with United"), so the
+   *     primary signal has to be the CARRIER, not the flight;
+   *   · class names are obfuscated and rotate, so every hook here is an ARIA
+   *     label or a text node, and the one structural selector (SEL.gfRow) is
+   *     remote-patchable;
+   *   · the list virtualizes and GF owns its own sort, so we NEVER reorder the
+   *     DOM here — that is what killed the idea of reusing sortPage().
+   * Two tiers:
+   *   Tier 1 (always) — detect the operating airline(s) from the row text and
+   *     render a static ConnectScore chip from airlines.js. No network at all.
+   *   Tier 2 (when the row happens to expose a UA/AS flight number) — ask the
+   *     service worker for live per-flight odds and upgrade that chip in place.
+   *     HA is excluded on purpose: its tracker publishes no per-flight
+   *     probability (see the probe transcript in bg.js), so it can only ever be
+   *     Tier 1 and asking would just burn a request.
+   * Everything below is wrapped so a GF redesign degrades to NO RENDER. A
+   * missing chip is fine; a broken Google Flights page is not.
+   * ─────────────────────────────────────────────────────────────────────────── */
+
+  /* ==USL-GF-MATCHER-START==
+   * Extracted verbatim and evaluated by the node harness. Keep this region
+   * self-contained: no chrome.*, no DOM, no outer-scope references. */
+  // Ordered name→key table for the 18 carriers in airlines.js. Matched with word
+  // boundaries against a row's ARIA label / visible text.
+  //   · "United" carries a negative lookahead so "United States" is not a match.
+  //   · SAS and JSX are CASE-SENSITIVE — a case-insensitive \bsas\b or \bjsx\b
+  //     is a live false-positive risk in ordinary prose; the real labels are
+  //     always upper-case. Every other pattern is case-insensitive.
+  //   · "airBaltic"/"Air Baltic", "WestJet"/"West Jet", "ZIPAIR"/"Zip Air" and
+  //     "SAS"/"Scandinavian Airlines" all resolve to one key.
+  const GF_AIRLINES = [
+    { key: "united",         re: /\bUnited\b(?!\s+States)/i },
+    { key: "alaska",         re: /\bAlaska\b/i },
+    { key: "hawaiian",       re: /\bHawaiian\b/i },
+    { key: "delta",          re: /\bDelta\b/i },
+    { key: "american",       re: /\bAmerican\b/i },
+    { key: "jetblue",        re: /\bjet\s?blue\b/i },
+    { key: "southwest",      re: /\bSouthwest\b/i },
+    { key: "aircanada",      re: /\bAir\s?Canada\b/i },
+    { key: "airfrance",      re: /\bAir\s?France\b/i },
+    { key: "britishairways", re: /\bBritish\s?Airways\b/i },
+    { key: "emirates",       re: /\bEmirates\b/i },
+    { key: "qatar",          re: /\bQatar(?:\s+Airways)?\b/i },
+    { key: "westjet",        re: /\bWest\s?Jet\b/i },
+    { key: "sas",            re: /\bSAS\b|\bScandinavian\s+Airlines\b/ },
+    { key: "virginatlantic", re: /\bVirgin\s+Atlantic\b/i },
+    { key: "jsx",            re: /\bJSX\b/ },
+    { key: "airbaltic",      re: /\bair\s?Baltic\b/i },
+    { key: "zipair",         re: /\bZIP\s?AIR\b/i },
+  ];
+
+  /* gfDetect(text) → airline keys in the order they first appear in the text.
+   * Order is the whole point: on "1 stop flight with Delta and Alaska" the FIRST
+   * key is the operating carrier of the first leg, which is what the chip
+   * represents; the rest are the other carriers on the itinerary. Deduplicated,
+   * so "United … United Express" yields ["united"] once. */
+  function gfDetect(text) {
+    if (!text || typeof text !== "string") return [];
+    const hits = [];
+    for (let i = 0; i < GF_AIRLINES.length; i++) {
+      const a = GF_AIRLINES[i];
+      const m = text.match(a.re);
+      if (m && typeof m.index === "number") hits.push({ key: a.key, at: m.index });
+    }
+    hits.sort(function (x, y) { return x.at - y.at; });
+    const seen = {}, keys = [];
+    for (let i = 0; i < hits.length; i++) {
+      if (seen[hits[i].key]) continue;
+      seen[hits[i].key] = 1;
+      keys.push(hits[i].key);
+    }
+    return keys;
+  }
+  /* ==USL-GF-MATCHER-END== */
+
+  // Tier 2 flight-number extraction, only for the two instrumented carriers.
+  // The bare-name form ("United 737") is rejected when the digits are a known
+  // aircraft-type number — a wrong badge is worse than no badge, so the code
+  // form ("UA737") is required in that case.
+  const GF_FN = {
+    united: /\b(UA|United)\s?(\d{2,4})\b(?!\s?-\s?\d)/,
+    alaska: /\b(AS|Alaska)\s?(\d{1,4})\b(?!\s?-\s?\d)/,
+  };
+  const GF_FN_PREFIX = { united: "UA", alaska: "AS" };
+  const GF_TYPE_NUMS = { 145:1, 175:1, 190:1, 195:1, 220:1, 223:1, 319:1, 320:1,
+    321:1, 330:1, 332:1, 333:1, 339:1, 350:1, 359:1, 380:1, 717:1, 737:1, 738:1,
+    739:1, 747:1, 757:1, 767:1, 777:1, 787:1 };
+  const GF_FREE_TEXT = {
+    free: "free for everyone onboard",
+    "loyalty-free": "free for loyalty members",
+    "loyalty-tier": "free on paid status tiers",
+    partial: "free on some cabins/routes",
+    unknown: "free status unconfirmed",
+    paid: "paid",
+  };
+  const GF_CREDIT = "ConnectScore by wifiodds.com";
+
+  let gfPresent = new Map();   // airline key → count of rows it appears in
+  let gfSig = "";              // panel signature, so we don't re-render on churn
+
+  // airlines.js is a separate content-script file; if it ever fails to load we
+  // render nothing rather than throwing on every mutation.
+  function gfScoring() {
+    return typeof scoreAirline === "function" && typeof WIFI_AIRLINES !== "undefined";
+  }
+  /* GF_ACTIVE is the load-time gate; this is the LIVE one. Google Flights is a
+   * single-page app — the path changes under us without a reload, so the
+   * checkout/booking exclusion has to be re-checked on every pass, not just at
+   * injection. When it goes false we also pull our own panel back off the page. */
+  function gfPathOk() {
+    return GF_RESULTS_PATH.test(location.pathname) && !GF_DENY_PATH.test(location.pathname);
+  }
+  function gfTeardown() {
+    if (panelEl) { try { panelEl.remove(); } catch (e) {} }
+    panelEl = null;
+    gfSig = "";
+  }
+
+  function gfFnIn(text, key) {
+    const re = GF_FN[key];
+    if (!re) return null;
+    const m = text.match(re);
+    if (!m) return null;
+    const byCode = m[1].length === 2;
+    if (!byCode && GF_TYPE_NUMS[m[2]]) return null; // "United 737" is an aircraft
+    return GF_FN_PREFIX[key] + String(parseInt(m[2], 10));
+  }
+
+  /* Row text. Deliberately textContent, NOT innerText: innerText forces a layout
+   * flush, and this runs on every debounced mutation of a page that mutates
+   * constantly — innerText here measurably janks GF. The row's own aria-label is
+   * prepended when present, and gfAriaText() is the bounded fallback for the
+   * layouts where the carrier name lives ONLY in a descendant's label. */
+  function gfText(r) {
+    let t = "";
+    try { t = r.textContent || ""; } catch (e) { return ""; }
+    if (t.length > (SEL.gfMaxLen || 1200)) return "";
+    try {
+      const al = r.getAttribute && r.getAttribute("aria-label");
+      if (al) t = al + " " + t;
+    } catch (e) {}
+    return t;
+  }
+  function gfAriaText(r) {
+    let s = "";
+    try {
+      const ls = r.querySelectorAll("[aria-label]");
+      for (let i = 0; i < ls.length && i < 12; i++)
+        s += " " + (ls[i].getAttribute("aria-label") || "");
+    } catch (e) {}
+    return s;
+  }
+
+  // Candidate result rows: one structural selector, then filtered purely on
+  // content (a clock time + at least one known airline). The length window is
+  // what keeps the outermost-wins pass in gfScan() from swallowing the whole
+  // list as a single "row".
+  function gfRows() {
+    let all;
+    try { all = document.querySelectorAll(SEL.gfRow); } catch (e) { return []; }
+    const out = [];
+    const max = SEL.gfMaxRows || 120;
+    for (let i = 0; i < all.length && out.length < max; i++) {
+      const r = all[i];
+      const t = gfText(r);
+      if (t.length < (SEL.gfMinLen || 30)) continue;
+      if (!TIME_ONE.test(t)) continue;
+      out.push({ el: r, text: t });
+    }
+    return out;
+  }
+
+  /* Compute what the chip should say. Split from the write so the write can be
+   * skipped when nothing changed — see gfChipFill(). */
+  function gfChipState(key, fn, hit) {
+    const a = scoreAirline(key);
+    if (!a) return null;
+    const entry = WIFI_AIRLINES[key] || {};
+    if (hit && typeof hit.prob === "number") {
+      // Tier 2: live per-flight odds replace the static score.
+      return {
+        sig: "live|" + fn + "|" + hit.prob + "|" + (hit.dep ? hit.dep.tail : "") + "|" + (hit.conf || ""),
+        cn: "usl-badge usl-gf-chip usl-gf-live " + cls(hit.prob),
+        tx: "🛰️ " + hit.prob + "%" + (hit.dep ? " ✓" : ""),
+        ti: fn + ": " +
+          (hit.conf === "type"
+            ? "~" + hit.prob + "% odds derived from aircraft type"
+            : "gets a Starlink-equipped plane ~" + hit.prob + "% of the time (" +
+              (hit.obs || 0) + " recent departures)") +
+          (hit.dep ? " — CONFIRMED Starlink tail " + hit.dep.tail : "") +
+          " · data: " + (key === "alaska" ? "alaskastarlinktracker.com" : "unitedstarlinktracker.com") +
+          " · " + GF_CREDIT,
+      };
+    }
+    if (hit === null) {
+      // Known-unknown: the tracker has this flight number and has no history.
+      return {
+        sig: "na|" + fn,
+        cn: "usl-badge usl-gf-chip usl-na",
+        tx: "🛰️ n/a",
+        ti: fn + ": no Starlink-assignment history for this flight number yet · " + GF_CREDIT,
+      };
+    }
+    // Tier 1: static ConnectScore.
+    const fleet = a.fleet ? a.equipped + " of " + a.fleet + " aircraft" : "fleetwide";
+    const freeTxt = GF_FREE_TEXT[String(entry.free || "unknown").toLowerCase()] || "";
+    return {
+      sig: "cs|" + key + "|" + a.score,
+      cn: "usl-badge usl-gf-chip " + cls(a.score),
+      tx: "🛰️ " + a.score,
+      ti: a.name + " · ConnectScore " + a.score + " (" + a.label + ") — " +
+        a.systemLabel + " on " + fleet + (freeTxt ? ", " + freeTxt : "") + ". " +
+        (a.note || "") + " · " + GF_CREDIT,
+    };
+  }
+
+  /* WRITE-IF-CHANGED, and that is not an optimisation — it is required.
+   * Assigning textContent replaces child nodes, which is a childList mutation,
+   * which our own MutationObserver sees, which schedules another scan. Rewriting
+   * an unchanged chip every pass is therefore a self-sustaining 700 ms loop for
+   * as long as the tab is open. The dataset write below is safe because we
+   * observe childList/subtree only, never attributes. */
+  function gfChipFill(chip, key, fn, hit) {
+    const s = gfChipState(key, fn, hit);
+    if (!s) return;
+    if (chip.dataset.gfSig === s.sig) return;
+    chip.dataset.gfSig = s.sig;
+    chip.className = s.cn;
+    chip.textContent = s.tx;
+    chip.title = s.ti;
+  }
+
+  // The chip is attached next to the text node that named the airline, so it
+  // lands inside the row's own layout rather than on the flex container.
+  function gfAnchor(row, re) {
+    try {
+      const w = document.createTreeWalker(row, NodeFilter.SHOW_TEXT, {
+        acceptNode(n) {
+          if (!n.nodeValue || !re.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
+          const p = n.parentElement;
+          if (!p || p.closest(".usl-panel,.usl-badge,script,style,noscript"))
+            return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        },
+      });
+      const n = w.nextNode();
+      return n ? n.parentElement : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function gfScan() {
+    if (!gfPathOk()) { gfTeardown(); return; }
+    if (!gfScoring()) return;
+    const present = new Map();
+    const want = [];
+    const rows = gfRows();
+    for (let i = 0; i < rows.length; i++) {
+      try {
+        const row = rows[i].el;
+        let text = rows[i].text;
+        // Outermost qualifying row wins: one chip per itinerary card. Safe only
+        // because of the gfMaxLen window above.
+        if (row.parentElement && row.parentElement.closest('[data-usl-gf="1"]')) continue;
+        let keys = gfDetect(text);
+        if (!keys.length) {
+          // Carrier named only in a descendant's ARIA label.
+          const extra = gfAriaText(row);
+          if (extra) { text = extra + " " + text; keys = gfDetect(text); }
+        }
+        if (!keys.length) continue;
+        for (let k = 0; k < keys.length; k++) {
+          if (!WIFI_AIRLINES[keys[k]]) continue;
+          present.set(keys[k], (present.get(keys[k]) || 0) + 1);
+        }
+        const key = keys[0];
+        if (!WIFI_AIRLINES[key]) continue;
+        const fn = gfFnIn(text, key);
+        const hit = fn ? (probMap.has(fn) ? probMap.get(fn) : undefined) : undefined;
+        if (fn && hit === undefined) want.push(fn);
+
+        let chip = row.querySelector(":scope > .usl-gf-chip") ||
+          row.querySelector(".usl-gf-chip");
+        if (!chip) {
+          const spec = GF_AIRLINES.find((x) => x.key === key);
+          const anchor = (spec && gfAnchor(row, spec.re)) || row;
+          chip = document.createElement("span");
+          chip.dataset.gfKey = key;
+          anchor.appendChild(chip);
+          row.dataset.uslGf = "1";
+        }
+        // Re-fill every pass: cheap, idempotent, and how Tier 1 upgrades to
+        // Tier 2 once the odds arrive.
+        chip.dataset.gfFn = fn || "";
+        gfChipFill(chip, key, fn, hit);
+      } catch (e) { /* one bad row never stops the rest */ }
+    }
+    gfPresent = present;
+    if (want.length) requestPredictions([...new Set(want)]);
+    renderGFPanel();
+  }
+
+  /* GF panel: a per-airline summary of what is actually in these results,
+   * ranked by ConnectScore. Deliberately NOT the united.com route flight list —
+   * on GF there is no single route/airline, and no sort button, because GF owns
+   * its own ordering and its list virtualizes. */
+  function renderGFPanel() {
+    if (!gfPathOk() || !gfScoring()) return;
+    const ranked = [...gfPresent.keys()]
+      .map((k) => scoreAirline(k))
+      .filter(Boolean)
+      .sort((a, b) => (b.score - a.score) || a.name.localeCompare(b.name));
+    const live = [];
+    for (const [fn, v] of probMap.entries())
+      if (v && typeof v.prob === "number") live.push(fn + ":" + v.prob);
+    live.sort();
+    const sig = ranked.map((a) => a.key + a.score).join(",") + "|" + live.join(",");
+    if (panelEl && panelEl.isConnected && sig === gfSig) return;
+    gfSig = sig;
+    if (panelEl) panelEl.remove();
+    panelEl = null;
+    if (!ranked.length) return;
+
+    const p = document.createElement("div");
+    p.className = "usl-panel";
+    try {
+      chrome.storage.local.get("uslCollapsed", (v) => { if (v.uslCollapsed) p.classList.add("usl-collapsed"); });
+    } catch (e) {}
+    const liveRows = ranked.filter((a) => a.instrumented).length;
+    p.innerHTML =
+      `<header><span>🛰️ WiFi odds in these results</span><span><span class="usl-x">▾</span></span></header>` +
+      `<div class="usl-body">` +
+      ranked.map((a) =>
+        `<div class="usl-row" title="${esc(a.note || "")}">` +
+        `<span>${esc(a.name)}<span class="usl-time"> · ${esc(a.systemLabel)}${a.fleet ? " " + a.equipped + "/" + a.fleet : ""}</span></span>` +
+        `<span class="usl-badge ${cls(a.score)}">${a.score}</span></div>`).join("") +
+      `<div style="margin-top:8px;font-size:11px;opacity:.75;line-height:1.45">` +
+      `ConnectScore = odds of the good satellite wifi, not of any wifi. ` +
+      (liveRows ? `United and Alaska rows upgrade to live per-flight odds when Google shows a flight number. ` : ``) +
+      `</div>` +
+      `<div style="margin-top:8px;font-size:11.5px">` +
+      `<a href="https://wifiodds.com/" target="_blank" rel="noopener" style="color:#8ecdff">${esc(GF_CREDIT)} ↗</a>` +
+      `</div></div>`;
+    p.querySelector("header").addEventListener("click", () => {
+      p.classList.toggle("usl-collapsed");
+      try { chrome.storage.local.set({ uslCollapsed: p.classList.contains("usl-collapsed") }); } catch (e) {}
+    });
+    document.documentElement.appendChild(p);
+    panelEl = p;
+  }
+
   function findRow(el) {
     let e = el;
     for (let i = 0; i < SEL.rowDepth && e && e !== document.body; i++, e = e.parentElement) {
@@ -242,6 +633,10 @@
   /* ── badge injection ── */
   function scan() {
     scanScheduled = false;
+    // Google Flights has its own scanner and must never reach the united.com
+    // pass below (that one would badge "United 1812" prose with UA route odds
+    // it has no route for, and would try to reorder a virtualized list).
+    if (GFLIGHTS) { try { gfScan(); } catch (e) {} return; }
     if (!data && !PAGE_PREDICT) return;
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode(n) {
@@ -562,6 +957,9 @@
 
   /* ── orchestration ── */
   async function refresh() {
+    // GF carries no single route/leg context, so none of the route machinery
+    // below applies — the chips and the summary panel are all there is.
+    if (GFLIGHTS) { try { gfScan(); } catch (e) {} return; }
     const c = getContext();
     if (!c) { if (panelEl) { panelEl.remove(); panelEl = null; } ctx = null; ctxKey = ""; return; }
     const key = `${c.o}-${c.d}|${c.date}|${c.phase}`;

@@ -773,37 +773,77 @@ async function refreshSelectors() {
 const DYN_ALASKA_ID = "usl-dyn-alaska";
 const ALASKA_MATCHES = ["https://www.alaskaair.com/*", "https://alaskaair.com/*"];
 
-// Register content.js/content.css on alaskaair.com only while the user has
-// actually granted the optional host permission; unregister the moment they
-// revoke it. Static united.com/navan registration is untouched.
-async function syncDynamicScripts() {
-  try {
-    const granted = await chrome.permissions.contains({ origins: ALASKA_MATCHES });
-    let existing = [];
-    try {
-      existing = await chrome.scripting.getRegisteredContentScripts({ ids: [DYN_ALASKA_ID] });
-    } catch (e) {
-      existing = [];
-    }
-    const isRegistered = Array.isArray(existing) && existing.length > 0;
+/* Google Flights (2.0). The optional PERMISSION has to be the whole origin —
+ * Chrome grants per-origin, not per-path — but the injection MATCH is narrowed
+ * to /travel/*, so the content script is never even parsed on search, Gmail,
+ * Docs or anything else on www.google.com. content.js then narrows again to
+ * /travel/flights and refuses any checkout/payment-looking path. */
+const DYN_GFLIGHTS_ID = "usl-dyn-gflights";
+const GFLIGHTS_ORIGINS = ["https://www.google.com/*"];
+const GFLIGHTS_MATCHES = ["https://www.google.com/travel/*"];
 
-    if (granted) {
-      if (isRegistered) return; // already live — nothing to do
-      await chrome.scripting.registerContentScripts([
-        {
-          id: DYN_ALASKA_ID,
-          matches: ALASKA_MATCHES,
-          js: ["content.js"],
-          css: ["content.css"],
-          runAt: "document_idle",
-          persistAcrossSessions: true,
-        },
-      ]);
-    } else if (isRegistered) {
-      await chrome.scripting.unregisterContentScripts({ ids: [DYN_ALASKA_ID] });
+// airlines.js must load BEFORE content.js: it defines WIFI_AIRLINES /
+// scoreAirline as top-level consts in the isolated world, which content.js
+// reads to build the Google Flights ConnectScore chips. Order matters, and it
+// has to match manifest.json's static content_scripts js list.
+const DYN_JS = ["airlines.js", "content.js"];
+const DYN_CSS = ["content.css"];
+
+const DYN_SCRIPTS = [
+  { id: DYN_ALASKA_ID, origins: ALASKA_MATCHES, matches: ALASKA_MATCHES },
+  { id: DYN_GFLIGHTS_ID, origins: GFLIGHTS_ORIGINS, matches: GFLIGHTS_MATCHES },
+];
+
+// True when a live registration already matches what we would register now.
+// Without this, an install upgraded from 1.6 (js: ["content.js"]) would keep its
+// old single-file registration forever, because the old code returned early on
+// "already registered" and never noticed the js list had changed.
+function dynRegistrationCurrent(reg, spec) {
+  if (!reg) return false;
+  const js = Array.isArray(reg.js) ? reg.js : [];
+  const matches = Array.isArray(reg.matches) ? reg.matches : [];
+  return js.join(",") === DYN_JS.join(",") &&
+    matches.slice().sort().join(",") === spec.matches.slice().sort().join(",");
+}
+
+// Register content.js/content.css on an optional host only while the user has
+// actually granted its permission; unregister the moment they revoke it.
+// Static united.com/navan registration is untouched.
+async function syncDynamicScripts() {
+  for (const spec of DYN_SCRIPTS) {
+    try {
+      const granted = await chrome.permissions.contains({ origins: spec.origins });
+      let existing = [];
+      try {
+        existing = await chrome.scripting.getRegisteredContentScripts({ ids: [spec.id] });
+      } catch (e) {
+        existing = [];
+      }
+      const reg = Array.isArray(existing) && existing.length ? existing[0] : null;
+
+      if (granted) {
+        if (dynRegistrationCurrent(reg, spec)) continue; // already correct
+        if (reg) {
+          // Stale shape (pre-2.0 js list): replace it rather than leave it.
+          try { await chrome.scripting.unregisterContentScripts({ ids: [spec.id] }); } catch (e) {}
+        }
+        await chrome.scripting.registerContentScripts([
+          {
+            id: spec.id,
+            matches: spec.matches,
+            js: DYN_JS,
+            css: DYN_CSS,
+            runAt: "document_idle",
+            persistAcrossSessions: true,
+          },
+        ]);
+      } else if (reg) {
+        await chrome.scripting.unregisterContentScripts({ ids: [spec.id] });
+      }
+    } catch (e) {
+      /* silent, per host: never let permission/registration churn kill the
+       * worker, and never let one host's failure skip the others */
     }
-  } catch (e) {
-    /* silent: never let permission/registration churn kill the worker */
   }
 }
 
