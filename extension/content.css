@@ -169,3 +169,40 @@
    search page. inline-flex + a small font is the whole design. */
 .usl-gf-chip{font-size:11.5px;padding:2px 8px;margin-left:6px;vertical-align:middle;flex:0 0 auto}
 .usl-gf-chip.usl-gf-live{box-shadow:0 0 0 2px rgba(142,205,255,.35),0 1px 3px rgba(0,0,0,.28)}
+
+/* v1.6 fix — star spacing + watched gold. LAST BLOCK IN THE FILE ON PURPOSE.
+ *
+ * Two things the tester screenshot caught, and one trap:
+ *
+ * 1. The ★ is appended straight after the odds pill, so it needs its own
+ *    horizontal margin or it reads as part of the badge. 6px, same rhythm as
+ *    .usl-badge / .usl-gf-chip.
+ * 2. Watched must be GOLD (#ffd166 — the v1.4 value, see git 1b99bd9→e1e198e
+ *    where the gold lived on the base .usl-watch rule), and it has to beat the
+ *    v1.6 slate outline colour (#1F2937) set on .usl-watch above. A single-class
+ *    rule like `.usl-watching{...}` does NOT: it ties on specificity with
+ *    .usl-watch and only wins by source order, which is fragile. So the gold is
+ *    spelled with two classes (0,2,0) AND with a `span.usl-watching` fallback
+ *    (0,1,1 + element) for the case where only the state class is present.
+ * 3. The trap: content.js has shipped the state class WITHOUT the base
+ *    .usl-watch class before (regression in 24af7c2), which silently killed both
+ *    the margin and the gold — a classless <span>★</span> just inherits
+ *    united.com's near-black row colour. Hence every rule here matches the
+ *    state class on its own too. Do not "simplify" these to one selector.
+ *
+ * Keeps the v1.4 opt-outs: no white halo and no hover scale on the watched star
+ * (the halo exists to rescue the dark unfilled glyph; gold doesn't need it, and
+ * a filled star that grows on hover looks like it's mid-toggle). */
+.usl-watch,
+.usl-watching{margin-left:6px}
+.usl-watch.usl-watching,
+.usl-watch.usl-watching:hover,
+.usl-watch.usl-watching:focus-visible,
+span.usl-watching,
+span.usl-watching:hover,
+span.usl-watching:focus-visible{
+  color:#ffd166;                 /* v1.4 gold — unchanged */
+  opacity:1;
+  transform:none;                /* opt out of the .usl-watch:hover scale */
+  text-shadow:none;              /* opt out of the white halo */
+}
