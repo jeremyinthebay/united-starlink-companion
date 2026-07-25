@@ -814,6 +814,12 @@
   function addWatchStar(el, fn) {
     if (!ctx || !ctx.date || el.querySelector(".usl-watch")) return;
     const w = document.createElement("span");
+    // The base class is NOT optional and is NOT set by paint(): it carries the
+    // margin, the size and the dark-with-halo unfilled look, and the dedupe
+    // guard above queries for it. Dropping it (as 24af7c2 did) leaves a bare
+    // <span>★</span> that inherits united.com's near-black row colour and sits
+    // flush against the odds pill. paint() only toggles the STATE class.
+    w.className = "usl-watch";
     const key = fn + "|" + ctx.date;
     const date = ctx.date;
     const route = ctx.o + "-" + ctx.d;
