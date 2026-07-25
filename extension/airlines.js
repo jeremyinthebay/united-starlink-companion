@@ -71,7 +71,13 @@ const WIFI_AIRLINES = {
     name: "Hawaiian", code: "HA", asOf: "2026-07",
     system: "starlink", equipped: 42, fleet: 61, free: "free",
     tracker: "airlinestarlinktracker.com",
-    note: "42 of 61 — the widebody fit is nearly complete, the best Starlink odds of any US carrier.",
+    // Probed 2026-07-24: airlinestarlinktracker.com tracks HA but publishes NO
+    // per-flight number for it — /api/predict-flight returns confidence:"type"
+    // with no `probability`, /api/check-flight returns hasStarlink:null with an
+    // empty flights[], and MCP check_flight answers "no assignment data". So HA
+    // is coarse-only by upstream design, not by our choice. See bg.js API_BASES.
+    typeDerivedOnly: true,
+    note: "42 of 61 — best Starlink odds of any US carrier. Set by aircraft type, not flight number: A330/A321 done, B787 mid-install, B717 none. No per-flight odds published.",
   },
   qatar: {
     name: "Qatar Airways", code: "QR", asOf: "2026-07",
@@ -265,6 +271,9 @@ function scoreAirline(key) {
     equipped: typeof entry.fleet === "number" ? entry.equipped : null,
     fleet: typeof entry.fleet === "number" ? entry.fleet : null,
     instrumented: !!entry.instrumented,
+    // Upstream tracks the carrier but only by aircraft type — there is a data
+    // source to credit, yet no per-flight number to ever show (Hawaiian).
+    typeDerivedOnly: !!entry.typeDerivedOnly,
     tracker: entry.tracker || null,
     future: entry.future || null,
     asOf: entry.asOf || null,

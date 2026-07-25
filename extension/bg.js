@@ -16,6 +16,27 @@ const AIRLINE_BY_PREFIX = { UA: "UA", AS: "AS", OO: "AS", QX: "AS" };
 // to be — it answers with `access-control-allow-origin: *` on both /api/* and
 // /mcp (preflight included), so the worker's fetch succeeds under plain CORS.
 // If that ever tightens, add the host to manifest host_permissions.
+//
+/* ── HAWAIIAN (HA): deliberately absent from API_BASES ─────────────────────
+ * Probed airlinestarlinktracker.com on 2026-07-24 (same developer, same MCP
+ * shape, `access-control-allow-origin: *`). It IS a third tracker and it DOES
+ * know HA — `{"error":"Airline not tracked. Tracked: UA, HA, AS"}` for DL1 —
+ * but it publishes no per-flight signal for Hawaiian:
+ *   GET /api/predict-flight?flight_number=HA1  → 200, {"confidence":"type",
+ *       "message":"…determined by aircraft type…"} and NO `probability` field
+ *       (adding &date=… changes nothing). UA1/AS1 on the same host DO return
+ *       `probability`, so this is HA-specific, not a host-wide gap.
+ *   GET /api/check-flight?flight_number=HA11&date=…
+ *                                           → 200, {"hasStarlink":null,
+ *       "airline":"Hawaiian Airlines","flights":[]}
+ *   POST /mcp tools/call check_flight HA11   → "no assignment data" + the same
+ *       aircraft-type sentence. No tail, ever.
+ *   GET /api/plan-route?origin=HNL&…         → 404 (not implemented here).
+ * Wiring HA into API_BASES would therefore add a cache namespace and a dropdown
+ * option that can only ever render "n/a". HA stays COARSE: ConnectScore 69 from
+ * airlines.js (42/61 × starlink × free), shown in the popup and on the Google
+ * Flights chips. Re-probe before promoting it — the fix is upstream, not here.
+ * ─────────────────────────────────────────────────────────────────────────── */
 
 function normAirline(a) {
   const k = String(a || "").toUpperCase();

@@ -358,6 +358,12 @@ function renderConnectScores() {
     if (a.instrumented) {
       note.appendChild(document.createTextNode(" "));
       note.appendChild(el("span", "usl-cs-live", "· live per-flight odds ↑ above"));
+    } else if (a.tracker) {
+      // Tracked upstream but coarse-only (Hawaiian: aircraft-type derived, no
+      // per-flight probability published) — credit the source, promise nothing.
+      note.appendChild(document.createTextNode(" "));
+      note.appendChild(el("span", "usl-cs-meta",
+        "· data: " + a.tracker + (a.typeDerivedOnly ? " (by aircraft type — no per-flight odds)" : "")));
     }
     row.appendChild(note);
     row.title = a.note;
