@@ -8,9 +8,8 @@ Two things to know before you start:
 - **Title and Summary come from the package**, not from the form. They change by themselves the
   moment you upload the zip: title becomes "WiFi Odds for Flights", summary becomes the new one-line
   description. You cannot edit them on the Store listing page.
-- **The screenshots already in the listing are fine.** They are real captures at exactly 1280 × 800,
-  which is what the store wants. The blur problem was the website rendering them at ~1,850px.
-  Nothing to redo here.
+- **Every graphic is new.** The old set was v1.5 and United-only. These were captured today against
+  a live v2.0.0 with the segmented ConnectScore, on united.com, alaskaair.com and Google Flights.
 
 ---
 
@@ -75,10 +74,29 @@ Unofficial. Not affiliated with, endorsed by, or sponsored by United Airlines, A
 
 **Category:** Travel (unchanged) · **Language:** English (unchanged)
 
-### Graphic assets
+### Graphic assets — REPLACE ALL OF THEM
 
-Everything already in the listing stays. The same files are in the Desktop folder if you want to
-refresh them: `screenshots/` and `promo-tiles/`.
+The ones in the listing are v1.5 and United-only. These are captured today, with v2.0.0 loaded and
+the segmented ConnectScore live, so the numbers match wifiodds.com.
+
+**Screenshots.** Delete the two currently in the listing, then upload these three in order:
+
+| File | What it shows |
+|---|---|
+| `screenshots/1-united-1280x800.png` | united.com. Green 57% on UA1812, blue 49% on UA1561, the route panel, the sort control |
+| `screenshots/2-alaska-1280x800.png` | alaskaair.com. The E175 regionals at 100%, the mainline 737s at 3% |
+| `screenshots/3-googleflights-1280x800.png` | Google Flights. Per-airline badges plus the cross-carrier panel |
+
+Order matters. The first is the tile most people see, and united.com is still the deepest surface.
+Alaska goes second because it carries the most surprising result on the whole listing.
+
+**Small promo tile:** `promo-tiles/small-tile-440x280.png`
+**Marquee:** `promo-tiles/marquee-1400x560.png`
+
+Both are rebuilt. The old pair said "Starlink odds on every United flight", which stopped being true
+at v2.0.0. The marquee now carries the real route panel rather than a drawing of one.
+
+All five are 24-bit PNG with no alpha, at the exact dimensions the store requires. I checked.
 
 ### Additional fields — both currently blank
 
