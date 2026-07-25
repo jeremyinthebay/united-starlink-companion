@@ -160,12 +160,16 @@ Leave all ten checkboxes **unchecked**. Leave all three certification boxes **ch
 
 ### Privacy policy URL
 
-Currently `https://smithfamai.com/unitedstarlink/pri...`. That path now 301-redirects to the new
-site, and a redirect on a privacy policy is the kind of thing a reviewer flags. Replace with:
+Currently `https://smithfamai.com/unitedstarlink/pri...`. That path 301-redirects to the new site,
+and a redirect on a privacy policy is the kind of thing a reviewer flags. Replace with:
 
 ```
-https://wifiodds.com/privacy.html
+https://wifiodds.com/privacy
 ```
+
+**No `.html`.** I checked both: `/privacy` returns 200 and serves the policy, `/privacy.html`
+returns a 308 redirect. I had `.html` in the first draft of this file, which would have handed the
+reviewer the exact redirect I am telling you to avoid.
 
 ---
 
