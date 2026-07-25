@@ -81,13 +81,13 @@ const WIFI_AIRLINES = {
   },
   qatar: {
     name: "Qatar Airways", code: "QR", asOf: "2026-07",
-    system: "starlink", equipped: 140, fleet: 241, free: "unknown",
-    note: "140 of 241 fitted with Starlink; free-for-everyone status is not confirmed in this data set.",
+    system: "starlink", equipped: 140, fleet: 241, free: "free",
+    note: "140 of 241 fitted with Starlink; free for every passenger in every cabin, no sign-up (OMAAT, Jul 2026).",
   },
   sas: {
     name: "SAS", code: "SK", asOf: "2026-07",
-    system: "starlink", equipped: 60, fleet: 123, free: "unknown",
-    note: "About half the fleet equipped and still installing.",
+    system: "starlink", equipped: 60, fleet: 123, free: "loyalty-free",
+    note: "About half the fleet equipped and still installing; free for EuroBonus members (free to join) since 2026-03-24 (SAS/Business Travel News Europe).",
   },
   emirates: {
     name: "Emirates", code: "EK", asOf: "2026-07",
@@ -96,18 +96,18 @@ const WIFI_AIRLINES = {
   },
   virginatlantic: {
     name: "Virgin Atlantic", code: "VS", asOf: "2026-07",
-    system: "starlink", equipped: 12, fleet: 43, free: "unknown",
-    note: "12 of 43 aircraft; retrofit continues through 2026.",
+    system: "starlink", equipped: 12, fleet: 43, free: "loyalty-free",
+    note: "12 of 43 aircraft; free for Flying Club members (free to join) since launch 2026-05-01 (OMAAT/Virgin Atlantic).",
   },
   aircanada: {
     name: "Air Canada", code: "AC", asOf: "2026-07",
-    system: "starlink", equipped: 12, fleet: 216, free: "unknown",
-    note: "Just started — 12 aircraft equipped out of 216.",
+    system: "starlink", equipped: 12, fleet: 216, free: "loyalty-free",
+    note: "Just started — 12 Q400s equipped out of 216; free for Aeroplan members (free to join), per seatwifi.com/Runway Girl, Jun 2026.",
   },
   britishairways: {
     name: "British Airways", code: "BA", asOf: "2026-07",
-    system: "starlink", equipped: 5, fleet: 261, free: "unknown",
-    note: "Rollout paused summer 2026 — only 5 aircraft equipped.",
+    system: "starlink", equipped: 5, fleet: 261, free: "free",
+    note: "Rollout paused summer 2026 — only 5 aircraft equipped; free for every customer in every cabin once fitted (BA mediacentre, Mar 2026 launch).",
   },
   southwest: {
     name: "Southwest", code: "WN", asOf: "2026-07",
