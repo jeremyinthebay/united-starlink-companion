@@ -79,16 +79,22 @@ Unofficial. Not affiliated with, endorsed by, or sponsored by United Airlines, A
 The ones in the listing are v1.5 and United-only. These are captured today, with v2.0.0 loaded and
 the segmented ConnectScore live, so the numbers match wifiodds.com.
 
-**Screenshots.** Delete the two currently in the listing, then upload these three in order:
+**Screenshots.** Delete the two currently in the listing, then upload these four in order:
 
 | File | What it shows |
 |---|---|
 | `screenshots/1-united-1280x800.png` | united.com. Green 57% on UA1812, blue 49% on UA1561, the route panel, the sort control |
 | `screenshots/2-alaska-1280x800.png` | alaskaair.com. The E175 regionals at 100%, the mainline 737s at 3% |
 | `screenshots/3-googleflights-1280x800.png` | Google Flights. Per-airline badges plus the cross-carrier panel |
+| `screenshots/4-navan-1280x800.png` | Navan. DEN→ORD, UA617 at 69%, the corporate booking flow |
 
 Order matters. The first is the tile most people see, and united.com is still the deepest surface.
-Alaska goes second because it carries the most surprising result on the whole listing.
+Alaska goes second because it carries the most surprising result on the whole listing. Navan goes
+last because it speaks to the smallest audience.
+
+The Navan shot came from a live corporate account. The browser chrome is cropped off entirely, and
+the account name is repainted as **Alex Morgan** in Navan's own header styling. Worth a look before
+you upload, since I redacted it rather than you.
 
 **Small promo tile:** `promo-tiles/small-tile-440x280.png`
 **Marquee:** `promo-tiles/marquee-1400x560.png`
