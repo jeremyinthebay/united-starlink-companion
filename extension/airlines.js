@@ -206,23 +206,35 @@ const WIFI_AIRLINES = {
     note: "Every aircraft in the fleet — the first airline anywhere to finish its Starlink rollout.",
   },
   airbaltic: {
-    name: "airBaltic", code: "BT", asOf: "2026-07",
-    system: "starlink", equipped: 55, fleet: 55, free: "free",
+    name: "airBaltic", code: "BT", asOf: "2026-03",
+    system: "starlink", equipped: 28, fleet: 55, free: "free",
     resolution: "type",
     serviceTier: "next-gen", restTier: null,
-    /* NO no-wifi row here, and that is a deliberate disagreement with the v3
-       brief, which listed airBaltic at "~half the fleet" with nothing. Our own
-       entry says the A220 fleet fit is complete, Ookla's 2H 2025 set has
-       airBaltic at the top of the consistency table (98.3%) on a 305.77 Mbps
-       median, and I could not find a source for the half-empty claim. A 55-row
-       and a 55-aircraft none-row cannot both be right. Hand me the source and
-       this becomes the sharpest example on the site; until then it stays out. */
+    /* CORRECTED 2026-07-26. This entry said 55 of 55 and called the fit
+       complete. There is no completion announcement and airBaltic says the
+       opposite. Its 2025 annual results presentation, 11 Mar 2026, slide 12:
+       "Until March 2026 28 aircraft have been equipped with Starlink", against
+       a fleet the same deck puts at 53 on slide 14. The v3 brief's "~half the
+       fleet has nothing" was right and the source is airBaltic's own investor
+       deck. The 55/55 claim traces to starlinkflights.com, an aggregator whose
+       own tail table on the same page reads 54 aircraft.
+       The 27 aircraft below are unresolved rather than a no-wifi row: 28 is a
+       March count, installs continued through the spring, and airBaltic has
+       published no number since. We know at least 28 have it and we do not
+       know today's split. Ookla's 98.3% is not evidence against any of this —
+       it measures the aircraft that have Starlink, not how many there are. */
     segments: [
-      { system: "starlink", n: 55, free: "free", as: "2026-07",
-        src: "airBaltic Starlink completion announcement",
-        note: "Single-type A220 fleet, so every aircraft is the same aircraft." },
+      { system: "starlink", n: 28, free: "free", as: "2026-03-11",
+        src: "airBaltic 2025 annual results presentation, 11 Mar 2026, slide 12",
+        note: "Single-type A220 fleet, so an equipped aircraft is the same aircraft every time. " +
+          "airBaltic's own booking-side answer, checked 26 Jul 2026, is still \"being gradually " +
+          "installed\" with the rollout continuing through 2026, and it tells passengers to ask " +
+          "the crew." },
     ],
-    note: "Entire A220 fleet equipped — the first European airline to complete a Starlink fit.",
+    unresolved: { n: 27, why: "airBaltic's last published count is 28 aircraft in March 2026 " +
+      "against a fleet now at 55; it has not said how many of the rest were done since" },
+    note: "28 of 55 as of March 2026, free, and the rollout is still running. Fastest measured " +
+      "cabin in Ookla's 2H 2025 set when you get an equipped aircraft.",
   },
   zipair: {
     name: "ZIPAIR", code: "ZG", asOf: "2026-07",
@@ -237,25 +249,38 @@ const WIFI_AIRLINES = {
   },
   westjet: {
     name: "WestJet", code: "WS", asOf: "2026-07",
-    /* fleet is 198, not the 159 that was here: the 159 counted the 737/787
-       mainline fleet only and left WestJet Encore out, which is 39 Q400s with
-       no connectivity of any kind and no announced plan. A passenger booking a
-       WS flight number can be assigned one, so they are in the denominator, and
-       adding them moves this fleet from "next-gen" to "mixed" — 95% of the
-       mainline fleet is 79% of what you can actually be booked on. */
-    system: "starlink", equipped: 151, fleet: 198, free: "free",
+    /* CORRECTED 2026-07-26. The 151-of-159 that was here has no publisher of
+       record behind it. It traces to starlinkflights.com, which states a fleet
+       of 159 while its own tail table on the same page reads 204, and which
+       applies a blanket 95% to Encore Q400 flights. A second aggregator gives
+       133 against the same 159. Neither number appears in anything WestJet,
+       SpaceX or the trade press published, and 159 matches no WestJet fleet
+       figure either.
+       So this is back to WestJet's own last count, which is nine months old:
+       100 of its 737s, 9 Oct 2025, when it said it intended to finish the
+       737-800 and 737-8 MAX by the end of 2025. No completion announcement
+       followed and WestJet has published nothing on connectivity in 2026 — I
+       read its full 2026 release list to check. The real figure today is
+       certainly above 100 and I will not guess by how much.
+       Denominator is 193 from WestJet's 3 Sep 2025 fleet release: 147 737s,
+       seven 787s, 39 Q400s. Its own aircraft page adds to 192 today. Both are
+       WestJet's; I took the dated one. */
+    system: "starlink", equipped: 100, fleet: 193, free: "free",
     resolution: "systems",
     serviceTier: "mixed", restTier: "unknown",
     segments: [
-      { system: "starlink", n: 151, free: "free", as: "2026-07",
-        src: "WestJet Starlink rollout releases",
-        note: "The mainline 737 and 787 fit is all but finished." },
+      { system: "starlink", n: 100, free: "free", as: "2025-10-09",
+        src: "WestJet newsroom, 9 Oct 2025, 100th aircraft release",
+        note: "Free for WestJet Rewards members. WestJet intended to finish the 737-800 and " +
+          "737-8 MAX by the end of 2025 and has not said since whether it did." },
       { system: "none", n: 39, free: "none", as: "2026-07",
         src: "WestJet Encore fleet list",
         note: "WestJet Encore Q400s. About a fifth of the passenger fleet, with no announced plan." },
     ],
-    unresolved: { n: 8, why: "the last mainline aircraft awaiting install; WestJet has not said what is on them today" },
-    note: "151 of 198 including WestJet Encore — the mainline fit is all but finished, the 39 Encore Q400s have nothing.",
+    unresolved: { n: 54, why: "the 737-700s, the seven 787s and any 737 fitted since Oct 2025; " +
+      "WestJet's last published count is nine months old and it has said nothing in 2026" },
+    note: "100 of 193 at WestJet's own last count, 9 Oct 2025, and it has published nothing since. " +
+      "The 39 Encore Q400s have nothing.",
   },
   airfrance: {
     name: "Air France", code: "AF", asOf: "2026-07",
