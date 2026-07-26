@@ -520,12 +520,22 @@ const WIFI_AIRLINES = {
     name: "jetBlue", code: "B6", asOf: "2026-07",
     /* coverage stays 1.0 — every one of the 291 aircraft (129 A320, 101 A321,
        61 A220 as of 2026-03-31, per JetBlue's Q1 8-K) carries Viasat Ka-band
-       Fly-Fi. What the old copy hid is that there are TWO HARDWARE
-       GENERATIONS: the A220-300s and A321neo/LRs shipped with ViaSat-2, while
-       most A320/A321ceo airframes still run the original ~2013 ViaSat-1 kit.
-       A "Phase 2" refresh has moved an unpublished subset of A320s to
-       ViaSat-2, so no hard per-type count is citable — hence "most", not a
-       number. Both generations are Viasat Ka, so they are one segment: the
+       Fly-Fi. TWO HARDWARE GENERATIONS are flying and that much is sourced:
+       JetBlue's Kuiper release (2025-09-04) sends Leo to "aircraft currently
+       flying JetBlue's original Fly-Fi technology" and RGN (2025-09-09) has
+       Viasat extending service on "aircraft already equipped with Viasat's
+       latest technology".
+
+       ═══ WHICH AIRFRAMES ARE IN WHICH COHORT IS NOT PUBLISHED ═════════════
+       Corrected 2026-07-26, mirroring wifiodds assets/airlines.js. This entry
+       used to assert a full per-type mapping and cite the Q1 2026 8-K for it;
+       the 8-K has fleet COUNTS ONLY and names no satellite. Sourced: A321ceo
+       on ViaSat-1 (Runway Girl Network, 2022-12-24), A220-300 on ViaSat-2
+       (Viasat contract release, 2019-08-07). NOT sourced, do not restore:
+       A320ceo, A321neo, A321LR. The 2021 Viasat release names the A220-300
+       and A321LR together but gives a generation for neither.
+
+       Both generations are Viasat Ka, so they are one segment: the
        model scores the system, and the generation gap is a note. The E190s (the
        one sub-fleet with patchy Fly-Fi) were fully retired 2025-09-10. Amazon
        Leo from 2027 explicitly targets the first-gen kit first. */
@@ -536,11 +546,14 @@ const WIFI_AIRLINES = {
     segments: [
       { system: "viasat", n: 291, free: "free", as: "2026-03-31",
         src: "JetBlue Q1 2026 8-K fleet table",
-        note: "129 A320, 101 A321, 61 A220. Two hardware generations: the A220s and " +
-          "A321neo/LRs carry ViaSat-2, most A320/A321ceo airframes still run the " +
-          "original ViaSat-1 kit. JetBlue's 2H 2025 consistency was 3.8%." },
+        note: "129 A320, 101 A321, 61 A220. Two Viasat hardware generations fly in " +
+          "this fleet and JetBlue has not published which airframes are in which: " +
+          "its Kuiper release says only that Leo goes to aircraft on the original " +
+          "Fly-Fi kit. Two types are sourced on their own — A321ceo on ViaSat-1 " +
+          "(Runway Girl Network, 2022-12-24) and A220-300 on ViaSat-2 (Viasat, " +
+          "2019-08-07). JetBlue's 2H 2025 consistency was 3.8%." },
     ],
-    note: "Free “Fly-Fi” Viasat on every aircraft, but two hardware generations: the A220s and A321neo/LRs carry the faster ViaSat-2, while most A320/A321ceo airframes still run the original ViaSat-1. Amazon Leo arrives 2027, first-gen aircraft first.",
+    note: "Free “Fly-Fi” Viasat on every aircraft, but two hardware generations are flying and JetBlue does not publish which airframes carry which. The A321ceo was reported on the original ViaSat-1 kit in Dec 2022 and the A220-300 was contracted on ViaSat-2 in 2019; the A320ceo, A321neo and A321LR have no published generation. Amazon Leo arrives 2027, first-gen aircraft first.",
   },
 };
 
