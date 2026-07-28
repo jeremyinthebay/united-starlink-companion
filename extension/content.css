@@ -108,10 +108,10 @@
 .usl-time{color:#93a1c0;font-size:11px}
 .usl-sortbtn{
   width:100%;margin-top:8px;padding:8px 10px;border-radius:10px;cursor:pointer;
-  background:#0033A0;color:#fff;border:none;font-weight:700;font-size:12.5px;
+  background:linear-gradient(105deg,#006a80,#5940ac);color:#fff;border:none;font-weight:700;font-size:12.5px;
   font-family:-apple-system,sans-serif;
 }
-.usl-sortbtn:hover{background:#0a4fd6}
+.usl-sortbtn:hover{background:linear-gradient(105deg,#00566a,#4a3596)}
 
 /* v1.1.1 */
 .usl-na{color:#93a1c0;border-color:rgba(147,161,192,.4);background:rgba(147,161,192,.08)}
@@ -168,14 +168,26 @@
   cursor:default;
 }
 
-/* v1.5 — high-contrast filled badges (override earlier translucent style) */
-.usl-badge{font-size:13px;font-weight:800;padding:3px 11px;color:#fff;background:#64748B;border:none;box-shadow:0 1px 3px rgba(0,0,0,.28);letter-spacing:.2px;line-height:1.5}
-.usl-badge.usl-hi{color:#fff;background:#0B8A47;border:none}
-.usl-badge.usl-mid{color:#fff;background:#1D4ED8;border:none}
-.usl-badge.usl-low{color:#fff;background:#C2410C;border:none}
-.usl-badge.usl-no{color:#fff;background:#DC2626;border:none}
-.usl-badge.usl-na{color:#fff;background:#64748B;border:none;opacity:.92}
-.usl-badge.usl-best-badge{color:#fff;background:#0B8A47;border:none;box-shadow:0 0 0 2.5px rgba(11,138,71,.4),0 1px 4px rgba(0,0,0,.3)}
+/* v2.1 — WiFi Odds palette, tuned for LIGHT host pages.
+ *
+ * These badges render inside united.com, Navan, alaskaair.com and Google
+ * Flights, all of which are white. The site's own cyan (#29d8ff) and violet
+ * (#926cff) are chosen for a #050505 ground and are far too light to carry
+ * white text here, so this block uses the dark-host-page variants of the same
+ * ramp: cyan #006a80, violet #5940ac. Every pair below is white-on-colour and
+ * clears 4.5:1 against white surroundings.
+ *
+ * The ordering is the product's own ramp, not a traffic light: better odds sit
+ * further along cyan → violet. Green is reserved for CONFIRMED equipment,
+ * which is a fact rather than a probability, and grey is reserved for unknown,
+ * which is never a zero. */
+.usl-badge{font-size:13px;font-weight:800;padding:3px 11px;color:#fff;background:#006a80;border:none;box-shadow:0 1px 3px rgba(16,24,40,.24);letter-spacing:.2px;line-height:1.5}
+.usl-badge.usl-hi{color:#fff;background:#08783f;border:none}      /* confirmed / best odds */
+.usl-badge.usl-mid{color:#fff;background:#006a80;border:none}     /* ramp: cyan end */
+.usl-badge.usl-low{color:#fff;background:#5940ac;border:none}     /* ramp: violet end */
+.usl-badge.usl-no{color:#fff;background:#6b2f6f;border:none}      /* lowest odds, still on-ramp */
+.usl-badge.usl-na{color:#fff;background:#656b76;border:none;opacity:1}  /* unknown, never zero */
+.usl-badge.usl-best-badge{color:#fff;background:#08783f;border:none;box-shadow:0 0 0 2.5px rgba(8,120,63,.38),0 1px 4px rgba(16,24,40,.3)}
 .usl-panel .usl-badge{font-size:12px;padding:2px 9px}
 
 /* v2.0 — Google Flights chips.
@@ -183,7 +195,7 @@
    flex/grid cells and a chip that changes layout is how you break someone's
    search page. inline-flex + a small font is the whole design. */
 .usl-gf-chip{font-size:11.5px;padding:2px 8px;margin-left:6px;vertical-align:middle;flex:0 0 auto}
-.usl-gf-chip.usl-gf-live{box-shadow:0 0 0 2px rgba(142,205,255,.35),0 1px 3px rgba(0,0,0,.28)}
+.usl-gf-chip.usl-gf-live{box-shadow:0 0 0 2px rgba(0,106,128,.38),0 1px 3px rgba(16,24,40,.28)}
 
 /* v1.6 fix — star spacing + watched gold. LAST BLOCK IN THE FILE ON PURPOSE.
  *

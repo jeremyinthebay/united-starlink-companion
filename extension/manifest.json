@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "WiFi Odds for Flights",
-  "version": "2.0.0",
-  "description": "WiFi odds per flight while you book. Starlink, Leo and Viasat badges plus one-click sort on united.com and Navan. Unofficial.",
+  "version": "2.1.0",
+  "description": "See the odds your flight has next-generation WiFi, right in your search results. One-click sort by odds. Unofficial.",
   "permissions": [
     "storage",
     "activeTab",

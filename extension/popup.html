@@ -4,18 +4,24 @@
 <meta charset="UTF-8" />
 <title>WiFi Odds</title>
 <style>
+  /* WiFi Odds design system, aligned to wifiodds.com (V5, approved 28 Jul 2026).
+     The variable NAMES are unchanged so popup.js and every existing rule keep
+     working; only the values move. --sky and --united-blue* are retained as
+     names because they are referenced throughout, but they now carry the
+     product's cyan/violet ramp rather than the old airline-blue palette. */
   :root {
-    --bg: #040816;
-    --card-bg: rgba(148, 178, 255, 0.055);
-    --card-edge: rgba(148, 178, 255, 0.14);
-    --ink: #e8eefb;
-    --dim: #93a1c0;
-    --united-blue: #0033A0;
-    --united-blue-2: #0a4fd6;
-    --sky: #8ecdff;
-    --gold: #ffd166;
-    --green: #35d07f;
-    --red: #ff5a6e;
+    --bg: #050505;
+    --card-bg: #0d0d0f;
+    --card-edge: #29292f;
+    --ink: #ffffff;
+    --dim: #a6a6ad;
+    --united-blue: #29d8ff;   /* ramp start · was airline blue */
+    --united-blue-2: #926cff;  /* ramp end */
+    --sky: #29d8ff;
+    --gold: #ffd45a;
+    --green: #54f09b;
+    --red: #ff698d;
+    --unknown: #85858e;
     --mono: "SF Mono", ui-monospace, Menlo, monospace;
   }
   * { box-sizing: border-box; }
@@ -24,7 +30,8 @@
     width: 360px;
     background: var(--bg);
     color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
   .usl-wrap { padding: 14px 16px 12px; }
 
@@ -40,6 +47,12 @@
     font-size: 13px;
     letter-spacing: 0.02em;
     color: var(--sky);
+    /* Wordmark carries the site's cyan→violet ramp. The colour above is the
+       fallback anywhere background-clip:text is unsupported. */
+    background: linear-gradient(105deg, #29d8ff, #7cc9ff 48%, #926cff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
   .usl-full-link {
     font-family: var(--mono);
