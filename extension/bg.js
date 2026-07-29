@@ -196,6 +196,10 @@ async function fetchFlights(o, d, airline) {
     { origin: o, destination: d, limit: 30 },
     airline
   );
+  // A 200 whose body doesn't parse into an MCP text payload is a FAILURE, not an
+  // empty route. Throwing here makes getRouteData see it as directOk=false
+  // ("history unavailable") instead of a false "no direct history" claim.
+  if (text == null) throw new Error("predict_route_starlink: unparseable 200");
   const flights = parseFlights(text);
   // Only surface the note when there is no table to show, and never for United —
   // its UI is byte-for-byte unchanged by this release.
@@ -332,12 +336,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (cached[key] && Date.now() - cached[key].ts < CACHE_TTL_MS) { out[fn] = cached[key].v; continue; }
         try {
           const r = await fetchWithTimeout(apiBase(a) + "/api/predict-flight?flight_number=" + fn);
-          const j = await r.json();
-          const v = j && typeof j.probability === "number"
-            ? { prob: Math.round(j.probability * 100), obs: j.n_observations || 0, conf: j.confidence || "low" }
-            : null;
-          out[fn] = v;
-          await chrome.storage.local.set({ [key]: { ts: Date.now(), v } });
+          // A non-2xx (429/500/…) must NOT be cached as a genuine "no data" —
+          // that would show a false "n/a" for six hours. Treat it as a transient
+          // error (undefined), leave the cache empty so a later scan retries.
+          if (!r.ok) { out[fn] = undefined; }
+          else {
+            const j = await r.json();
+            // A valid 200 with a numeric probability is real odds; a valid 200
+            // without one is a genuine "no per-flight signal" (n/a) and may cache.
+            const v = j && typeof j.probability === "number"
+              ? { prob: Math.round(j.probability * 100), obs: j.n_observations || 0, conf: j.confidence || "low" }
+              : null;
+            out[fn] = v;
+            await chrome.storage.local.set({ [key]: { ts: Date.now(), v } });
+          }
         } catch (e) { out[fn] = undefined; }
         await new Promise((rr) => setTimeout(rr, 250));
       }

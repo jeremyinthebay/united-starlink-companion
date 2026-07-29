@@ -100,16 +100,25 @@
     const need = fns.filter((f) => !probMap.has(f) && !pendingPredict.has(f));
     if (!need.length) return;
     need.forEach((f) => pendingPredict.add(f));
+    // Always release the pending marks when the worker replies, whatever the
+    // outcome. The worker answers at most 25 per call, so anything beyond 25 —
+    // or a transient failure (returned as undefined, never written to probMap) —
+    // must be free to be re-requested on the next scan instead of being stranded
+    // in pendingPredict forever. Resolved flights land in probMap (real value or
+    // null), so the need-filter above won't re-request those.
+    const release = () => need.forEach((f) => pendingPredict.delete(f));
     try {
       chrome.runtime.sendMessage({ type: "predictFlights", fns: need, airline: AIRLINE }, (res) => {
+        release();
         if (chrome.runtime.lastError || !res || !res.ok) return;
         for (const [fn, v] of Object.entries(res.flights || {})) {
           if (v) probMap.set(fn, { prob: v.prob, obs: v.obs, conf: v.conf || null, dep: depFor(fn) });
           else if (v === null) probMap.set(fn, null); // known: no data → n/a
+          // v === undefined: transient error — leave unset so a later scan retries.
         }
         scheduleScan();
       });
-    } catch (e) {}
+    } catch (e) { release(); }
   }
   try { chrome.runtime.sendMessage({ type: "getSelectors" }, (res) => {
     if (chrome.runtime.lastError || !res || !res.ok) return;
@@ -119,8 +128,11 @@
     if (!chrome.runtime.lastError && res && res.trips)
       watched = new Set(res.trips.map((t) => t.fn + "|" + t.date));
   }); } catch {}
-  try { chrome.storage.local.get("uslKeepSorted", (v) => { keepSorted = !!v.uslKeepSorted; }); } catch {}
-  try { chrome.storage.local.get("uslAutoSort", (v) => { autoSort = !!v.uslAutoSort; if (autoSort) scheduleScan(); }); } catch {}
+  // v2.2: both sort aids default ON for a fresh install/update (undefined in
+  // storage), so results sort by odds out of the box. An explicit user choice
+  // (true OR false) is always respected — unchecking sticks.
+  try { chrome.storage.local.get("uslKeepSorted", (v) => { keepSorted = v.uslKeepSorted === undefined ? true : !!v.uslKeepSorted; }); } catch {}
+  try { chrome.storage.local.get("uslAutoSort", (v) => { autoSort = v.uslAutoSort === undefined ? true : !!v.uslAutoSort; if (autoSort) scheduleScan(); }); } catch {}
 
   /* ── Navan: derive route context from the DOM (no URL params there) ── */
   function getNavanContext() {
@@ -951,7 +963,10 @@
     const btn = panelEl && panelEl.querySelector(".usl-sortbtn");
     if (!btn) return;
     const n = [...registry.values()].filter((r) => r.rowEl.isConnected).length;
-    btn.style.display = n >= 1 ? "" : "none";
+    // The manual sort button is only useful when auto-sort is OFF. When auto-sort
+    // is on (the v2.2 default) the page is already ordered on load, so the button
+    // is redundant and hidden (Jeremy). The checkboxes stay whenever there's ≥1.
+    btn.style.display = (n >= 1 && !autoSort) ? "" : "none";
     const kc = panelEl.querySelector(".usl-keep-wrap");
     if (kc) kc.style.display = n >= 1 ? "flex" : "none";
     const ac = panelEl.querySelector(".usl-auto-wrap");
@@ -966,8 +981,14 @@
     chrome.storage.local.get("uslCollapsed", (v) => { if (v.uslCollapsed) p.classList.add("usl-collapsed"); });
     const routeFlights = (data && data.flights || []).slice(0, 6);
     // Alaska's route tool answers with prose, so the ranked list comes from the
-    // flights badged on the page (same path Navan uses).
-    const flights = ctx.navan || (ALASKA && !routeFlights.length) ? navanTopFlights() : routeFlights;
+    // flights badged on the page (same path Navan uses). v2.2: united.com does
+    // the same when the route table is empty — it populates the panel from the
+    // on-page per-flight fallback odds, so an empty transcon shows a real ranked
+    // list of the flights actually in the results, not an empty state sitting
+    // above live badges (the contradiction Codex flagged).
+    const fromFallback = UNITED_FALLBACK && !ctx.navan && !routeFlights.length;
+    const flights = (ctx.navan || ((ALASKA || UNITED_FALLBACK) && !routeFlights.length))
+      ? navanTopFlights() : routeFlights;
     // Display-only summary line from the tracker; escaped, never interpreted.
     const note = !flights.length && data && data.note ? data.note : "";
     const typed = flights.some((f) => { const h = probMap.get(f.fn); return h && h.conf === "type"; });
@@ -1000,7 +1021,8 @@
             `<span class="usl-time" data-time="${esc(f.fn)}"></span></span>` +
             `<span class="usl-badge ${cls(f.prob)}">${f.prob}%</span></div>`).join("")
         : `<div class="usl-row" style="display:block;line-height:1.45">${esc(emptyCopy)}</div>`) +
-      (flights.length ? `<button class="usl-sortbtn" style="display:none">⇅ Sort page by Starlink odds</button>
+      (fromFallback && flights.length ? `<div style="margin-top:6px;font-size:11px;opacity:.7">Flights in these results · per-flight odds (no Starlink route history yet)</div>` : "") +
+      (flights.length ? `<button class="usl-sortbtn" style="display:none">Sort these flights by WiFi odds</button>
         <label class="usl-auto-wrap" style="display:none;font-size:11.5px;color:#93a1c0;margin-top:6px;gap:6px;align-items:center;cursor:pointer">
         <input type="checkbox" class="usl-auto"> auto-sort by odds when the page loads</label>
         <label class="usl-keep-wrap" style="display:none;font-size:11.5px;color:#93a1c0;margin-top:4px;gap:6px;align-items:center;cursor:pointer">
@@ -1038,7 +1060,7 @@
     if (sb) sb.addEventListener("click", () => {
       const r = sortPage();
       sb.textContent = r.ok ? `✓ sorted ${r.count} flights (best first)` : `couldn't sort (${r.why})`;
-      setTimeout(() => { sb.textContent = "⇅ Sort page by Starlink odds"; }, 3500);
+      setTimeout(() => { sb.textContent = "Sort these flights by WiFi odds"; }, 3500);
     });
     const keep = p.querySelector(".usl-keep");
     if (keep) {
@@ -1057,6 +1079,8 @@
         chrome.storage.local.set({ uslAutoSort: autoSort });
         desiredOrder = null;
         if (autoSort) maybeAutoSort();
+        // Show/hide the now-redundant (or now-needed) manual sort button live.
+        updatePanelSortBtn();
       });
     }
     document.documentElement.appendChild(p);
@@ -1154,13 +1178,17 @@
       refreshPanelTimes();
       return;
     }
-    // Alaska: dataKey means "this context has already been fetched", so a route
-    // with no usable answer isn't re-fetched every 2s. United keeps its old
-    // behavior (retry until it succeeds) exactly.
-    if (key === ctxKey && (data || (ALASKA && dataKey === key))) {
+    // dataKey means "this context has already been fetched", so a route with no
+    // usable answer isn't re-fetched every 2s. This now covers united.com too
+    // (UNITED_FALLBACK): a legitimately empty route (SW returned ok:false, data
+    // stays null) must NOT restart three tracker requests every tick. A route
+    // change or the ↻ button re-fetches; the 2s loop no longer hammers.
+    const emptyRoute = !(data && data.flights && data.flights.length);
+    if (key === ctxKey && (data || ((ALASKA || UNITED_FALLBACK) && dataKey === key))) {
       if (!panelEl || !panelEl.isConnected) renderPanel();
-      else if (ALASKA) {
-        // Odds arrive per flight, so re-render when the ranked list changes.
+      else if (ALASKA || (UNITED_FALLBACK && emptyRoute)) {
+        // Odds arrive per flight, so re-render when the ranked (fallback) list
+        // changes — this is how an empty route's panel fills in as odds land.
         const sig = navanTopFlights().map((f) => f.fn + f.prob).join(",");
         if (sig !== navanSig) { navanSig = sig; renderPanel(); }
       }
@@ -1170,9 +1198,13 @@
     const routeChanged = !ctx || c.o !== ctx.o || c.d !== ctx.d;
     ctx = c; ctxKey = key;
     desiredOrder = null;
-    if (routeChanged || !data) { data = await loadData(c, false); dataKey = key; }
+    if (routeChanged) data = null;      // don't render the previous route while fetching
+    if (dataKey !== key) {
+      dataKey = key;                    // mark attempted BEFORE the await so 2s ticks short-circuit
+      data = await loadData(c, false);
+    }
     indexData();
-    if (ALASKA) navanSig = navanTopFlights().map((f) => f.fn + f.prob).join(",");
+    if (ALASKA || UNITED_FALLBACK) navanSig = navanTopFlights().map((f) => f.fn + f.prob).join(",");
     renderPanel();
     rebadge();
   }

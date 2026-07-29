@@ -93,12 +93,17 @@ const CASES = [
     name: "united-fallback-real-odds",
     o: "SFO", d: "SIN",   // an empty route (SW returns ok:false) — the hard case
     rows: [{ num: 2402, time: "2:15 p.m." }, { num: 1596, time: "10:30 a.m." }],
-    awaitBadge: /🛰️\s*\d+%/,     // wait until a real per-flight % badge appears
+    awaitBadge: /🛰️\s*\d+%/,        // wait until a real per-flight % badge appears
+    awaitPanel: /UA(2402|1596)/,     // then wait for the panel to POPULATE from fallback
     expect: (txt, badges) => {
       const joined = badges.join(" ");
       return {
         ua2402RealOdds: /🛰️\s*16%/.test(joined),
         ua1596RealOdds: /🛰️\s*68%/.test(joined),
+        // Codex #3: the panel must list the flights, not show the empty-state
+        // contradiction above live badges.
+        panelListsFlights: /UA(2402|1596)/.test(txt),
+        noEmptyStateContradiction: !/No direct-flight Starlink history for this route yet\./.test(txt),
         noBareNa: !badges.some((b) => /^🛰️ n\/a$/.test(b.trim())),
       };
     },
@@ -154,6 +159,14 @@ async function run() {
             }, c.awaitBadge.source, { timeout: 25000 });
           } catch (e) { /* asserted below via badges */ }
         }
+        if (c.awaitPanel) {
+          try {
+            await page.waitForFunction((src) => {
+              const el = document.querySelector(".usl-panel");
+              return el && new RegExp(src).test(el.innerText);
+            }, c.awaitPanel.source, { timeout: 10000 });
+          } catch (e) { /* asserted below via panelText */ }
+        }
         panelText = await page.$eval(".usl-panel", (el) => el.innerText);
       } catch (e) { panelText = "(panel never rendered: " + String(e.message || e) + ")"; }
 
@@ -167,6 +180,23 @@ async function run() {
     }
 
     writeReport({ swUrl, consoleErrors, results });
+
+    // RELEASE GATE (Codex #5): a report is not a gate. Fail the process on any
+    // failed boolean check, a case whose panel never rendered, a missing service
+    // worker, or any console error during the run.
+    const failedChecks = results.filter((r) =>
+      !r.appeared || Object.values(r.checks).some((v) => v === false));
+    const reasons = [];
+    if (!swUrl) reasons.push("service worker not detected");
+    if (consoleErrors.length) reasons.push(consoleErrors.length + " console error(s)");
+    for (const r of failedChecks)
+      reasons.push(`${r.name} ${r.appeared ? "failed a check" : "panel MISSING"}`);
+    if (reasons.length) {
+      process.stderr.write("\nE2E GATE: FAIL — " + reasons.join("; ") + "\n");
+      process.exitCode = 1;
+    } else {
+      process.stderr.write("\nE2E GATE: PASS — all cases, SW present, no console errors\n");
+    }
   } finally {
     if (context) await context.close();
     try { rmSync(userDataDir, { recursive: true, force: true }); } catch (e) {}

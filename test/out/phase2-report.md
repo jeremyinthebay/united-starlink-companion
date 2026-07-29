@@ -1,6 +1,6 @@
 # Phase 2 — browser E2E (extension loaded, real tracker, fixtured united.com)
 
-Run: 2026-07-29T17:52:29.434Z
+Run: 2026-07-29T18:17:25.123Z
 Service worker: chrome-extension://oiihcooamibbaoakhnmedaijgbopfmpe/bg.js
 Console errors during run: none
 
@@ -40,7 +40,6 @@ UA1758 · not in results
 30%
 UA540 · not in results
 30%
-⇅ Sort page by Starlink odds
 auto-sort by odds when the page loads
 keep sorted when the page updates
 via MSO · all-legs estimate
@@ -51,15 +50,21 @@ wifiodds.com ↗
 Screenshot: `out/shots/SFO-DEN-positive.png`
 
 ## SFO→SIN — united-fallback-real-odds
-Panel rendered: **yes** · badges on page: `🛰️ 16%` `★ 🛰️ 68%`
+Panel rendered: **yes** · badges on page: `★ 🛰️ 68%` `🛰️ 16%` `68%` `16%`
 
-Checks: `{"ua2402RealOdds":true,"ua1596RealOdds":true,"noBareNa":true}`
+Checks: `{"ua2402RealOdds":true,"ua1596RealOdds":true,"panelListsFlights":true,"noEmptyStateContradiction":true,"noBareNa":true}`
 
 Panel text as rendered:
 ```
 🛰️ SFO→SIN · Aug 28
 ↻ ▾
-No direct-flight Starlink history for this route yet.
+⭐ UA1596 · 10:30 a.m.
+68%
+UA2402 · 2:15 p.m.
+16%
+Flights in these results · per-flight odds (no Starlink route history yet)
+auto-sort by odds when the page loads
+keep sorted when the page updates
 Tail assignments publish ~48h out — firm ✓s appear closer to Aug 28.
 wifiodds.com ↗
 ```
