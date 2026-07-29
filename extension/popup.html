@@ -146,18 +146,24 @@
   .usl-star { color: var(--gold); font-size: 12px; }
   .usl-flight-right {
     display: flex;
-    align-items: baseline;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
   }
+  /* v2.2 — odds as a filled pill on the SAME ramp as the injected panel and the
+     on-page badges: green (likely) → lime → amber → coral (unlikely), dark text.
+     One scale everywhere so high→low reads identically on every surface. */
   .usl-pct {
     font-family: var(--mono);
-    font-weight: 700;
-    font-size: 18px;
+    font-weight: 800;
+    font-size: 13px;
+    padding: 4px 11px;
+    border-radius: 9px;
+    color: #0a0a12;
   }
-  .usl-pct-hi { color: #35d07f; }
-  .usl-pct-mid { color: #60A5FA; }
-  .usl-pct-low { color: #FB923C; }
-  .usl-pct-no { color: var(--red); }
+  .usl-pct-hi { background: #33cf80; }
+  .usl-pct-mid { background: #b6d04f; }
+  .usl-pct-low { background: #efb84d; }
+  .usl-pct-no { background: #ef8168; }
   .usl-obs {
     font-family: var(--mono);
     font-size: 10.5px;

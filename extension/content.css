@@ -181,13 +181,19 @@
  * further along cyan → violet. Green is reserved for CONFIRMED equipment,
  * which is a fact rather than a probability, and grey is reserved for unknown,
  * which is never a zero. */
-.usl-badge{font-size:13px;font-weight:800;padding:3px 11px;color:#fff;background:#006a80;border:none;box-shadow:0 1px 3px rgba(16,24,40,.24);letter-spacing:.2px;line-height:1.5}
-.usl-badge.usl-hi{color:#fff;background:#08783f;border:none}      /* confirmed / best odds */
-.usl-badge.usl-mid{color:#fff;background:#006a80;border:none}     /* ramp: cyan end */
-.usl-badge.usl-low{color:#fff;background:#5940ac;border:none}     /* ramp: violet end */
-.usl-badge.usl-no{color:#fff;background:#6b2f6f;border:none}      /* lowest odds, still on-ramp */
-.usl-badge.usl-na{color:#fff;background:#656b76;border:none;opacity:1}  /* unknown, never zero */
-.usl-badge.usl-best-badge{color:#fff;background:#08783f;border:none;box-shadow:0 0 0 2.5px rgba(8,120,63,.38),0 1px 4px rgba(16,24,40,.3)}
+/* v2.2 — ONE consistent odds ramp, high → low likelihood, used identically
+ * on-page (white host rows) AND in the dark panel. Light fills + near-black text
+ * read on both. The ramp is monotonic: green (likely) → lime → amber → coral
+ * (unlikely). Grey is reserved for UNKNOWN, never a zero; the ✓ best-badge is the
+ * green top of the ramp plus a ring. Every band clears 4.5:1 (dark text/light
+ * fill). cls() in content.js maps ≥50→hi, 35–49→mid, 20–34→low, <20→no. */
+.usl-badge{font-size:13px;font-weight:800;padding:3px 11px;color:#0a0a12;background:#9aa8bb;border:none;box-shadow:0 1px 3px rgba(16,24,40,.24);letter-spacing:.2px;line-height:1.5}
+.usl-badge.usl-hi{background:#33cf80;color:#04140c}    /* likely  */
+.usl-badge.usl-mid{background:#b6d04f;color:#14170a}   /*  ↕      */
+.usl-badge.usl-low{background:#efb84d;color:#1c1305}   /*  ↕      */
+.usl-badge.usl-no{background:#ef8168;color:#210a06}    /* unlikely*/
+.usl-badge.usl-na{background:#656b76;color:#fff}       /* unknown, never zero */
+.usl-badge.usl-best-badge{background:#33cf80;color:#04140c;box-shadow:0 0 0 2.5px rgba(51,207,128,.42),0 1px 4px rgba(16,24,40,.3)}
 .usl-panel .usl-badge{font-size:12px;padding:2px 9px}
 
 /* v2.0 — Google Flights chips.
@@ -267,13 +273,9 @@ span.usl-watching:focus-visible{
 }
 .usl-panel .usl-row.usl-jump:hover{background:#1b1c27;border-color:#343540}
 .usl-panel .usl-time{color:#868c9c;font-size:11px;font-weight:400}
-/* Odds pills inside the panel — the mockup ramp; near-black text on light fills. */
+/* Panel pills take only SHAPE here — the colours come from the one shared ramp
+   above, so on-page and panel badges are always the same scale. */
 .usl-panel .usl-badge{font-size:12.5px;font-weight:800;padding:4px 11px;border-radius:9px;box-shadow:none;letter-spacing:0}
-.usl-panel .usl-badge.usl-hi{background:#3ee0b0;color:#052018}
-.usl-panel .usl-badge.usl-mid{background:#a99cf5;color:#0a0a12}
-.usl-panel .usl-badge.usl-low{background:#6aa8ff;color:#05121f}
-.usl-panel .usl-badge.usl-no{background:#f0c04a;color:#241c00}
-.usl-panel .usl-badge.usl-na{background:#2a2b35;color:#aab0be}
 .usl-panel .usl-sortbtn{
   background:linear-gradient(90deg,#29d8ff,#7b8cff 55%,#926cff);color:#05060a;
   font-weight:800;border-radius:11px;padding:11px;font-size:13px;box-shadow:0 8px 22px rgba(64,140,255,.28);
