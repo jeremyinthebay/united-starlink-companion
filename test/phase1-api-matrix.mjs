@@ -59,18 +59,37 @@ async function runRoutes(roster) {
     const itins = plan.json ? mapItineraries(plan.json) : [];
     const routeMcp = await mcpCall("UA", "predict_route_starlink", { origin: route.o, destination: route.d, limit: 30 });
     const routeText = routeMcp.text || "";
+    // directOk = the direct-history call SUCCEEDED and returned a parseable body
+    // (even if that body lists zero flights). This is the distinction Codex's
+    // round asked for: a genuinely-empty direct history is NOT the same claim as
+    // "the direct-history request failed", and only the former can honestly be
+    // called "no history". The extension conflates them today (bg.js line ~233,
+    // content.js line ~972); the harness records the truth so a DISPLAY-
+    // CONTRADICTION is only asserted on a proven genuine empty.
+    const directOk = routeMcp.ok && typeof routeMcp.text === "string" && routeMcp.text.length > 0;
     const panel = panelForRoute({ routeText, itins });
 
     const row = {
       route: tag, hint: route.hint,
       directCount: panel.flights.length,
       planStatus: plan.status, planOk,
+      routeMcpStatus: routeMcp.status, directOk,
       panelDisplay: panel.empty ? panel.emptyText : panel.flights.map((f) => `${f.fn} ${f.prob}%`).join(", "),
       connectionRow: panel.connectionRow ? `${panel.connectionRow.via.join("+")} ${panel.connectionRow.joint}%` : null,
-      contradiction: panel.contradiction,
+      contradiction: panel.contradiction && directOk,
       droppedConnections: panel.droppedConnections.map((c) => ({ via: c.via.join("+"), joint: c.joint, coverage: c.coverage })),
       parity: [],
     };
+
+    // DIRECT-HISTORY-UNAVAILABLE: the direct-history call itself failed, yet the
+    // panel would STILL render "No Starlink history…" — mislabelling a failure as
+    // absence. This is the state-model bug Codex identified, made visible.
+    if (!directOk && panel.empty) {
+      finding("MEDIUM", "DIRECT-HISTORY-UNAVAILABLE", tag,
+        `predict_route_starlink did not return a usable body (status ${routeMcp.status}${routeMcp.err ? ", " + routeMcp.err : ""}), ` +
+        `so "direct history" is UNKNOWN here — but the panel would still show "${panel.emptyText}", asserting absence it cannot prove.`,
+        { routeMcpStatus: routeMcp.status });
+    }
 
     // FETCH-FAILED: plan-route did not return a usable itinerary array. The
     // extension (Promise.allSettled, no retry) drops to itins=[] on exactly this,
@@ -85,12 +104,13 @@ async function runRoutes(roster) {
 
     // DISPLAY-CONTRADICTION: the panel prints the "no history" empty state AND a
     // real full-coverage connection right below it. The literal SFO→EWR case.
-    if (panel.contradiction) {
+    if (panel.contradiction && directOk) {
       finding("MEDIUM", "DISPLAY-CONTRADICTION", tag,
-        `Panel prints "${panel.emptyText}" and then renders a connection row "${panel.connectionRow.via.join("+")} ` +
-        `(connection) ${panel.connectionRow.joint}%" directly beneath it. The empty-state copy contradicts the ` +
-        `Starlink connection shown on the next line; a reader is told "no history" above a ${panel.connectionRow.joint}% option.`,
-        { via: panel.connectionRow.via, joint: panel.connectionRow.joint });
+        `Direct history loaded and is genuinely empty (predict_route_starlink ${routeMcp.status}), yet the panel prints ` +
+        `"${panel.emptyText}" and then renders a connection row "${panel.connectionRow.via.join("+")} (connection) ` +
+        `${panel.connectionRow.joint}%" directly beneath it. The empty-state copy contradicts the Starlink connection ` +
+        `shown on the next line; a reader is told "no history" above a ${panel.connectionRow.joint}% all-legs estimate.`,
+        { via: panel.connectionRow.via, joint: panel.connectionRow.joint, routeMcpStatus: routeMcp.status });
     }
 
     // COVERAGE-GAP: no full-coverage connection is shown, yet the API knows a
@@ -221,16 +241,20 @@ function writeReport(meta, routeRows, checkRows) {
   L.push("");
   L.push(`## Route matrix`);
   L.push("");
-  L.push(`plan = /api/plan-route HTTP status · conn = full-coverage connection row the panel appends · ⚠ = empty-state copy shown above a real connection`);
+  L.push(`plan/mcp = /api/plan-route + predict_route_starlink HTTP status · dirOk = direct-history call succeeded (empty is genuine) · conn = full-coverage connection row the panel appends · ⚠ = empty-state copy shown above a real connection (genuine empty only)`);
   L.push("");
-  L.push(`| Route | Hint | Direct | plan | Panel would display | Connection row | ⚠ |`);
-  L.push(`|---|---|---:|---:|---|---|:--:|`);
+  L.push(`| Route | Hint | Direct | plan | mcp | dirOk | Panel would display | Connection row | ⚠ |`);
+  L.push(`|---|---|---:|---:|---:|:--:|---|---|:--:|`);
   for (const r of routeRows) {
-    const disp = r.panelDisplay.length > 52 ? r.panelDisplay.slice(0, 49) + "…" : r.panelDisplay;
-    L.push(`| ${r.route} | ${r.hint} | ${r.directCount} | ${r.planOk ? r.planStatus : "**" + r.planStatus + "**"} | ${disp.replace(/\|/g, "/")} | ${r.connectionRow || "—"} | ${r.contradiction ? "⚠" : ""} |`);
+    const disp = r.panelDisplay.length > 46 ? r.panelDisplay.slice(0, 43) + "…" : r.panelDisplay;
+    L.push(`| ${r.route} | ${r.hint} | ${r.directCount} | ${r.planOk ? r.planStatus : "**" + r.planStatus + "**"} | ${r.directOk ? r.routeMcpStatus : "**" + r.routeMcpStatus + "**"} | ${r.directOk ? "✓" : "✗"} | ${disp.replace(/\|/g, "/")} | ${r.connectionRow || "—"} | ${r.contradiction ? "⚠" : ""} |`);
   }
   L.push("");
   L.push(`## Endpoint parity (route-table % vs predict-flight %)`);
+  L.push("");
+  L.push(`Scope: top-3 direct flights per route only. This validates that the two ` +
+    `endpoints agree for the flights sampled; it does NOT validate the empty ` +
+    `transcons (no direct flights to compare) or the connection math.`);
   L.push("");
   L.push(`| Flight | route-table | predict-flight | Δ |`);
   L.push(`|---|---:|---:|---:|`);
@@ -238,6 +262,11 @@ function writeReport(meta, routeRows, checkRows) {
     L.push(`| ${p.fn} | ${p.routeTablePct}% | ${p.predictFlightPct == null ? "n/a" : p.predictFlightPct + "%"} | ${p.diff == null ? "—" : p.diff} |`);
   L.push("");
   L.push(`## check-flight sample (vs our roster)`);
+  L.push("");
+  L.push(`Scope: only flights with a FIRM tail (published ~48h out) can be joined ` +
+    `to our roster, so this cross-checks a handful of tails, not the full ` +
+    `485-tail roster. "clean" here means no contradiction among those, not a ` +
+    `full roster reconciliation.`);
   L.push("");
   L.push(`| Flight | Date | Status | Tail | In our roster? | predict-flight |`);
   L.push(`|---|---|---|---|---|---:|`);

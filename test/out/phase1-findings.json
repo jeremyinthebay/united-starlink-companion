@@ -1,6 +1,6 @@
 {
   "meta": {
-    "ranAt": "2026-07-29T17:01:16.780Z",
+    "ranAt": "2026-07-29T17:20:56.110Z",
     "throttleMs": 1300,
     "routeCount": 17,
     "requestCount": 72,
@@ -21,51 +21,55 @@
       "sev": "MEDIUM",
       "kind": "DISPLAY-CONTRADICTION",
       "subject": "SFO→EWR",
-      "detail": "Panel prints \"No Starlink history on this route yet.\" and then renders a connection row \"GEG+ORD (connection) 55%\" directly beneath it. The empty-state copy contradicts the Starlink connection shown on the next line; a reader is told \"no history\" above a 55% option.",
+      "detail": "Direct history loaded and is genuinely empty (predict_route_starlink 200), yet the panel prints \"No Starlink history on this route yet.\" and then renders a connection row \"GEG+ORD (connection) 55%\" directly beneath it. The empty-state copy contradicts the Starlink connection shown on the next line; a reader is told \"no history\" above a 55% all-legs estimate.",
       "evidence": {
         "via": [
           "GEG",
           "ORD"
         ],
-        "joint": 55
+        "joint": 55,
+        "routeMcpStatus": 200
       }
     },
     {
       "sev": "MEDIUM",
       "kind": "DISPLAY-CONTRADICTION",
       "subject": "EWR→SFO",
-      "detail": "Panel prints \"No Starlink history on this route yet.\" and then renders a connection row \"MCI+LAX (connection) 49%\" directly beneath it. The empty-state copy contradicts the Starlink connection shown on the next line; a reader is told \"no history\" above a 49% option.",
+      "detail": "Direct history loaded and is genuinely empty (predict_route_starlink 200), yet the panel prints \"No Starlink history on this route yet.\" and then renders a connection row \"MCI+LAX (connection) 49%\" directly beneath it. The empty-state copy contradicts the Starlink connection shown on the next line; a reader is told \"no history\" above a 49% all-legs estimate.",
       "evidence": {
         "via": [
           "MCI",
           "LAX"
         ],
-        "joint": 49
+        "joint": 49,
+        "routeMcpStatus": 200
       }
     },
     {
       "sev": "MEDIUM",
       "kind": "DISPLAY-CONTRADICTION",
       "subject": "LAX→EWR",
-      "detail": "Panel prints \"No Starlink history on this route yet.\" and then renders a connection row \"MCI (connection) 96%\" directly beneath it. The empty-state copy contradicts the Starlink connection shown on the next line; a reader is told \"no history\" above a 96% option.",
+      "detail": "Direct history loaded and is genuinely empty (predict_route_starlink 200), yet the panel prints \"No Starlink history on this route yet.\" and then renders a connection row \"MCI (connection) 96%\" directly beneath it. The empty-state copy contradicts the Starlink connection shown on the next line; a reader is told \"no history\" above a 96% all-legs estimate.",
       "evidence": {
         "via": [
           "MCI"
         ],
-        "joint": 96
+        "joint": 96,
+        "routeMcpStatus": 200
       }
     },
     {
       "sev": "MEDIUM",
       "kind": "DISPLAY-CONTRADICTION",
       "subject": "SFO→BOS",
-      "detail": "Panel prints \"No Starlink history on this route yet.\" and then renders a connection row \"GEG+ORD (connection) 73%\" directly beneath it. The empty-state copy contradicts the Starlink connection shown on the next line; a reader is told \"no history\" above a 73% option.",
+      "detail": "Direct history loaded and is genuinely empty (predict_route_starlink 200), yet the panel prints \"No Starlink history on this route yet.\" and then renders a connection row \"GEG+ORD (connection) 73%\" directly beneath it. The empty-state copy contradicts the Starlink connection shown on the next line; a reader is told \"no history\" above a 73% all-legs estimate.",
       "evidence": {
         "via": [
           "GEG",
           "ORD"
         ],
-        "joint": 73
+        "joint": 73,
+        "routeMcpStatus": 200
       }
     },
     {
@@ -104,6 +108,8 @@
       "directCount": 5,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "UA1596 68%, UA1214 41%, UA2019 40%, UA1758 30%, UA540 30%",
       "connectionRow": "MSO 96%",
       "contradiction": false,
@@ -135,6 +141,8 @@
       "directCount": 7,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "UA1812 63%, UA1561 51%, UA1007 46%, UA2123 45%, UA1389 44%, UA1450 40%, UA1506 20%",
       "connectionRow": "SUN 98%",
       "contradiction": false,
@@ -166,6 +174,8 @@
       "directCount": 9,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "UA2085 61%, UA2315 58%, UA2329 56%, UA1377 51%, UA675 48%, UA2649 42%, UA1411 37%, UA1023 34%, UA2258 23%",
       "connectionRow": "MTJ 96%",
       "contradiction": false,
@@ -197,6 +207,8 @@
       "directCount": 7,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "UA2329 56%, UA534 53%, UA485 47%, UA2295 43%, UA1209 39%, UA759 36%, UA606 36%",
       "connectionRow": "RDU 97%",
       "contradiction": false,
@@ -228,6 +240,8 @@
       "directCount": 7,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "UA2643 62%, UA2339 43%, UA1450 40%, UA484 36%, UA1066 32%, UA1874 27%, UA2168 1%",
       "connectionRow": "LIT 97%",
       "contradiction": false,
@@ -259,6 +273,8 @@
       "directCount": 12,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "UA1098 69%, UA2446 64%, UA623 50%, UA1830 49%, UA2199 48%, UA2768 45%, UA2635 40%, UA714 38%, UA2389 33%, UA1310 30%, UA602 21%, UA1504 19%",
       "connectionRow": "IAD+YYZ 97%",
       "contradiction": false,
@@ -290,6 +306,8 @@
       "directCount": 5,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "UA526 66%, UA2338 63%, UA655 57%, UA716 33%, UA2316 32%",
       "connectionRow": null,
       "contradiction": false,
@@ -321,6 +339,8 @@
       "directCount": 5,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "UA1775 76%, UA1252 47%, UA2497 40%, UA1393 2%, UA2070 0%",
       "connectionRow": "RDU 96%",
       "contradiction": false,
@@ -352,6 +372,8 @@
       "directCount": 0,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "No Starlink history on this route yet.",
       "connectionRow": "GEG+ORD 55%",
       "contradiction": true,
@@ -364,6 +386,8 @@
       "directCount": 0,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "No Starlink history on this route yet.",
       "connectionRow": "MCI+LAX 49%",
       "contradiction": true,
@@ -376,6 +400,8 @@
       "directCount": 0,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "No Starlink history on this route yet.",
       "connectionRow": "MCI 96%",
       "contradiction": true,
@@ -388,6 +414,8 @@
       "directCount": 0,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "No Starlink history on this route yet.",
       "connectionRow": "GEG+ORD 73%",
       "contradiction": true,
@@ -400,6 +428,8 @@
       "directCount": 0,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "No Starlink history on this route yet.",
       "connectionRow": null,
       "contradiction": false,
@@ -412,6 +442,8 @@
       "directCount": 0,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "No Starlink history on this route yet.",
       "connectionRow": null,
       "contradiction": false,
@@ -430,6 +462,8 @@
       "directCount": 1,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "UA14 12%",
       "connectionRow": null,
       "contradiction": false,
@@ -455,6 +489,8 @@
       "directCount": 0,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "No Starlink history on this route yet.",
       "connectionRow": null,
       "contradiction": false,
@@ -467,6 +503,8 @@
       "directCount": 1,
       "planStatus": 200,
       "planOk": true,
+      "routeMcpStatus": 200,
+      "directOk": true,
       "panelDisplay": "UA630 42%",
       "connectionRow": null,
       "contradiction": false,
@@ -502,10 +540,11 @@
     {
       "fn": "UA2402",
       "date": "2026-07-31",
-      "checkStatus": "early",
-      "tail": null,
-      "equip": null,
-      "predictFlightPct": 16
+      "checkStatus": "no",
+      "tail": "N17465",
+      "equip": "Boeing 737 MAX 9, None WiFi",
+      "predictFlightPct": 16,
+      "tailInOurRoster": false
     },
     {
       "fn": "UA2402",
