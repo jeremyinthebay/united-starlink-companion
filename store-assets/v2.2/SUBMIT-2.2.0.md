@@ -30,8 +30,9 @@ identifiers, no page content beyond route and flight numbers. All caching is loc
 
 - **Auto-sort defaults ON.** For a fresh install/update with no stored preference, "auto-sort by
   odds when the page loads" and "keep sorted when the page updates" start checked. The user can
-  uncheck either in the panel; the choice is remembered. The manifest description was updated from
-  "One-click sort" to "Automatically sorts results by odds (toggle off anytime)."
+  uncheck either in the panel; the choice is remembered. The manifest description (kept under Chrome's
+  132-char limit) reads: "See your flight's odds of next-gen WiFi in your search results. Auto-sorts
+  by odds (toggle off anytime). Unofficial."
 - **Sorting only reorders existing result rows.** `sortPage()` re-inserts the page's own flight-row
   elements into a different order within their container. It never edits fares, prices, selection
   state, or any booking control, and it never navigates. It is structurally incapable of changing

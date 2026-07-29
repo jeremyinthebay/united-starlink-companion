@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "WiFi Odds for Flights",
   "version": "2.2.0",
-  "description": "See the odds your flight has next-generation WiFi, right in your search results. Automatically sorts results by odds (toggle off anytime). Unofficial.",
+  "description": "See your flight's odds of next-gen WiFi in your search results. Auto-sorts by odds (toggle off anytime). Unofficial.",
   "permissions": [
     "storage",
     "activeTab",

@@ -28,6 +28,10 @@ node --check "$TMP/bg.js"
 node --check "$TMP/content.js"
 node --check "$TMP/popup.js"
 [ -f "$TMP/manifest.json" ] || { echo "FAIL: manifest.json not at zip root"; exit 1; }
+# Chrome Web Store rejects a manifest description over 132 chars — guard it so a
+# too-long description can never ship again (it blocked the first v2.2 upload).
+DLEN=$(node -e "process.stdout.write(String(require('$TMP/manifest.json').description.length))")
+[ "$DLEN" -le 132 ] || { echo "FAIL: manifest description is $DLEN chars (Chrome limit 132)"; exit 1; }
 if find "$TMP" -name '.DS_Store' | grep -q .; then echo "FAIL: .DS_Store in package"; exit 1; fi
 
 # per-file content manifest, committed alongside the zip
