@@ -84,6 +84,25 @@ const CASES = [
       noEmptyCopy: !/No direct-flight Starlink history/.test(txt),
     }),
   },
+  {
+    // v2.2 per-flight fallback: UA2402 (~16%) and UA1596 (~68%) have real
+    // predict-flight history but need not appear in this route's table, so
+    // pre-2.2 they badged "n/a" (or nothing on an empty route). They should now
+    // badge their real number. predict-flight is keyed on the flight number, so
+    // the route used here is irrelevant to the odds.
+    name: "united-fallback-real-odds",
+    o: "SFO", d: "SIN",   // an empty route (SW returns ok:false) — the hard case
+    rows: [{ num: 2402, time: "2:15 p.m." }, { num: 1596, time: "10:30 a.m." }],
+    awaitBadge: /🛰️\s*\d+%/,     // wait until a real per-flight % badge appears
+    expect: (txt, badges) => {
+      const joined = badges.join(" ");
+      return {
+        ua2402RealOdds: /🛰️\s*16%/.test(joined),
+        ua1596RealOdds: /🛰️\s*68%/.test(joined),
+        noBareNa: !badges.some((b) => /^🛰️ n\/a$/.test(b.trim())),
+      };
+    },
+  },
 ];
 
 async function run() {
@@ -125,6 +144,16 @@ async function run() {
         appeared = true;
         // Give renderPanel a beat to fold in the connection row / list update.
         await page.waitForTimeout(2500);
+        // For the fallback case, the per-flight badges arrive after a second
+        // round trip (route data, then predict-flight) — wait for a real %.
+        if (c.awaitBadge) {
+          try {
+            await page.waitForFunction((src) => {
+              const re = new RegExp(src);
+              return [...document.querySelectorAll(".usl-badge")].some((b) => re.test(b.textContent));
+            }, c.awaitBadge.source, { timeout: 25000 });
+          } catch (e) { /* asserted below via badges */ }
+        }
         panelText = await page.$eval(".usl-panel", (el) => el.innerText);
       } catch (e) { panelText = "(panel never rendered: " + String(e.message || e) + ")"; }
 
@@ -132,7 +161,7 @@ async function run() {
       const shot = join(SHOTS, c.name + ".png");
       try { await page.screenshot({ path: shot, fullPage: true }); } catch (e) {}
 
-      const checks = c.expect(panelText);
+      const checks = c.expect(panelText, badges);
       results.push({ name: c.name, route: `${c.o}→${c.d}`, appeared, panelText, badges, checks, shot });
       process.stderr.write(`  ${c.name}: panel ${appeared ? "rendered" : "MISSING"} · ${JSON.stringify(checks)}\n`);
     }

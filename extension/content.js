@@ -49,6 +49,15 @@
   // Odds fetched per-flight (rather than from a route table) on sites where the
   // tracker has no per-route flight list.
   const PAGE_PREDICT = NAVAN || ALASKA || GFLIGHTS;
+  // v2.2: on united.com, ALSO fetch per-flight odds for on-page flights the
+  // route table doesn't cover. The route table (predict_route_starlink) only
+  // lists flights that EVER get Starlink, so a transcon flight that is 0% (with
+  // real history) is absent from it and would otherwise badge a bare "n/a".
+  // predict-flight returns its true number (e.g. 0% · 51 obs), which is a real
+  // answer, not a blank. United only; Navan/Alaska/GF already predict per-flight.
+  const UNITED_FALLBACK = !NAVAN && !ALASKA && !GFLIGHTS;
+  // Anywhere we keep per-flight predictions across a context change / re-index.
+  const KEEP_PREDICTIONS = PAGE_PREDICT || UNITED_FALLBACK;
   const TIME_RE = /\b\d{1,2}:\d{2}\s?[ap]\.?m\.?/gi;
   // Non-global twin of TIME_RE. .test() on a /g regex advances lastIndex and
   // silently alternates true/false across calls — never use TIME_RE for tests.
@@ -254,8 +263,9 @@
     // Per-flight predictions are route-independent (the tracker keys them on the
     // flight number alone), so on prediction-driven hosts they survive a context
     // change — dropping them here would strand pendingPredict and the badges
-    // would never come back. United still starts from an empty map.
-    probMap = PAGE_PREDICT ? new Map(probMap) : new Map();
+    // would never come back. united.com now keeps them too (v2.2 fallback), so a
+    // route change re-uses fetched per-flight odds instead of re-requesting them.
+    probMap = KEEP_PREDICTIONS ? new Map(probMap) : new Map();
     if (!data) return;
     // Confirmed-tail ✓s may arrive after the odds did; re-attach on every index.
     for (const [fn, v] of probMap.entries()) if (v) v.dep = depFor(fn);
@@ -734,7 +744,10 @@
     // pass below (that one would badge "United 1812" prose with UA route odds
     // it has no route for, and would try to reorder a virtualized list).
     if (GFLIGHTS) { try { gfScan(); } catch (e) {} return; }
-    if (!data && !PAGE_PREDICT) return;
+    // united.com fallback must run even when the route call returned nothing
+    // (data === null): that is the transcon case where per-flight odds are the
+    // only signal, so an empty route must not short-circuit the page scan.
+    if (!data && !PAGE_PREDICT && !UNITED_FALLBACK) return;
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode(n) {
         if (!n.nodeValue || !FN_RE.test(n.nodeValue)) return NodeFilter.FILTER_REJECT;
@@ -756,7 +769,11 @@
       if (!el) continue;
       const m = n.nodeValue.match(FN_RE);
       const fn = AIRLINE + m[1];
-      if (PAGE_PREDICT && !probMap.has(fn)) { navanWants.push(fn); continue; }
+      // On prediction hosts AND united.com (v2.2 fallback), a flight not yet in
+      // the map is queued for a per-flight fetch instead of being badged "n/a"
+      // outright. After the fetch it badges its real % (or "n/a" only if the
+      // tracker genuinely has no data for that flight number).
+      if ((PAGE_PREDICT || UNITED_FALLBACK) && !probMap.has(fn)) { navanWants.push(fn); continue; }
       const hit = probMap.get(fn);
       const row = findRow(el);
       if (!el.dataset.uslBadged) {
@@ -800,7 +817,7 @@
       }
     }
     if (registered) { updatePanelSortBtn(); refreshPanelTimes(); }
-    if (PAGE_PREDICT && navanWants.length) requestPredictions([...new Set(navanWants)]);
+    if ((PAGE_PREDICT || UNITED_FALLBACK) && navanWants.length) requestPredictions([...new Set(navanWants)]);
     maybeResort();
     maybeAutoSort();
   }
@@ -996,8 +1013,7 @@
       `<div style="margin-top:10px;font-size:11.5px">` +
       (ALASKA
         ? `data: <a href="https://alaskastarlinktracker.com" target="_blank" rel="noopener" style="color:#8ecdff">alaskastarlinktracker.com ↗</a>`
-        : `<a href="https://wifiodds.com/united/" target="_blank" rel="noopener" style="color:#8ecdff">full plan ↗</a>` +
-          ` · <a href="https://unitedstarlinktracker.com" target="_blank" rel="noopener" style="color:#8ecdff">tracker ↗</a>`) +
+        : `<a href="https://wifiodds.com/" target="_blank" rel="noopener" style="color:#8ecdff">wifiodds.com ↗</a>`) +
       (typed ? `<span style="opacity:.55"> · odds derived from aircraft type</span>` : "") +
       (rel ? `<span style="opacity:.55"> · ✓ = confirmed Starlink tail</span>` : "") + `</div>` +
       `</div>`;

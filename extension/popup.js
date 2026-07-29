@@ -19,7 +19,9 @@ var lastData = null, lastO = null, lastD = null;
 
 /* ── per-airline routing (1.6) ── */
 var TRACKER_HOST = { UA: "unitedstarlinktracker.com", AS: "alaskastarlinktracker.com" };
-var WIFIODDS_URL = { UA: "https://wifiodds.com/united/", AS: "https://wifiodds.com/alaska/" };
+// wifiodds.com is a single site now (the per-airline pages 301 to the homepage),
+// so every "more on wifiodds" link points at the homepage.
+var WIFIODDS_URL = { UA: "https://wifiodds.com/", AS: "https://wifiodds.com/" };
 var ALASKA_ORIGINS = ["https://www.alaskaair.com/*", "https://alaskaair.com/*"];
 // Google Flights lives at www.google.com/travel/flights. Chrome grants optional
 // host permissions per ORIGIN, so the request has to be the whole origin — the
@@ -134,11 +136,11 @@ function renderDeps(deps) {
 
 function renderEmpty(o, d) {
   var wrap = el("div", "usl-empty");
-  wrap.appendChild(document.createTextNode("No Starlink history yet for this route. Try the "));
-  var link = el("a", null, "full route planner");
-  link.href = airline() === "AS"
-    ? "https://alaskastarlinktracker.com/"
-    : "https://unitedstarlinktracker.com/route-planner/" + o + "/" + d;
+  wrap.appendChild(document.createTextNode("No direct-flight Starlink history yet for this route. More at "));
+  // United consolidates to wifiodds.com; Alaska keeps its own data source, the
+  // same split the injected panel uses.
+  var link = el("a", null, airline() === "AS" ? "alaskastarlinktracker.com" : "wifiodds.com");
+  link.href = airline() === "AS" ? "https://alaskastarlinktracker.com/" : "https://wifiodds.com/";
   link.target = "_blank";
   link.rel = "noopener";
   wrap.appendChild(link);
