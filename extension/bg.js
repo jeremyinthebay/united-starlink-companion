@@ -225,6 +225,10 @@ async function getRouteData(o, d, force, airline) {
       deps: entry.deps,
       itins: entry.itins,
       note: entry.note || null,
+      // Whether the direct-history call SUCCEEDED (vs failed) when this entry was
+      // built. Default true for pre-2.2 cache entries. This is the flag that lets
+      // the panel tell "no direct history" apart from "history unavailable".
+      directOk: entry.directOk !== false,
       ts: entry.ts,
       cached: true,
     };
@@ -241,6 +245,10 @@ async function getRouteData(o, d, force, airline) {
   let flights = fr.flights || [];
   const note = fr.note || null;
   const deps = depsRes.status === "fulfilled" ? depsRes.value : [];
+  // directOk: the direct-history (predict_route_starlink) call resolved. A
+  // rejection here (network/timeout/5xx) means an EMPTY direct list is "unknown",
+  // not a proven "no history" — the distinction the panel copy now depends on.
+  const directOk = flightsRes.status === "fulfilled";
 
   flights = flights.slice().sort((a2, b) => b.prob - a2.prob);
 
@@ -252,11 +260,11 @@ async function getRouteData(o, d, force, airline) {
 
   if (ok) {
     await chrome.storage.local.set({
-      [key]: { ts, flights, deps, itins, note },
+      [key]: { ts, flights, deps, itins, note, directOk },
     });
   }
 
-  return { ok, airline: a, flights, deps, itins, note, ts, cached: false };
+  return { ok, airline: a, flights, deps, itins, note, directOk, ts, cached: false };
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

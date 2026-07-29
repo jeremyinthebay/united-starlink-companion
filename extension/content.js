@@ -957,6 +957,19 @@
     const rel = depsRelevant();
     const deps = rel ? (data && data.deps || []).slice(0, 3) : [];
     const itin = (data && data.itins || []).find((it) => it.via && it.via.length && it.coverage === "full");
+    // Four-state empty copy (Codex-approved, v2.2). The panel must not claim "no
+    // history" when the direct-history call FAILED, and must not say "no route"
+    // when it is really only "no DIRECT flight" with a connection available. A
+    // missing directOk (pre-2.2 service worker) defaults to true. Alaska keeps
+    // its own prose summary (note) unchanged.
+    const directOk = !data || data.directOk !== false;
+    const emptyCopy = note
+      ? note
+      : !directOk
+        ? "Direct-flight history unavailable right now."
+        : itin
+          ? "No direct-flight Starlink history yet. Connection estimate below."
+          : "No direct-flight Starlink history for this route yet.";
     const legTag = ctx.phase === "return" ? " · return leg" : "";
     p.innerHTML =
       `<header><span>🛰️ ${esc(ctx.o)}→${esc(ctx.d)} · ${esc(fmtDate(ctx.date) || "Starlink odds")}${legTag}</span>` +
@@ -969,14 +982,14 @@
             (isGuarded(f.fn) ? GUARD_MARK : "") +
             `<span class="usl-time" data-time="${esc(f.fn)}"></span></span>` +
             `<span class="usl-badge ${cls(f.prob)}">${f.prob}%</span></div>`).join("")
-        : `<div class="usl-row" style="display:block;line-height:1.45">${esc(note || "No Starlink history on this route yet.")}</div>`) +
+        : `<div class="usl-row" style="display:block;line-height:1.45">${esc(emptyCopy)}</div>`) +
       (flights.length ? `<button class="usl-sortbtn" style="display:none">⇅ Sort page by Starlink odds</button>
         <label class="usl-auto-wrap" style="display:none;font-size:11.5px;color:#93a1c0;margin-top:6px;gap:6px;align-items:center;cursor:pointer">
         <input type="checkbox" class="usl-auto"> auto-sort by odds when the page loads</label>
         <label class="usl-keep-wrap" style="display:none;font-size:11.5px;color:#93a1c0;margin-top:4px;gap:6px;align-items:center;cursor:pointer">
         <input type="checkbox" class="usl-keep"> keep sorted when the page updates</label>` : "") +
       (itin ? `<div class="usl-row" style="border-top:1px solid rgba(148,178,255,.14);margin-top:6px;padding-top:8px">` +
-        `<span>via ${esc(itin.via.join("+"))} (connection)</span><span class="usl-badge usl-mid">${Math.round(itin.joint)}%</span></div>` : "") +
+        `<span>via ${esc(itin.via.join("+"))} · all-legs estimate</span><span class="usl-badge usl-mid">${Math.round(itin.joint)}%</span></div>` : "") +
       (deps.length ? `<div style="margin-top:8px;font-size:11px;opacity:.75">Confirmed tails (next ~72h): ` +
         deps.map((d) => `${esc(d.fn)} ${esc(d.date.slice(5))}`).join(" · ") + `</div>` :
         (ctx.date && daysOut(ctx.date) > 3 ? `<div style="margin-top:8px;font-size:11px;opacity:.6">Tail assignments publish ~48h out — firm ✓s appear closer to ${esc(fmtDate(ctx.date))}.</div>` : "")) +

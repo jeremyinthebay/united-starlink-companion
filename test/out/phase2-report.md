@@ -1,30 +1,30 @@
 # Phase 2 — browser E2E (extension loaded, real tracker, fixtured united.com)
 
-Run: 2026-07-29T17:04:44.280Z
+Run: 2026-07-29T17:30:08.106Z
 Service worker: chrome-extension://oiihcooamibbaoakhnmedaijgbopfmpe/bg.js
 Console errors during run: none
 
-## LAX→EWR — LAX-EWR-contradiction
+## LAX→EWR — LAX-EWR-empty-with-connection
 Panel rendered: **yes** · badges on page: `96%`
 
-Checks: `{"hasEmptyState":true,"hasConnection":true,"connectionPct":"96"}`
+Checks: `{"newEmptyCopy":true,"oldContradictionGone":true,"connectionLabelled":true,"connectionPct":"96"}`
 
 Panel text as rendered:
 ```
 🛰️ LAX→EWR · Aug 28
 ↻ ▾
-No Starlink history on this route yet.
-via MCI (connection)
+No direct-flight Starlink history yet. Connection estimate below.
+via MCI · all-legs estimate
 96%
 Tail assignments publish ~48h out — firm ✓s appear closer to Aug 28.
 full plan ↗ · tracker ↗
 ```
-Screenshot: `out/shots/LAX-EWR-contradiction.png`
+Screenshot: `out/shots/LAX-EWR-empty-with-connection.png`
 
 ## SFO→DEN — SFO-DEN-positive
 Panel rendered: **yes** · badges on page: `★ 🛰️ 68%` `🛰️ 41%` `68%` `41%` `40%` `30%` `30%` `96%`
 
-Checks: `{"listsUA1596":true,"notEmpty":true}`
+Checks: `{"listsUA1596":true,"noEmptyCopy":true}`
 
 Panel text as rendered:
 ```
@@ -43,7 +43,7 @@ UA540 · not in results
 ⇅ Sort page by Starlink odds
 auto-sort by odds when the page loads
 keep sorted when the page updates
-via MSO (connection)
+via MSO · all-legs estimate
 96%
 Tail assignments publish ~48h out — firm ✓s appear closer to Aug 28.
 full plan ↗ · tracker ↗

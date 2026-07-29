@@ -64,13 +64,15 @@ function fixture({ o, d, rows = [] }) {
 
 const CASES = [
   {
-    name: "LAX-EWR-contradiction",
+    name: "LAX-EWR-empty-with-connection",
     o: "LAX", d: "EWR", rows: [],
-    // The panel should show the empty state AND a connection row.
+    // v2.2: no-direct-history copy names "direct-flight", and the connection row
+    // is labelled "all-legs estimate" — no more "no history" above a real option.
     expect: (txt) => ({
-      hasEmptyState: /No Starlink history on this route yet\./.test(txt),
-      hasConnection: /\(connection\)/.test(txt),
-      connectionPct: (txt.match(/\(connection\)\s*(\d+)%/) || [])[1] || null,
+      newEmptyCopy: /No direct-flight Starlink history yet\. Connection estimate below\./.test(txt),
+      oldContradictionGone: !/No Starlink history on this route yet\./.test(txt),
+      connectionLabelled: /all-legs estimate/.test(txt),
+      connectionPct: (txt.match(/all-legs estimate\s*(\d+)%/) || [])[1] || null,
     }),
   },
   {
@@ -79,7 +81,7 @@ const CASES = [
     rows: [{ num: 1596, time: "8:30 a.m." }, { num: 1214, time: "11:05 a.m." }],
     expect: (txt) => ({
       listsUA1596: /UA1596/.test(txt),
-      notEmpty: !/No Starlink history on this route yet\./.test(txt),
+      noEmptyCopy: !/No direct-flight Starlink history/.test(txt),
     }),
   },
 ];

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WiFi Odds for Flights",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "See the odds your flight has next-generation WiFi, right in your search results. One-click sort by odds. Unofficial.",
   "permissions": [
     "storage",
