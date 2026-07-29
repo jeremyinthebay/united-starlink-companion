@@ -1066,8 +1066,9 @@
           : "No direct-flight Starlink history for this route yet.";
     const legTag = ctx.phase === "return" ? " · return leg" : "";
     p.innerHTML =
-      `<header><span>🛰️ ${esc(ctx.o)}→${esc(ctx.d)} · ${esc(fmtDate(ctx.date) || "Starlink odds")}${legTag}</span>` +
-      `<span><span class="usl-refresh" title="Refresh odds (bypass cache)">↻</span> <span class="usl-x">▾</span></span></header>
+      `<header><span class="usl-rt">🛰️ ${esc(ctx.o)} → ${esc(ctx.d)} · ${esc(fmtDate(ctx.date) || "WiFi odds")}${legTag}</span>` +
+      `<span class="usl-rhs"><span class="usl-est" title="Historical estimates, cached up to 6h">ESTIMATES</span>` +
+      `<span class="usl-refresh" title="Refresh odds (bypass cache)">↻</span><span class="usl-x">▾</span></span></header>
       <div class="usl-body">` +
       (flights.length
         ? flights.map((f, i) =>

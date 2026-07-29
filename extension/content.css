@@ -233,3 +233,50 @@ span.usl-watching:focus-visible{
   transform:none;                /* opt out of the .usl-watch:hover scale */
   text-shadow:none;              /* opt out of the white halo */
 }
+
+/* ══ v2.2 — injected-panel visual uplift to the approved WiFi Odds mockup ══════
+ * Everything here is SCOPED to .usl-panel, so the on-page badges (carefully
+ * tuned white-on-colour for white united.com/Navan/GF rows above) are untouched.
+ * Matches smithfamai.com/wifiodds-cta-mockups: dark card, ESTIMATES chip (not
+ * "LIVE" — these are historical), card-style rows, brighter odds pills with
+ * near-black text where the fill is light (Codex: the violet's white text was
+ * ~3.3:1), and a gradient sort action in the brand cyan→violet ramp. */
+.usl-panel{
+  background:#0b0d14;
+  border:1px solid #23232e;
+  border-radius:18px;
+  box-shadow:0 24px 64px rgba(0,0,0,.6);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+}
+.usl-panel header{
+  font-family:inherit;font-weight:700;font-size:13.5px;letter-spacing:-.01em;
+  padding:13px 15px;border-bottom:1px solid #1c1c26;color:#f3f4f7;
+}
+.usl-panel header .usl-rt{display:flex;align-items:center;gap:2px}
+.usl-rhs{display:flex;align-items:center;gap:9px}
+.usl-est{
+  font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:9px;font-weight:700;
+  letter-spacing:.1em;color:#c7cbd6;border:1px solid #3a3a48;border-radius:20px;padding:2px 8px;
+  cursor:default;
+}
+.usl-panel .usl-refresh,.usl-panel .usl-x{font-size:13px;color:#7b8190}
+.usl-panel .usl-body{padding:11px 12px 13px}
+.usl-panel .usl-row.usl-jump{
+  background:#15161f;border:1px solid #23242f;border-radius:11px;
+  padding:10px 12px;margin:0 0 8px;font-family:inherit;font-size:13px;font-weight:600;color:#dfe2ea;
+}
+.usl-panel .usl-row.usl-jump:hover{background:#1b1c27;border-color:#343540}
+.usl-panel .usl-time{color:#868c9c;font-size:11px;font-weight:400}
+/* Odds pills inside the panel — the mockup ramp; near-black text on light fills. */
+.usl-panel .usl-badge{font-size:12.5px;font-weight:800;padding:4px 11px;border-radius:9px;box-shadow:none;letter-spacing:0}
+.usl-panel .usl-badge.usl-hi{background:#3ee0b0;color:#052018}
+.usl-panel .usl-badge.usl-mid{background:#a99cf5;color:#0a0a12}
+.usl-panel .usl-badge.usl-low{background:#6aa8ff;color:#05121f}
+.usl-panel .usl-badge.usl-no{background:#f0c04a;color:#241c00}
+.usl-panel .usl-badge.usl-na{background:#2a2b35;color:#aab0be}
+.usl-panel .usl-sortbtn{
+  background:linear-gradient(90deg,#29d8ff,#7b8cff 55%,#926cff);color:#05060a;
+  font-weight:800;border-radius:11px;padding:11px;font-size:13px;box-shadow:0 8px 22px rgba(64,140,255,.28);
+}
+.usl-panel .usl-sortbtn:hover{filter:brightness(1.07);background:linear-gradient(90deg,#29d8ff,#7b8cff 55%,#926cff)}
+.usl-panel a{color:#8ecdff}
