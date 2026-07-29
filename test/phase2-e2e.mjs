@@ -72,7 +72,8 @@ const CASES = [
       newEmptyCopy: /No direct-flight Starlink history yet\. Connection estimate below\./.test(txt),
       oldContradictionGone: !/No Starlink history on this route yet\./.test(txt),
       connectionLabelled: /all-legs estimate/.test(txt),
-      connectionPct: (txt.match(/all-legs estimate\s*(\d+)%/) || [])[1] || null,
+      // Boolean, not a captured string — every gated check must be exactly true.
+      connectionPctShown: /all-legs estimate\s*\d+%/.test(txt),
     }),
   },
   {
@@ -108,6 +109,18 @@ const CASES = [
       };
     },
   },
+  {
+    // Codex EXT P1-01: a full tracker outage must say "unavailable", never a
+    // false absence. Every tracker request returns 500 for this case.
+    name: "united-outage-unavailable",
+    o: "DEN", d: "SFO", rows: [{ num: 1812, time: "9:00 a.m." }],
+    trackerFail: true,
+    awaitPanel: /unavailable/i,
+    expect: (txt) => ({
+      saysUnavailable: /Direct-flight history unavailable right now\./.test(txt),
+      notFalseAbsence: !/No direct-flight Starlink history/.test(txt),
+    }),
+  },
 ];
 
 async function run() {
@@ -132,6 +145,14 @@ async function run() {
     await context.route(/https:\/\/(www\.)?united\.com\/.*/, (route) => {
       route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: currentFixture });
     });
+    // Optional tracker-outage simulation: when trackerFail is set for a case,
+    // every tracker request returns 500 so we can prove the panel says
+    // "unavailable" (not a false absence). Otherwise the real tracker is used.
+    let trackerFail = false;
+    await context.route(/https:\/\/unitedstarlinktracker\.com\/.*/, (route) => {
+      if (trackerFail) route.fulfill({ status: 500, contentType: "application/json", body: '{"error":"down"}' });
+      else route.continue();
+    });
 
     const page = await context.newPage();
     const consoleErrors = [];
@@ -139,6 +160,7 @@ async function run() {
 
     for (const c of CASES) {
       currentFixture = fixture({ o: c.o, d: c.d, rows: c.rows });
+      trackerFail = !!c.trackerFail;
       const url = `https://www.united.com/en/us/fsr/choose-flights?f=${c.o}&t=${c.d}&d=${farDate()}&tt=1`;
       await page.goto(url, { waitUntil: "domcontentloaded" });
 
@@ -181,11 +203,12 @@ async function run() {
 
     writeReport({ swUrl, consoleErrors, results });
 
-    // RELEASE GATE (Codex #5): a report is not a gate. Fail the process on any
-    // failed boolean check, a case whose panel never rendered, a missing service
-    // worker, or any console error during the run.
+    // RELEASE GATE (Codex #5 + #P1-03): a report is not a gate, and its truth
+    // contract must be complete. EVERY check must be exactly boolean `true` — a
+    // check that is false, null, undefined, a string, or anything else is a
+    // failure, not a pass. (Captured values, if any, belong outside `checks`.)
     const failedChecks = results.filter((r) =>
-      !r.appeared || Object.values(r.checks).some((v) => v === false));
+      !r.appeared || Object.values(r.checks).some((v) => v !== true));
     const reasons = [];
     if (!swUrl) reasons.push("service worker not detected");
     if (consoleErrors.length) reasons.push(consoleErrors.length + " console error(s)");

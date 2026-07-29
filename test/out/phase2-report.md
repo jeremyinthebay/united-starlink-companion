@@ -1,13 +1,13 @@
 # Phase 2 — browser E2E (extension loaded, real tracker, fixtured united.com)
 
-Run: 2026-07-29T18:17:25.123Z
+Run: 2026-07-29T19:04:02.645Z
 Service worker: chrome-extension://oiihcooamibbaoakhnmedaijgbopfmpe/bg.js
 Console errors during run: none
 
 ## LAX→EWR — LAX-EWR-empty-with-connection
 Panel rendered: **yes** · badges on page: `96%`
 
-Checks: `{"newEmptyCopy":true,"oldContradictionGone":true,"connectionLabelled":true,"connectionPct":"96"}`
+Checks: `{"newEmptyCopy":true,"oldContradictionGone":true,"connectionLabelled":true,"connectionPctShown":true}`
 
 Panel text as rendered:
 ```
@@ -69,3 +69,18 @@ Tail assignments publish ~48h out — firm ✓s appear closer to Aug 28.
 wifiodds.com ↗
 ```
 Screenshot: `out/shots/united-fallback-real-odds.png`
+
+## DEN→SFO — united-outage-unavailable
+Panel rendered: **yes** · badges on page: none
+
+Checks: `{"saysUnavailable":true,"notFalseAbsence":true}`
+
+Panel text as rendered:
+```
+🛰️ DEN→SFO · Aug 28
+↻ ▾
+Direct-flight history unavailable right now.
+Tail assignments publish ~48h out — firm ✓s appear closer to Aug 28.
+wifiodds.com ↗
+```
+Screenshot: `out/shots/united-outage-unavailable.png`

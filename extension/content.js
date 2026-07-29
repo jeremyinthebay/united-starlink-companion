@@ -64,6 +64,12 @@
   const TIME_ONE = /\b\d{1,2}:\d{2}\s?[ap]\.?m\.?/i;
   let ctx = null;            // {o,d,date,phase} — the ACTIVE leg
   let ctxKey = "", dataKey = "";
+  // Route-fetch backoff so a tracker outage recovers WITHOUT a page reload but
+  // never hammers: on a failed fetch (directOk:false or a null response) the same
+  // route may be retried, but only after an exponential delay (15s→30s→60s→120s,
+  // capped), never on the 2s tick. A success clears it.
+  let dataFail = false, dataTries = 0, dataNextTry = 0;
+  const ROUTE_BACKOFFS = [15000, 30000, 60000, 120000];
   let navanCtxCache = null, navanCtxKey = "", navanSig = "";
   let data = null, panelEl = null, scanScheduled = false;
   let probMap = new Map();
@@ -96,29 +102,58 @@
   };
   let SEL = DEFAULT_SEL;
   let pendingPredict = new Set();
+  // Per-flight retry ledger for transient failures. Bounded: after
+  // PREDICT_MAX_TRIES attempts a flight becomes terminally "unavailable" (a
+  // distinct display from "n/a"), and between attempts it waits out an
+  // exponential backoff so a persistent 429/500 can never be re-requested every
+  // scan. A recognised answer (odds or genuine n/a) clears the ledger entry.
+  const PREDICT_MAX_TRIES = 4;
+  const PREDICT_BACKOFFS = [3000, 8000, 20000, 60000];
+  let predictFail = new Map(); // fn -> { tries, nextTry }
+  function markPredictFail(f) {
+    const pf = predictFail.get(f) || { tries: 0, nextTry: 0 };
+    pf.tries++;
+    if (pf.tries >= PREDICT_MAX_TRIES) {
+      probMap.set(f, { unavailable: true }); // terminal: stop asking, show "unavailable"
+      predictFail.delete(f);
+    } else {
+      pf.nextTry = Date.now() + PREDICT_BACKOFFS[Math.min(pf.tries - 1, PREDICT_BACKOFFS.length - 1)];
+      predictFail.set(f, pf);
+    }
+  }
   function requestPredictions(fns) {
-    const need = fns.filter((f) => !probMap.has(f) && !pendingPredict.has(f));
+    const now = Date.now();
+    const need = fns.filter((f) => {
+      if (probMap.has(f) || pendingPredict.has(f)) return false; // resolved or in flight
+      const pf = predictFail.get(f);
+      return !(pf && now < pf.nextTry);                          // still cooling down
+    });
     if (!need.length) return;
     need.forEach((f) => pendingPredict.add(f));
-    // Always release the pending marks when the worker replies, whatever the
-    // outcome. The worker answers at most 25 per call, so anything beyond 25 —
-    // or a transient failure (returned as undefined, never written to probMap) —
-    // must be free to be re-requested on the next scan instead of being stranded
-    // in pendingPredict forever. Resolved flights land in probMap (real value or
-    // null), so the need-filter above won't re-request those.
     const release = () => need.forEach((f) => pendingPredict.delete(f));
     try {
       chrome.runtime.sendMessage({ type: "predictFlights", fns: need, airline: AIRLINE }, (res) => {
         release();
-        if (chrome.runtime.lastError || !res || !res.ok) return;
-        for (const [fn, v] of Object.entries(res.flights || {})) {
-          if (v) probMap.set(fn, { prob: v.prob, obs: v.obs, conf: v.conf || null, dep: depFor(fn) });
-          else if (v === null) probMap.set(fn, null); // known: no data → n/a
-          // v === undefined: transient error — leave unset so a later scan retries.
+        if (chrome.runtime.lastError || !res || !res.ok) {
+          need.forEach(markPredictFail); // whole-batch failure counts against each
+          scheduleScan();
+          return;
+        }
+        const flights = res.flights || {};
+        for (const f of need) {
+          // A flight NOT present in the reply was beyond the worker's 25-per-call
+          // cap — not attempted, so retry next scan with NO penalty (fair
+          // progress past item 25). Present-but-undefined means it WAS attempted
+          // and errored, which is a real failure.
+          if (!Object.prototype.hasOwnProperty.call(flights, f)) continue;
+          const v = flights[f];
+          if (v) { probMap.set(f, { prob: v.prob, obs: v.obs, conf: v.conf || null, dep: depFor(f) }); predictFail.delete(f); }
+          else if (v === null) { probMap.set(f, null); predictFail.delete(f); } // genuine n/a
+          else markPredictFail(f); // attempted, transient error
         }
         scheduleScan();
       });
-    } catch (e) { release(); }
+    } catch (e) { release(); need.forEach(markPredictFail); }
   }
   try { chrome.runtime.sendMessage({ type: "getSelectors" }, (res) => {
     if (chrome.runtime.lastError || !res || !res.ok) return;
@@ -259,7 +294,12 @@
     return new Promise((resolve) => {
       try {
         chrome.runtime.sendMessage({ type: "routeData", o: r.o, d: r.d, airline: AIRLINE, force: !!force }, (resp) => {
-          if (chrome.runtime.lastError || !resp || !resp.ok) return resolve(null);
+          // Return the response even when resp.ok is false. ok:false covers BOTH
+          // a genuinely empty route (directOk:true, flights:[]) AND a tracker
+          // outage (directOk:false) — collapsing them to null (the old behaviour)
+          // threw away directOk and made renderPanel treat an outage as a proven
+          // absence. Only a true messaging failure (no resp / lastError) is null.
+          if (chrome.runtime.lastError || !resp) return resolve(null);
           resolve(resp);
         });
       } catch { resolve(null); }
@@ -792,6 +832,18 @@
         const dup = row && row.rowEl.querySelector('.usl-badge[data-b="' + fn + '"]');
         if (dup) {
           el.dataset.uslBadged = "dup";
+        } else if (hit && hit.unavailable) {
+          // Terminal: the tracker failed this flight repeatedly. Distinct from
+          // "n/a" (which means the tracker HAS no data) — this means we couldn't
+          // get an answer. Not badged "1", so a later manual refresh can retry.
+          el.dataset.uslBadged = "unavail";
+          const b = document.createElement("span");
+          b.className = "usl-badge usl-na";
+          b.textContent = "🛰️ —";
+          b.title = fn + ": odds temporarily unavailable (the tracker didn't respond) · refresh to retry · data: " + TRACKER;
+          b.dataset.b = fn;
+          el.appendChild(b);
+          if (row) addWatchStar(el, fn);
         } else if (hit) {
           el.dataset.uslBadged = "1";
           const b = document.createElement("span");
@@ -920,7 +972,8 @@
     const key = (u) => {
       const m = (u.textContent || "").match(FN_RE);
       const hit = m ? probMap.get(AIRLINE + m[1]) : null;
-      return hit ? hit.prob : -1;
+      // "unavailable" and "n/a" have no numeric prob — they sort to the bottom.
+      return hit && typeof hit.prob === "number" ? hit.prob : -1;
     };
     const sorted = flightUnits.map((u, i) => ({ u, i, k: key(u) }))
       .sort((a, b) => b.k - a.k || a.i - b.i).map((x) => x.u);
@@ -1000,7 +1053,10 @@
     // when it is really only "no DIRECT flight" with a connection available. A
     // missing directOk (pre-2.2 service worker) defaults to true. Alaska keeps
     // its own prose summary (note) unchanged.
-    const directOk = !data || data.directOk !== false;
+    // data === null now means the fetch itself failed (messaging error / outage
+    // that didn't even return a response), so it is NOT a proven absence — it's
+    // "unavailable". A present response carries the real directOk.
+    const directOk = data ? data.directOk !== false : false;
     const emptyCopy = note
       ? note
       : !directOk
@@ -1184,7 +1240,10 @@
     // stays null) must NOT restart three tracker requests every tick. A route
     // change or the ↻ button re-fetches; the 2s loop no longer hammers.
     const emptyRoute = !(data && data.flights && data.flights.length);
-    if (key === ctxKey && (data || ((ALASKA || UNITED_FALLBACK) && dataKey === key))) {
+    // A failed fetch is eligible to retry once its backoff window elapses. This
+    // is the ONLY thing that re-fetches the same route; a success never does.
+    const mayRetry = dataKey === key && dataFail && Date.now() >= dataNextTry;
+    if (key === ctxKey && (data || ((ALASKA || UNITED_FALLBACK) && dataKey === key)) && !mayRetry) {
       if (!panelEl || !panelEl.isConnected) renderPanel();
       else if (ALASKA || (UNITED_FALLBACK && emptyRoute)) {
         // Odds arrive per flight, so re-render when the ranked (fallback) list
@@ -1198,10 +1257,20 @@
     const routeChanged = !ctx || c.o !== ctx.o || c.d !== ctx.d;
     ctx = c; ctxKey = key;
     desiredOrder = null;
-    if (routeChanged) data = null;      // don't render the previous route while fetching
-    if (dataKey !== key) {
+    if (routeChanged) { data = null; dataFail = false; dataTries = 0; dataNextTry = 0; }
+    if (dataKey !== key || mayRetry) {
       dataKey = key;                    // mark attempted BEFORE the await so 2s ticks short-circuit
       data = await loadData(c, false);
+      // Classify: a null response (messaging/outage) or an explicit directOk:false
+      // is a FAILURE that earns a backoff retry; anything else clears the backoff.
+      const failed = !data || data.directOk === false;
+      if (failed) {
+        dataFail = true;
+        dataNextTry = Date.now() + ROUTE_BACKOFFS[Math.min(dataTries, ROUTE_BACKOFFS.length - 1)];
+        dataTries++;
+      } else {
+        dataFail = false; dataTries = 0; dataNextTry = 0;
+      }
     }
     indexData();
     if (ALASKA || UNITED_FALLBACK) navanSig = navanTopFlights().map((f) => f.fn + f.prob).join(",");

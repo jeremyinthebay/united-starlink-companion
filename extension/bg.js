@@ -201,6 +201,13 @@ async function fetchFlights(o, d, airline) {
   // ("history unavailable") instead of a false "no direct history" claim.
   if (text == null) throw new Error("predict_route_starlink: unparseable 200");
   const flights = parseFlights(text);
+  // Shape gate: an empty flight list only counts as a GENUINE empty route if the
+  // body looks like a real tracker answer (mentions Starlink, or carries the
+  // known no-direct / table markers). Generic error/gateway prose or schema
+  // drift parses to zero rows too — treat that as a failure, not an absence.
+  if (!flights.length && !/starlink|present_verbatim|no direct/i.test(text)) {
+    throw new Error("predict_route_starlink: unrecognized response shape");
+  }
   // Only surface the note when there is no table to show, and never for United —
   // its UI is byte-for-byte unchanged by this release.
   const useNote = !flights.length && normAirline(airline) !== "UA";
@@ -342,13 +349,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           if (!r.ok) { out[fn] = undefined; }
           else {
             const j = await r.json();
-            // A valid 200 with a numeric probability is real odds; a valid 200
-            // without one is a genuine "no per-flight signal" (n/a) and may cache.
-            const v = j && typeof j.probability === "number"
-              ? { prob: Math.round(j.probability * 100), obs: j.n_observations || 0, conf: j.confidence || "low" }
-              : null;
-            out[fn] = v;
-            await chrome.storage.local.set({ [key]: { ts: Date.now(), v } });
+            if (j && typeof j.probability === "number") {
+              // Real per-flight odds.
+              const v = { prob: Math.round(j.probability * 100), obs: j.n_observations || 0, conf: j.confidence || "low" };
+              out[fn] = v;
+              await chrome.storage.local.set({ [key]: { ts: Date.now(), v } });
+            } else if (j && typeof j === "object" && !Array.isArray(j) && !j.error &&
+                       ("flight_number" in j || "confidence" in j || "message" in j)) {
+              // RECOGNISED no-data schema (e.g. the HA "determined by aircraft
+              // type" shape): a genuine n/a, safe to negative-cache.
+              out[fn] = null;
+              await chrome.storage.local.set({ [key]: { ts: Date.now(), v: null } });
+            } else {
+              // Unrecognised / error-shaped 200 — transient, never negative-cache.
+              out[fn] = undefined;
+            }
           }
         } catch (e) { out[fn] = undefined; }
         await new Promise((rr) => setTimeout(rr, 250));
