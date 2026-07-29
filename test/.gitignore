@@ -1,0 +1,3 @@
+# nohup run logs (transient); reports + screenshots under out/ are kept
+out.log
+p2.log

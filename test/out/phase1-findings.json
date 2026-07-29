@@ -1,0 +1,569 @@
+{
+  "meta": {
+    "ranAt": "2026-07-29T17:01:16.780Z",
+    "throttleMs": 1300,
+    "routeCount": 17,
+    "requestCount": 72,
+    "roster": {
+      "ok": true,
+      "count": 485,
+      "updated": "2026-07-29",
+      "err": null
+    },
+    "extAirlines": true
+  },
+  "counts": {
+    "MEDIUM": 4,
+    "INFO": 4
+  },
+  "findings": [
+    {
+      "sev": "MEDIUM",
+      "kind": "DISPLAY-CONTRADICTION",
+      "subject": "SFO→EWR",
+      "detail": "Panel prints \"No Starlink history on this route yet.\" and then renders a connection row \"GEG+ORD (connection) 55%\" directly beneath it. The empty-state copy contradicts the Starlink connection shown on the next line; a reader is told \"no history\" above a 55% option.",
+      "evidence": {
+        "via": [
+          "GEG",
+          "ORD"
+        ],
+        "joint": 55
+      }
+    },
+    {
+      "sev": "MEDIUM",
+      "kind": "DISPLAY-CONTRADICTION",
+      "subject": "EWR→SFO",
+      "detail": "Panel prints \"No Starlink history on this route yet.\" and then renders a connection row \"MCI+LAX (connection) 49%\" directly beneath it. The empty-state copy contradicts the Starlink connection shown on the next line; a reader is told \"no history\" above a 49% option.",
+      "evidence": {
+        "via": [
+          "MCI",
+          "LAX"
+        ],
+        "joint": 49
+      }
+    },
+    {
+      "sev": "MEDIUM",
+      "kind": "DISPLAY-CONTRADICTION",
+      "subject": "LAX→EWR",
+      "detail": "Panel prints \"No Starlink history on this route yet.\" and then renders a connection row \"MCI (connection) 96%\" directly beneath it. The empty-state copy contradicts the Starlink connection shown on the next line; a reader is told \"no history\" above a 96% option.",
+      "evidence": {
+        "via": [
+          "MCI"
+        ],
+        "joint": 96
+      }
+    },
+    {
+      "sev": "MEDIUM",
+      "kind": "DISPLAY-CONTRADICTION",
+      "subject": "SFO→BOS",
+      "detail": "Panel prints \"No Starlink history on this route yet.\" and then renders a connection row \"GEG+ORD (connection) 73%\" directly beneath it. The empty-state copy contradicts the Starlink connection shown on the next line; a reader is told \"no history\" above a 73% option.",
+      "evidence": {
+        "via": [
+          "GEG",
+          "ORD"
+        ],
+        "joint": 73
+      }
+    },
+    {
+      "sev": "INFO",
+      "kind": "EMPTY-BOTH",
+      "subject": "JFK→LAX",
+      "detail": "No direct history and no connection ≥50%. Panel shows \"No Starlink history on this route yet.\" — accurate.",
+      "evidence": null
+    },
+    {
+      "sev": "INFO",
+      "kind": "EMPTY-BOTH",
+      "subject": "SFO→LHR",
+      "detail": "No direct history and no connection ≥50%. Panel shows \"No Starlink history on this route yet.\" — accurate.",
+      "evidence": null
+    },
+    {
+      "sev": "INFO",
+      "kind": "EMPTY-BOTH",
+      "subject": "DEN→ASE",
+      "detail": "No direct history and no connection ≥50%. Panel shows \"No Starlink history on this route yet.\" — accurate.",
+      "evidence": null
+    },
+    {
+      "sev": "INFO",
+      "kind": "HINT-SURPRISE",
+      "subject": "DEN→ASE",
+      "detail": "Hinted narrowbody but panel is empty (no direct history, no connection).",
+      "evidence": null
+    }
+  ],
+  "routeRows": [
+    {
+      "route": "SFO→DEN",
+      "hint": "narrowbody",
+      "directCount": 5,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "UA1596 68%, UA1214 41%, UA2019 40%, UA1758 30%, UA540 30%",
+      "connectionRow": "MSO 96%",
+      "contradiction": false,
+      "droppedConnections": [],
+      "parity": [
+        {
+          "fn": "UA1596",
+          "routeTablePct": 68,
+          "predictFlightPct": 68,
+          "diff": 0
+        },
+        {
+          "fn": "UA1214",
+          "routeTablePct": 41,
+          "predictFlightPct": 41,
+          "diff": 0
+        },
+        {
+          "fn": "UA2019",
+          "routeTablePct": 40,
+          "predictFlightPct": 40,
+          "diff": 0
+        }
+      ]
+    },
+    {
+      "route": "DEN→SFO",
+      "hint": "narrowbody",
+      "directCount": 7,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "UA1812 63%, UA1561 51%, UA1007 46%, UA2123 45%, UA1389 44%, UA1450 40%, UA1506 20%",
+      "connectionRow": "SUN 98%",
+      "contradiction": false,
+      "droppedConnections": [],
+      "parity": [
+        {
+          "fn": "UA1812",
+          "routeTablePct": 63,
+          "predictFlightPct": 63,
+          "diff": 0
+        },
+        {
+          "fn": "UA1561",
+          "routeTablePct": 51,
+          "predictFlightPct": 51,
+          "diff": 0
+        },
+        {
+          "fn": "UA1007",
+          "routeTablePct": 46,
+          "predictFlightPct": 46,
+          "diff": 0
+        }
+      ]
+    },
+    {
+      "route": "DEN→ORD",
+      "hint": "narrowbody",
+      "directCount": 9,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "UA2085 61%, UA2315 58%, UA2329 56%, UA1377 51%, UA675 48%, UA2649 42%, UA1411 37%, UA1023 34%, UA2258 23%",
+      "connectionRow": "MTJ 96%",
+      "contradiction": false,
+      "droppedConnections": [],
+      "parity": [
+        {
+          "fn": "UA2085",
+          "routeTablePct": 61,
+          "predictFlightPct": 61,
+          "diff": 0
+        },
+        {
+          "fn": "UA2315",
+          "routeTablePct": 58,
+          "predictFlightPct": 58,
+          "diff": 0
+        },
+        {
+          "fn": "UA2329",
+          "routeTablePct": 56,
+          "predictFlightPct": 56,
+          "diff": 0
+        }
+      ]
+    },
+    {
+      "route": "ORD→EWR",
+      "hint": "narrowbody",
+      "directCount": 7,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "UA2329 56%, UA534 53%, UA485 47%, UA2295 43%, UA1209 39%, UA759 36%, UA606 36%",
+      "connectionRow": "RDU 97%",
+      "contradiction": false,
+      "droppedConnections": [],
+      "parity": [
+        {
+          "fn": "UA2329",
+          "routeTablePct": 56,
+          "predictFlightPct": 56,
+          "diff": 0
+        },
+        {
+          "fn": "UA534",
+          "routeTablePct": 53,
+          "predictFlightPct": 53,
+          "diff": 0
+        },
+        {
+          "fn": "UA485",
+          "routeTablePct": 47,
+          "predictFlightPct": 47,
+          "diff": 0
+        }
+      ]
+    },
+    {
+      "route": "IAH→DEN",
+      "hint": "narrowbody",
+      "directCount": 7,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "UA2643 62%, UA2339 43%, UA1450 40%, UA484 36%, UA1066 32%, UA1874 27%, UA2168 1%",
+      "connectionRow": "LIT 97%",
+      "contradiction": false,
+      "droppedConnections": [],
+      "parity": [
+        {
+          "fn": "UA2643",
+          "routeTablePct": 62,
+          "predictFlightPct": 62,
+          "diff": 0
+        },
+        {
+          "fn": "UA2339",
+          "routeTablePct": 43,
+          "predictFlightPct": 43,
+          "diff": 0
+        },
+        {
+          "fn": "UA1450",
+          "routeTablePct": 40,
+          "predictFlightPct": 40,
+          "diff": 0
+        }
+      ]
+    },
+    {
+      "route": "LGA→ORD",
+      "hint": "narrowbody",
+      "directCount": 12,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "UA1098 69%, UA2446 64%, UA623 50%, UA1830 49%, UA2199 48%, UA2768 45%, UA2635 40%, UA714 38%, UA2389 33%, UA1310 30%, UA602 21%, UA1504 19%",
+      "connectionRow": "IAD+YYZ 97%",
+      "contradiction": false,
+      "droppedConnections": [],
+      "parity": [
+        {
+          "fn": "UA1098",
+          "routeTablePct": 69,
+          "predictFlightPct": 69,
+          "diff": 0
+        },
+        {
+          "fn": "UA2446",
+          "routeTablePct": 64,
+          "predictFlightPct": 64,
+          "diff": 0
+        },
+        {
+          "fn": "UA623",
+          "routeTablePct": 50,
+          "predictFlightPct": 50,
+          "diff": 0
+        }
+      ]
+    },
+    {
+      "route": "DEN→LAS",
+      "hint": "narrowbody",
+      "directCount": 5,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "UA526 66%, UA2338 63%, UA655 57%, UA716 33%, UA2316 32%",
+      "connectionRow": null,
+      "contradiction": false,
+      "droppedConnections": [],
+      "parity": [
+        {
+          "fn": "UA526",
+          "routeTablePct": 66,
+          "predictFlightPct": 66,
+          "diff": 0
+        },
+        {
+          "fn": "UA2338",
+          "routeTablePct": 63,
+          "predictFlightPct": 63,
+          "diff": 0
+        },
+        {
+          "fn": "UA655",
+          "routeTablePct": 57,
+          "predictFlightPct": 57,
+          "diff": 0
+        }
+      ]
+    },
+    {
+      "route": "IAD→ORD",
+      "hint": "narrowbody",
+      "directCount": 5,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "UA1775 76%, UA1252 47%, UA2497 40%, UA1393 2%, UA2070 0%",
+      "connectionRow": "RDU 96%",
+      "contradiction": false,
+      "droppedConnections": [],
+      "parity": [
+        {
+          "fn": "UA1775",
+          "routeTablePct": 76,
+          "predictFlightPct": 76,
+          "diff": 0
+        },
+        {
+          "fn": "UA1252",
+          "routeTablePct": 47,
+          "predictFlightPct": 47,
+          "diff": 0
+        },
+        {
+          "fn": "UA2497",
+          "routeTablePct": 40,
+          "predictFlightPct": 40,
+          "diff": 0
+        }
+      ]
+    },
+    {
+      "route": "SFO→EWR",
+      "hint": "widebody",
+      "directCount": 0,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "No Starlink history on this route yet.",
+      "connectionRow": "GEG+ORD 55%",
+      "contradiction": true,
+      "droppedConnections": [],
+      "parity": []
+    },
+    {
+      "route": "EWR→SFO",
+      "hint": "widebody",
+      "directCount": 0,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "No Starlink history on this route yet.",
+      "connectionRow": "MCI+LAX 49%",
+      "contradiction": true,
+      "droppedConnections": [],
+      "parity": []
+    },
+    {
+      "route": "LAX→EWR",
+      "hint": "widebody",
+      "directCount": 0,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "No Starlink history on this route yet.",
+      "connectionRow": "MCI 96%",
+      "contradiction": true,
+      "droppedConnections": [],
+      "parity": []
+    },
+    {
+      "route": "SFO→BOS",
+      "hint": "widebody",
+      "directCount": 0,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "No Starlink history on this route yet.",
+      "connectionRow": "GEG+ORD 73%",
+      "contradiction": true,
+      "droppedConnections": [],
+      "parity": []
+    },
+    {
+      "route": "JFK→LAX",
+      "hint": "widebody",
+      "directCount": 0,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "No Starlink history on this route yet.",
+      "connectionRow": null,
+      "contradiction": false,
+      "droppedConnections": [],
+      "parity": []
+    },
+    {
+      "route": "SFO→LHR",
+      "hint": "widebody",
+      "directCount": 0,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "No Starlink history on this route yet.",
+      "connectionRow": null,
+      "contradiction": false,
+      "droppedConnections": [
+        {
+          "via": "IAD",
+          "joint": 1,
+          "coverage": "partial"
+        }
+      ],
+      "parity": []
+    },
+    {
+      "route": "EWR→LHR",
+      "hint": "widebody",
+      "directCount": 1,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "UA14 12%",
+      "connectionRow": null,
+      "contradiction": false,
+      "droppedConnections": [
+        {
+          "via": "IAD",
+          "joint": 1,
+          "coverage": "partial"
+        }
+      ],
+      "parity": [
+        {
+          "fn": "UA14",
+          "routeTablePct": 12,
+          "predictFlightPct": 12,
+          "diff": 0
+        }
+      ]
+    },
+    {
+      "route": "DEN→ASE",
+      "hint": "narrowbody",
+      "directCount": 0,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "No Starlink history on this route yet.",
+      "connectionRow": null,
+      "contradiction": false,
+      "droppedConnections": [],
+      "parity": []
+    },
+    {
+      "route": "ORD→MSN",
+      "hint": "narrowbody",
+      "directCount": 1,
+      "planStatus": 200,
+      "planOk": true,
+      "panelDisplay": "UA630 42%",
+      "connectionRow": null,
+      "contradiction": false,
+      "droppedConnections": [],
+      "parity": [
+        {
+          "fn": "UA630",
+          "routeTablePct": 42,
+          "predictFlightPct": 42,
+          "diff": 0
+        }
+      ]
+    }
+  ],
+  "checkRows": [
+    {
+      "fn": "UA1",
+      "date": "2026-07-31",
+      "checkStatus": "no",
+      "tail": "N81107",
+      "equip": "Boeing 787-9 Dreamliner, Panasonic WiFi",
+      "predictFlightPct": 0,
+      "tailInOurRoster": false
+    },
+    {
+      "fn": "UA1",
+      "date": "2026-08-01",
+      "checkStatus": "early",
+      "tail": null,
+      "equip": null,
+      "predictFlightPct": 0
+    },
+    {
+      "fn": "UA2402",
+      "date": "2026-07-31",
+      "checkStatus": "early",
+      "tail": null,
+      "equip": null,
+      "predictFlightPct": 16
+    },
+    {
+      "fn": "UA2402",
+      "date": "2026-08-01",
+      "checkStatus": "early",
+      "tail": null,
+      "equip": null,
+      "predictFlightPct": 16
+    },
+    {
+      "fn": "UA1596",
+      "date": "2026-07-31",
+      "checkStatus": "yes",
+      "tail": "N73275",
+      "equip": null,
+      "predictFlightPct": 68,
+      "tailInOurRoster": true
+    },
+    {
+      "fn": "UA1596",
+      "date": "2026-08-01",
+      "checkStatus": "early",
+      "tail": null,
+      "equip": null,
+      "predictFlightPct": 68
+    },
+    {
+      "fn": "UA2019",
+      "date": "2026-07-31",
+      "checkStatus": "early",
+      "tail": null,
+      "equip": null,
+      "predictFlightPct": 40
+    },
+    {
+      "fn": "UA2019",
+      "date": "2026-08-01",
+      "checkStatus": "early",
+      "tail": null,
+      "equip": null,
+      "predictFlightPct": 40
+    },
+    {
+      "fn": "UA5693",
+      "date": "2026-07-31",
+      "checkStatus": "yes",
+      "tail": "N85369",
+      "equip": null,
+      "predictFlightPct": 99,
+      "tailInOurRoster": true
+    },
+    {
+      "fn": "UA5693",
+      "date": "2026-08-01",
+      "checkStatus": "early",
+      "tail": null,
+      "equip": null,
+      "predictFlightPct": 99
+    }
+  ]
+}
