@@ -62,6 +62,27 @@ function fixture({ o, d, rows = [] }) {
     </body></html>`;
 }
 
+// Minimal Navan results fixture. Navan lists SEVERAL carriers, so rows carry a
+// visible carrier + flight label ("United 1596", "Frontier 1229"); only the
+// United rows match FN_RE and get odds. The route context comes from the DOM
+// (Navan has no URL params) via ".flight-header__route" + "Depart from XXX".
+// Each row is a direct child of #results with a clock time so findRow()/
+// findContainer() accept it. This is the login-gated surface the Playwright
+// harness could never reach in production — bugs 3 and 4 lived here.
+function navanFixture({ o, d, rows = [] }) {
+  const rowHtml = rows.map((r) =>
+    `<div class="flight-card" style="padding:12px;border-bottom:1px solid #ccc">
+       <span class="flight-card-info__airline__number">${r.label}</span> ·
+       <span class="tm">${r.time}</span> — ${o} to ${d}
+     </div>`).join("\n");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Navan — Departure Flights</title></head>
+    <body style="font-family:sans-serif;padding:24px">
+    <div class="flight-header__route">${o} → ${d}</div>
+    <p>Depart from ${o}</p>
+    <div id="results">${rowHtml || "<p>No flights</p>"}</div>
+    </body></html>`;
+}
+
 const CASES = [
   {
     name: "LAX-EWR-empty-with-connection",
@@ -124,6 +145,74 @@ const CASES = [
       notFalseAbsence: !/No direct-flight Starlink history/.test(txt),
     }),
   },
+  {
+    // Navan Bug 4: a mixed-carrier list (Frontier + United). Auto-sort defaults
+    // ON, so once United odds resolve the page must reorder — United-with-odds
+    // floated to the TOP, the unscored Frontier rows sunk below in their
+    // relative order ("sink unscored, keep carriers"). Pre-fix, sortPage only
+    // reordered United rows and pinned Frontier on top, so the sort looked dead.
+    // Also Bug 3 positive: the panel lists the flights, never the no-history copy.
+    name: "navan-mixed-autosort",
+    navan: true, o: "DEN", d: "SFO",
+    rows: [
+      { label: "Frontier 1229", time: "8:59 a.m." },
+      { label: "United 1596", time: "8:30 a.m." },
+      { label: "Frontier 3435", time: "6:55 a.m." },
+      { label: "United 2402", time: "2:15 p.m." },
+    ],
+    awaitBadge: /🛰️\s*\d+%/,
+    awaitPanel: /UA(1596|2402)/,
+    // Read the results container's row order AFTER sort settles, using the same
+    // findContainer heuristic the content script uses.
+    probe: () => {
+      const FN_RE = /\b(?:UA|United)\s?(\d{2,4})\b/;
+      const badge = document.querySelector(".usl-badge");
+      if (!badge) return { order: [], containerFound: false };
+      let best = null, bestScore = 0, e = badge.parentElement;
+      for (let i = 0; i < 20 && e && e !== document.body; i++, e = e.parentElement) {
+        const fns = [...e.children].map((k) => ((k.textContent || "").match(FN_RE) || [])[1]).filter(Boolean);
+        const d = new Set(fns).size;
+        if (d > bestScore) { bestScore = d; best = e; }
+      }
+      if (!best) return { order: [], containerFound: false };
+      // Each child is either a United row (matches FN_RE) or an "unscored" row
+      // (any other carrier). Label United as "UA####", everything else "OTHER".
+      const order = [...best.children].map((k) => {
+        const m = (k.textContent || "").match(FN_RE);
+        return m ? ("UA" + m[1]) : "OTHER";
+      });
+      return { order, containerFound: true };
+    },
+    expect: (txt, badges, probe) => {
+      const order = (probe && probe.order) || [];
+      const firstUA = order.findIndex((x) => x.startsWith("UA"));
+      const firstOther = order.indexOf("OTHER");
+      const i1596 = order.indexOf("UA1596");
+      const i2402 = order.indexOf("UA2402");
+      return {
+        panelListsFlights: /UA(1596|2402)/.test(txt),
+        noEmptyStateContradiction: !/No direct-flight Starlink history/.test(txt),
+        // United floated above the unscored (other-carrier) rows, which sank.
+        unitedAboveOther: firstUA >= 0 && firstOther >= 0 && firstUA < firstOther,
+        // Higher odds (UA1596 ~68%) ranks above lower (UA2402 ~16%).
+        higherOddsFirst: i1596 >= 0 && i2402 >= 0 && i1596 < i2402,
+      };
+    },
+  },
+  {
+    // Navan Bug 3: an all-other-carrier list (no United rows at all). The panel
+    // must be SUPPRESSED entirely — it must NEVER pop the "no history" copy when
+    // there are simply no United flights to read. Pre-fix it rendered the empty
+    // state immediately on first paint.
+    name: "navan-no-united-suppressed",
+    navan: true, o: "DEN", d: "SFO", expectNoPanel: true,
+    rows: [
+      { label: "Frontier 1229", time: "8:59 a.m." },
+      { label: "Frontier 3435", time: "6:55 a.m." },
+      { label: "Southwest 4785", time: "7:20 a.m." },
+    ],
+    expect: () => ({}),
+  },
 ];
 
 async function run() {
@@ -148,6 +237,11 @@ async function run() {
     await context.route(/https:\/\/(www\.)?united\.com\/.*/, (route) => {
       route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: currentFixture });
     });
+    // Same for Navan — the login-gated surface. We never reach the real site;
+    // the fixture is deterministic and the extension's SW still predicts live.
+    await context.route(/https:\/\/app\.navan\.com\/.*/, (route) => {
+      route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: currentFixture });
+    });
     // Optional tracker-outage simulation: when trackerFail is set for a case,
     // every tracker request returns 500 so we can prove the panel says
     // "unavailable" (not a false absence). Otherwise the real tracker is used.
@@ -162,13 +256,26 @@ async function run() {
     page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
 
     for (const c of CASES) {
-      currentFixture = fixture({ o: c.o, d: c.d, rows: c.rows });
+      currentFixture = c.navan
+        ? navanFixture({ o: c.o, d: c.d, rows: c.rows })
+        : fixture({ o: c.o, d: c.d, rows: c.rows });
       trackerFail = !!c.trackerFail;
-      const url = `https://www.united.com/en/us/fsr/choose-flights?f=${c.o}&t=${c.d}&d=${farDate()}&tt=1`;
+      const url = c.navan
+        ? `https://app.navan.com/app/user2/search/flights-ngs/${c.o}-${c.d}-${farDate()}`
+        : `https://www.united.com/en/us/fsr/choose-flights?f=${c.o}&t=${c.d}&d=${farDate()}&tt=1`;
       await page.goto(url, { waitUntil: "domcontentloaded" });
 
       // Panel appears only after the SW returns route data from the tracker.
       let panelText = "", appeared = false;
+      if (c.expectNoPanel) {
+        // The panel must NOT appear. Give the content script ample time to scan
+        // the page and (correctly) decide not to render, then assert it stayed
+        // away — a false "no history" pop would create .usl-panel here.
+        await page.waitForTimeout(6000);
+        const el = await page.$(".usl-panel");
+        appeared = !!el;
+        panelText = el ? await page.$eval(".usl-panel", (e) => e.innerText) : "(panel correctly suppressed)";
+      } else
       try {
         await page.waitForSelector(".usl-panel", { timeout: 30000 });
         appeared = true;
@@ -196,12 +303,16 @@ async function run() {
       } catch (e) { panelText = "(panel never rendered: " + String(e.message || e) + ")"; }
 
       const badges = await page.$$eval(".usl-badge", (els) => els.map((e) => e.textContent.trim()));
+      // Optional DOM probe (e.g. the sorted row order) evaluated in the page.
+      const probe = c.probe ? await page.evaluate(c.probe).catch(() => null) : null;
       const shot = join(SHOTS, c.name + ".png");
       try { await page.screenshot({ path: shot, fullPage: true }); } catch (e) {}
 
-      const checks = c.expect(panelText, badges);
-      results.push({ name: c.name, route: `${c.o}→${c.d}`, appeared, panelText, badges, checks, shot });
-      process.stderr.write(`  ${c.name}: panel ${appeared ? "rendered" : "MISSING"} · ${JSON.stringify(checks)}\n`);
+      const checks = c.expectNoPanel
+        ? { panelSuppressed: !appeared }
+        : c.expect(panelText, badges, probe);
+      results.push({ name: c.name, route: `${c.o}→${c.d}`, appeared, expectNoPanel: !!c.expectNoPanel, panelText, badges, probe, checks, shot });
+      process.stderr.write(`  ${c.name}: panel ${appeared ? "rendered" : (c.expectNoPanel ? "suppressed (OK)" : "MISSING")} · ${JSON.stringify(checks)}\n`);
     }
 
     writeReport({ swUrl, consoleErrors, results });
@@ -211,7 +322,7 @@ async function run() {
     // check that is false, null, undefined, a string, or anything else is a
     // failure, not a pass. (Captured values, if any, belong outside `checks`.)
     const failedChecks = results.filter((r) =>
-      !r.appeared || Object.values(r.checks).some((v) => v !== true));
+      (r.expectNoPanel ? false : !r.appeared) || Object.values(r.checks).some((v) => v !== true));
     const reasons = [];
     if (!swUrl) reasons.push("service worker not detected");
     if (consoleErrors.length) reasons.push(consoleErrors.length + " console error(s)");

@@ -71,6 +71,12 @@
   let dataFail = false, dataTries = 0, dataNextTry = 0;
   const ROUTE_BACKOFFS = [15000, 30000, 60000, 120000];
   let navanCtxCache = null, navanCtxKey = "", navanSig = "";
+  // Bug 3 (Navan): the panel must never claim "no history" before the page's
+  // United flights have been read and predicted. navanUnitedCount is how many
+  // distinct UA flight numbers scan() last saw on the page; navanLoading marks
+  // the "reading the page" state so renderPanel shows a loading line, not the
+  // empty-history copy. Both are only consulted on Navan.
+  let navanUnitedCount = 0, navanLoading = false;
   let data = null, panelEl = null, scanScheduled = false;
   let probMap = new Map();
   let registry = new Map();
@@ -829,6 +835,13 @@
     const targets = [];
     let node;
     while ((node = walker.nextNode())) targets.push(node);
+    // Bug 3: record how many distinct United flight numbers are on the page so
+    // the Navan render can tell "still reading the page" from "genuinely none".
+    if (NAVAN) {
+      const seenNav = new Set();
+      for (const n of targets) { const m = n.nodeValue.match(FN_RE); if (m) seenNav.add(AIRLINE + m[1]); }
+      navanUnitedCount = seenNav.size;
+    }
     let registered = false;
     const navanWants = [];
     let bestFn = null, bestP = -1;
@@ -987,23 +1000,31 @@
   function sortPage() {
     const P = findContainer();
     if (!P) return { ok: false, why: "results container not found" };
-    const flightUnits = [...P.children].filter((k) => FN_RE.test(k.textContent || ""));
-    if (flightUnits.length < 2) return { ok: false, why: "fewer than 2 flight rows" };
     const key = (u) => {
       const m = (u.textContent || "").match(FN_RE);
       const hit = m ? probMap.get(AIRLINE + m[1]) : null;
       // "unavailable" and "n/a" have no numeric prob — they sort to the bottom.
       return hit && typeof hit.prob === "number" ? hit.prob : -1;
     };
-    const sorted = flightUnits.map((u, i) => ({ u, i, k: key(u) }))
+    // Bug 4 (Jeremy's ruling: "sink unscored, keep carriers"). Every direct child
+    // is a sortable unit, not just the United rows. A stable sort by odds (score
+    // desc, original index asc) floats United-with-odds to the top and SINKS every
+    // unscored row (other carriers, n/a, still-loading) to the bottom while
+    // preserving their relative order. The old code reordered only FN_RE rows and
+    // pinned everything else, so on a mixed Navan list a Frontier row stayed on
+    // top and the sort looked dead until the list was filtered to United only.
+    const units = [...P.children];
+    const scored = units.filter((u) => key(u) >= 0);
+    if (scored.length < 2) return { ok: false, why: "fewer than 2 scored flights" };
+    const sorted = units.map((u, i) => ({ u, i, k: key(u) }))
       .sort((a, b) => b.k - a.k || a.i - b.i).map((x) => x.u);
     const anchor = document.createComment("usl-anchor");
-    P.insertBefore(anchor, flightUnits[0]);
+    P.insertBefore(anchor, P.firstChild);
     for (const u of sorted) P.insertBefore(u, anchor);
     anchor.remove();
     desiredOrder = currentOrder(P);
     lastSortTs = Date.now();
-    return { ok: true, count: sorted.length };
+    return { ok: true, count: scored.length };
   }
   /* Re-assert the sort after United re-renders (opt-in, loop-guarded). */
   function maybeResort() {
@@ -1081,7 +1102,12 @@
     // that didn't even return a response), so it is NOT a proven absence — it's
     // "unavailable". A present response carries the real directOk.
     const directOk = data ? data.directOk !== false : false;
-    const emptyCopy = note
+    // Bug 3: on Navan, while the page's flights are still being read/predicted
+    // the panel shows a loading line — never the empty-history copy. navanLoading
+    // is only ever set on Navan (see refresh()), so this is inert elsewhere.
+    const emptyCopy = navanLoading
+      ? "Checking this page's flights…"
+      : note
       ? note
       : !directOk
         ? "Direct-flight history unavailable right now."
@@ -1274,7 +1300,18 @@
       ctx = c; ctxKey = key;
       if (routeChanged) { desiredOrder = null; navanSig = ""; }
       scheduleScan();
-      const sig = navanTopFlights().map((f) => f.fn + f.prob).join(",");
+      const flights = navanTopFlights();
+      // Bug 3: do not render the panel at all until United flights are actually
+      // on the page — an empty ranked list before any UA row has been read must
+      // not surface as "no history". Once UA rows are present but predictions
+      // are still in flight (or a scan is pending), show a loading line instead.
+      if (!flights.length && !navanUnitedCount) {
+        if (panelEl) { panelEl.remove(); panelEl = null; }
+        navanSig = ""; navanLoading = false;
+        return;
+      }
+      navanLoading = !flights.length && (pendingPredict.size > 0 || scanScheduled);
+      const sig = navanLoading ? " loading" : flights.map((f) => f.fn + f.prob).join(",");
       if (!panelEl || !panelEl.isConnected || sig !== navanSig) { navanSig = sig; renderPanel(); }
       refreshPanelTimes();
       return;

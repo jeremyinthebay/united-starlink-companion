@@ -17,17 +17,21 @@ cp "dist/wifiodds-v${VER}.zip" "$STAGE/wifi-odds-extension-${VER}.zip"
 cp "dist/wifiodds-v${VER}.files.sha256" "$STAGE/"
 cp "store-assets/${ADIR}/SUBMIT-${VER}.md" "$STAGE/"
 
-# EXACTLY the two current store screenshots (uploaded, in this order).
-cp "store-assets/${ADIR}/store-1-panel-united-1280x800.png" "$STAGE/store-screenshots/"
-cp "store-assets/${ADIR}/store-2-popup-hero-1280x800.png"  "$STAGE/store-screenshots/"
+# EXACTLY the four real store screenshots (shot on live sites, in upload order).
+cp "store-assets/${ADIR}/real/store-1-united-1280x800.png"        "$STAGE/store-screenshots/"
+cp "store-assets/${ADIR}/real/store-2-googleflights-1280x800.png" "$STAGE/store-screenshots/"
+cp "store-assets/${ADIR}/real/store-3-alaska-1280x800.png"        "$STAGE/store-screenshots/"
+cp "store-assets/${ADIR}/real/store-4-navan-1280x800.png"         "$STAGE/store-screenshots/"
 # Brand tiles (not version-specific).
 cp store-assets/v2.1/promo-marquee-1400x560.png store-assets/v2.1/promo-small-440x280.png store-assets/v2.1/store-icon-128.png "$STAGE/promo-tiles/"
 
 cat > "$STAGE/UPLOAD-CHECKLIST.txt" <<EOF
 WiFi Odds v${VER} — Chrome Web Store upload set (exact)
   Package:      wifi-odds-extension-${VER}.zip
-  Screenshots:  store-screenshots/store-1-panel-united-1280x800.png   (1st)
-                store-screenshots/store-2-popup-hero-1280x800.png      (2nd)
+  Screenshots:  store-screenshots/store-1-united-1280x800.png          (1st)
+                store-screenshots/store-2-googleflights-1280x800.png   (2nd)
+                store-screenshots/store-3-alaska-1280x800.png          (3rd)
+                store-screenshots/store-4-navan-1280x800.png           (4th)
   Promo tile:   promo-tiles/promo-marquee-1400x560.png
   Small tile:   promo-tiles/promo-small-440x280.png
   Icon:         promo-tiles/store-icon-128.png
@@ -45,8 +49,10 @@ ALLOW="wifi-odds-extension-${VER}.zip
 wifiodds-v${VER}.files.sha256
 SUBMIT-${VER}.md
 UPLOAD-CHECKLIST.txt
-store-screenshots/store-1-panel-united-1280x800.png
-store-screenshots/store-2-popup-hero-1280x800.png
+store-screenshots/store-1-united-1280x800.png
+store-screenshots/store-2-googleflights-1280x800.png
+store-screenshots/store-3-alaska-1280x800.png
+store-screenshots/store-4-navan-1280x800.png
 promo-tiles/promo-marquee-1400x560.png
 promo-tiles/promo-small-440x280.png
 promo-tiles/store-icon-128.png"
@@ -60,5 +66,5 @@ for png in "$B"/store-screenshots/*.png; do
   Hh=$(sips -g pixelHeight "$png" | awk '/pixelHeight/{print $2}')
   [ "$W" = "1280" ] && [ "$Hh" = "800" ] || { echo "FAIL: $(basename "$png") is ${W}x${Hh}, not 1280x800"; exit 1; }
 done
-echo "bundle OK · allowlist matched · both screenshots 1280x800 · sha256 $(shasum -a 256 "$OUT" | cut -d' ' -f1)"
+echo "bundle OK · allowlist matched · 4 store screenshots 1280x800 · sha256 $(shasum -a 256 "$OUT" | cut -d' ' -f1)"
 rm -rf "$TMP"
