@@ -208,8 +208,14 @@
   }
   .usl-clickable{cursor:pointer;border-radius:8px}
   .usl-clickable:hover{background:rgba(148,178,255,.08)}
+  .usl-clickable:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
   .usl-time{color:var(--dim,#93a1c0);font-size:11px;margin-left:6px}
-  .usl-ghost{opacity:.45}
+  /* Ghost = a route-history flight not in the current results. Dim only the
+     metadata ("not in these results" + obs count); the flight number and the
+     odds pill stay at full contrast (≥4.5:1), never faded with the whole row
+     (Codex P1-03 — the panel was fixed, the popup had been missed). */
+  .usl-ghost{opacity:1;background:#0a0a0c}
+  .usl-ghost .usl-obs,.usl-ghost .usl-time{opacity:.55}
   .usl-trip-row{display:flex;align-items:center;justify-content:space-between;background:var(--card-bg);border:1px solid var(--card-edge);border-radius:10px;padding:7px 10px;margin-bottom:6px;font-family:var(--mono);font-size:12px}
   .usl-trip-main{font-weight:700}
   .usl-trip-sub{color:var(--dim);font-size:10.5px;margin-top:2px;line-height:1.35}

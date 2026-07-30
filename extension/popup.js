@@ -94,11 +94,22 @@ function renderFlights(flights, o, d) {
     row.appendChild(left);
     row.appendChild(right);
     if (times !== undefined && onPage) {
+      // Keyboard-operable jump row (Codex P2-05): native-button semantics on the
+      // div — Tab reaches it, Enter/Space jump exactly like a click.
       row.classList.add("usl-clickable");
+      row.setAttribute("role", "button");
+      row.tabIndex = 0;
+      row.setAttribute("aria-label", "Jump to " + f.fn + " on the page");
       row.title = "Scroll the booking tab to " + f.fn;
-      row.addEventListener("click", function () { jumpTo(f.fn); });
+      var jump = function () { jumpTo(f.fn); };
+      row.addEventListener("click", jump);
+      row.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); jump(); }
+      });
     } else if (onPage) {
       row.classList.add("usl-ghost");
+      row.setAttribute("aria-disabled", "true");
+      row.tabIndex = -1;
       row.title = "Not operating in these results (odds are route history)";
       left.appendChild(el("span", "usl-time", "not in these results"));
     }
