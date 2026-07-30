@@ -18,6 +18,9 @@ VER=$(node -e "console.log(require('./extension/manifest.json').version)")
 ADIR=v$(printf '%s' "$VER" | cut -d. -f1,2)
 FAIL=0
 
+# The exact committed manifest description — the one string every store-copy surface must quote.
+DESC=$(git show HEAD:extension/manifest.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).description))")
+
 # The one source of truth: sha256 of every committed HEAD:extension blob, "hash  path".
 EXPECT=$(git ls-tree -r --name-only HEAD:extension | while read -r f; do
   printf '%s  %s\n' "$(git cat-file blob "HEAD:extension/$f" | shasum -a 256 | cut -d' ' -f1)" "$f"
@@ -47,11 +50,26 @@ if [ -n "$BZIP" ]; then
 else
   echo "FAIL: committed bundle has no wifi-odds-extension-${VER}.zip"; FAIL=1
 fi
+
+# 3b. the SUBMIT copy INSIDE the committed bundle (what the operator actually uploads) must be the
+#     exact committed source AND pass the copy checks itself (round 21 P2). Checking only the repo
+#     source is not enough: a bundle whose SUBMIT drifts from source would sail through.
+BSUBMIT=$(find "$TMP/b" -name "SUBMIT-${VER}.md" | head -1)
+if [ -n "$BSUBMIT" ]; then
+  git show "HEAD:store-assets/${ADIR}/SUBMIT-${VER}.md" > "$TMP/submit.head"
+  cmp -s "$BSUBMIT" "$TMP/submit.head" || { echo "FAIL: SUBMIT-${VER}.md inside the committed bundle differs byte-for-byte from the committed source"; FAIL=1; }
+  BS=$(cat "$BSUBMIT")
+  printf '%s' "$BS" | grep -qF "$DESC" || { echo "FAIL: bundled SUBMIT-${VER}.md does not quote the exact manifest description"; FAIL=1; }
+  if printf '%s' "$BS" | grep -qiE "auto-sort defaults on|auto-sorts by odds|defaults on|starts? checked|start checked"; then
+    echo "FAIL: bundled SUBMIT-${VER}.md claims default auto-sort / pre-checked controls"; FAIL=1
+  fi
+  printf '%s' "$BS" | grep -qi "prioritize" || { echo "FAIL: bundled SUBMIT-${VER}.md does not describe the opt-in Prioritize action"; FAIL=1; }
+else
+  echo "FAIL: committed bundle has no SUBMIT-${VER}.md"; FAIL=1
+fi
 rm -rf "$TMP"
 
-# 4. store copy must match the shipped product: the SUBMIT doc must quote the EXACT committed manifest
-#    description and must NOT claim default auto-sort / pre-checked controls (round 20 P1).
-DESC=$(git show HEAD:extension/manifest.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).description))")
+# 4. the repository SUBMIT SOURCE must also match the shipped product (round 20 P1).
 SUBMIT=$(git show "HEAD:store-assets/${ADIR}/SUBMIT-${VER}.md")
 printf '%s' "$SUBMIT" | grep -qF "$DESC" || { echo "FAIL: SUBMIT-${VER}.md does not quote the exact committed manifest description"; FAIL=1; }
 if printf '%s' "$SUBMIT" | grep -qiE "auto-sort defaults on|auto-sorts by odds|defaults on|starts? checked|start checked"; then
