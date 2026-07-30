@@ -260,6 +260,24 @@
     return arr.sort((a, b) => b.prob - a.prob).slice(0, 6);
   }
 
+  /* United panel list = the route-history rows MERGED with the odds of the
+   * flights actually visible on the page, deduped by flight number. The on-page
+   * (current) value wins on a tie, so a flight the page shows can never be
+   * omitted just because a stale/partial route response left it out — the panel
+   * and the on-page badge can no longer contradict (Codex round-18 P1-01).
+   * Reduces to the on-page list when there is no route table (empty transcon). */
+  function mergedFlights() {
+    const map = new Map();
+    for (const f of (data && data.flights) || [])
+      if (typeof f.prob === "number") map.set(f.fn, { fn: f.fn, prob: f.prob });
+    for (const [fn, r] of registry.entries()) {
+      if (!r || !r.rowEl || !r.rowEl.isConnected) continue;
+      const hit = probMap.get(fn);
+      if (hit && typeof hit.prob === "number") map.set(fn, { fn, prob: hit.prob });
+    }
+    return [...map.values()].sort((a, b) => b.prob - a.prob).slice(0, 6);
+  }
+
   /* ── context: route + leg phase + date ── */
   function getContext() {
     if (NAVAN) return getNavanContext();
@@ -848,7 +866,9 @@
           el.dataset.uslBadged = "1";
           const b = document.createElement("span");
           const isBest = fn === bestFn && hit.prob >= 30 && !PAGE_PREDICT;
-          b.className = "usl-badge " + (isBest ? "usl-best-badge" : cls(hit.prob));
+          // "best" is a RING modifier on top of the ramp colour, never a colour
+          // replacement — a 30% best flight must stay amber, not turn green.
+          b.className = "usl-badge " + cls(hit.prob) + (isBest ? " usl-best" : "");
           b.textContent = (isBest ? "★ " : "") + "🛰️ " + hit.prob + "%" + (hit.dep ? " ✓" : "");
           // "type" confidence = the tracker derived the odds from the aircraft
           // type/subfleet rather than this flight number's own history.
@@ -1031,17 +1051,21 @@
     if (!ctx) return;
     const p = document.createElement("div");
     p.className = "usl-panel";
-    chrome.storage.local.get("uslCollapsed", (v) => { if (v.uslCollapsed) p.classList.add("usl-collapsed"); });
-    const routeFlights = (data && data.flights || []).slice(0, 6);
-    // Alaska's route tool answers with prose, so the ranked list comes from the
-    // flights badged on the page (same path Navan uses). v2.2: united.com does
-    // the same when the route table is empty — it populates the panel from the
-    // on-page per-flight fallback odds, so an empty transcon shows a real ranked
-    // list of the flights actually in the results, not an empty state sitting
-    // above live badges (the contradiction Codex flagged).
-    const fromFallback = UNITED_FALLBACK && !ctx.navan && !routeFlights.length;
-    const flights = (ctx.navan || ((ALASKA || UNITED_FALLBACK) && !routeFlights.length))
-      ? navanTopFlights() : routeFlights;
+    chrome.storage.local.get("uslCollapsed", (v) => {
+      if (!v.uslCollapsed) return;
+      p.classList.add("usl-collapsed");
+      const cb = p.querySelector(".usl-x");
+      if (cb) { cb.setAttribute("aria-expanded", "false"); cb.setAttribute("aria-label", "Expand panel"); }
+    });
+    const hasRouteRows = !!(data && data.flights && data.flights.length);
+    // Navan/Alaska rank from the on-page badges (no route table). United MERGES
+    // the route-history rows with the on-page per-flight odds (mergedFlights), so
+    // a flight visible on the page is never omitted by a stale/partial route
+    // response — panel and page agree (Codex round-18 P1-01).
+    const flights = (ctx.navan || ALASKA) ? navanTopFlights() : mergedFlights();
+    // The "per-flight odds" caption shows when the list is carried purely by the
+    // on-page fallback (no route-history rows at all — the empty-transcon case).
+    const fromFallback = UNITED_FALLBACK && !ctx.navan && !hasRouteRows && flights.length > 0;
     // Display-only summary line from the tracker; escaped, never interpreted.
     const note = !flights.length && data && data.note ? data.note : "";
     const typed = flights.some((f) => { const h = probMap.get(f.fn); return h && h.conf === "type"; });
@@ -1068,11 +1092,12 @@
     p.innerHTML =
       `<header><span class="usl-rt">🛰️ ${esc(ctx.o)} → ${esc(ctx.d)} · ${esc(fmtDate(ctx.date) || "WiFi odds")}${legTag}</span>` +
       `<span class="usl-rhs"><span class="usl-est" title="Historical estimates, cached up to 6h">ESTIMATES</span>` +
-      `<span class="usl-refresh" title="Refresh odds (bypass cache)">↻</span><span class="usl-x">▾</span></span></header>
+      `<button type="button" class="usl-refresh" aria-label="Refresh odds (bypass cache)" title="Refresh odds (bypass cache)">↻</button>` +
+      `<button type="button" class="usl-x" aria-expanded="true" aria-label="Collapse panel" title="Collapse">▾</button></span></header>
       <div class="usl-body">` +
       (flights.length
         ? flights.map((f, i) =>
-            `<div class="usl-row usl-jump" data-fn="${esc(f.fn)}">` +
+            `<div class="usl-row usl-jump" data-fn="${esc(f.fn)}" role="button" tabindex="0" aria-label="Jump to ${esc(f.fn)} on the page">` +
             `<span>${i === 0 ? "⭐ " : ""}${esc(f.fn)}${probMap.get(f.fn) && probMap.get(f.fn).dep ? " ✓" : ""}` +
             (isGuarded(f.fn) ? GUARD_MARK : "") +
             `<span class="usl-time" data-time="${esc(f.fn)}"></span></span>` +
@@ -1085,7 +1110,7 @@
         <label class="usl-keep-wrap" style="display:none;font-size:11.5px;color:#93a1c0;margin-top:4px;gap:6px;align-items:center;cursor:pointer">
         <input type="checkbox" class="usl-keep"> keep sorted when the page updates</label>` : "") +
       (itin ? `<div class="usl-row" style="border-top:1px solid rgba(148,178,255,.14);margin-top:6px;padding-top:8px">` +
-        `<span>via ${esc(itin.via.join("+"))} · all-legs estimate</span><span class="usl-badge usl-mid">${Math.round(itin.joint)}%</span></div>` : "") +
+        `<span>via ${esc(itin.via.join("+"))} · all-legs estimate</span><span class="usl-badge ${cls(Math.round(itin.joint))}">${Math.round(itin.joint)}%</span></div>` : "") +
       (deps.length ? `<div style="margin-top:8px;font-size:11px;opacity:.75">Confirmed tails (next ~72h): ` +
         deps.map((d) => `${esc(d.fn)} ${esc(d.date.slice(5))}`).join(" · ") + `</div>` :
         (ctx.date && daysOut(ctx.date) > 3 ? `<div style="margin-top:8px;font-size:11px;opacity:.6">Tail assignments publish ~48h out — firm ✓s appear closer to ${esc(fmtDate(ctx.date))}.</div>` : "")) +
@@ -1096,23 +1121,38 @@
       (typed ? `<span style="opacity:.55"> · odds derived from aircraft type</span>` : "") +
       (rel ? `<span style="opacity:.55"> · ✓ = confirmed Starlink tail</span>` : "") + `</div>` +
       `</div>`;
+    // Collapse control: a real <button> carrying aria-expanded. Clicking the
+    // header title (not a button) also toggles, for mouse convenience.
+    const collapseBtn = p.querySelector(".usl-x");
+    const toggleCollapse = () => {
+      const collapsed = p.classList.toggle("usl-collapsed");
+      collapseBtn.setAttribute("aria-expanded", String(!collapsed));
+      collapseBtn.setAttribute("aria-label", collapsed ? "Expand panel" : "Collapse panel");
+      chrome.storage.local.set({ uslCollapsed: collapsed });
+    };
+    collapseBtn.addEventListener("click", (ev) => { ev.stopPropagation(); toggleCollapse(); });
     p.querySelector("header").addEventListener("click", (ev) => {
-      if (ev.target.classList.contains("usl-refresh")) return;
-      p.classList.toggle("usl-collapsed");
-      chrome.storage.local.set({ uslCollapsed: p.classList.contains("usl-collapsed") });
+      if (ev.target.closest("button")) return;   // buttons handle themselves
+      toggleCollapse();
     });
-    p.querySelector(".usl-refresh").addEventListener("click", async (ev) => {
+    const refreshBtn = p.querySelector(".usl-refresh");
+    refreshBtn.addEventListener("click", async (ev) => {
       ev.stopPropagation();
-      ev.target.textContent = "…";
+      refreshBtn.textContent = "…";
       data = await loadData(ctx, true);
       indexData();
       renderPanel();
       rebadge();
     });
-    p.querySelectorAll(".usl-jump").forEach((row) => row.addEventListener("click", () => {
-      if (row.classList.contains("usl-ghost")) return;
-      gotoFlight(row.dataset.fn);
-    }));
+    // Jump rows are keyboard-operable (role=button tabindex=0): Enter/Space jump,
+    // exactly like a click; ghost rows (not on the page) neither jump nor focus.
+    p.querySelectorAll(".usl-jump").forEach((row) => {
+      const jump = () => { if (!row.classList.contains("usl-ghost")) gotoFlight(row.dataset.fn); };
+      row.addEventListener("click", jump);
+      row.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); jump(); }
+      });
+    });
     const sb = p.querySelector(".usl-sortbtn");
     if (sb) sb.addEventListener("click", () => {
       const r = sortPage();
@@ -1181,6 +1221,10 @@
       const r = registry.get(fn);
       const onPage = !!(r && r.rowEl.isConnected);
       row.classList.toggle("usl-ghost", !onPage);
+      // Ghost rows don't jump, so they leave the tab order and mark themselves
+      // disabled to assistive tech; on-page rows are focusable button-rows.
+      row.tabIndex = onPage ? 0 : -1;
+      row.setAttribute("aria-disabled", onPage ? "false" : "true");
       row.title = onPage ? "Click to find this flight on the page" : "Not operating in these results (odds are route history)";
       const s = row.querySelector(".usl-time");
       if (s) s.textContent = onPage && r.times ? " · " + r.times.split(" – ")[0] : (onPage ? "" : " · not in results");
@@ -1246,10 +1290,12 @@
     const mayRetry = dataKey === key && dataFail && Date.now() >= dataNextTry;
     if (key === ctxKey && (data || ((ALASKA || UNITED_FALLBACK) && dataKey === key)) && !mayRetry) {
       if (!panelEl || !panelEl.isConnected) renderPanel();
-      else if (ALASKA || (UNITED_FALLBACK && emptyRoute)) {
-        // Odds arrive per flight, so re-render when the ranked (fallback) list
-        // changes — this is how an empty route's panel fills in as odds land.
-        const sig = navanTopFlights().map((f) => f.fn + f.prob).join(",");
+      else if (ALASKA || UNITED_FALLBACK) {
+        // Per-flight odds arrive after the route data, so re-render whenever the
+        // ranked list changes — this is how a page-visible flight (via fallback)
+        // gets folded into the United panel even when the route table omitted it.
+        const list = ALASKA ? navanTopFlights() : mergedFlights();
+        const sig = list.map((f) => f.fn + f.prob).join(",");
         if (sig !== navanSig) { navanSig = sig; renderPanel(); }
       }
       refreshPanelTimes();
@@ -1274,7 +1320,7 @@
       }
     }
     indexData();
-    if (ALASKA || UNITED_FALLBACK) navanSig = navanTopFlights().map((f) => f.fn + f.prob).join(",");
+    if (ALASKA || UNITED_FALLBACK) navanSig = (ALASKA ? navanTopFlights() : mergedFlights()).map((f) => f.fn + f.prob).join(",");
     renderPanel();
     rebadge();
   }

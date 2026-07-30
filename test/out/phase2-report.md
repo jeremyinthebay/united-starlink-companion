@@ -1,6 +1,6 @@
 # Phase 2 — browser E2E (extension loaded, real tracker, fixtured united.com)
 
-Run: 2026-07-29T19:04:02.645Z
+Run: 2026-07-30T01:35:56.035Z
 Service worker: chrome-extension://oiihcooamibbaoakhnmedaijgbopfmpe/bg.js
 Console errors during run: none
 
@@ -11,40 +11,42 @@ Checks: `{"newEmptyCopy":true,"oldContradictionGone":true,"connectionLabelled":t
 
 Panel text as rendered:
 ```
-🛰️ LAX→EWR · Aug 28
-↻ ▾
+🛰️ LAX → EWR · Aug 29
+ESTIMATES
+↻
+▾
 No direct-flight Starlink history yet. Connection estimate below.
-via MCI · all-legs estimate
+via AUS · all-legs estimate
 96%
-Tail assignments publish ~48h out — firm ✓s appear closer to Aug 28.
+Tail assignments publish ~48h out — firm ✓s appear closer to Aug 29.
 wifiodds.com ↗
 ```
 Screenshot: `out/shots/LAX-EWR-empty-with-connection.png`
 
 ## SFO→DEN — SFO-DEN-positive
-Panel rendered: **yes** · badges on page: `★ 🛰️ 68%` `🛰️ 41%` `68%` `41%` `40%` `30%` `30%` `96%`
+Panel rendered: **yes** · badges on page: `★ 🛰️ 68%` `★ 🛰️ 41%` `68%` `41%` `40%` `30%` `96%`
 
-Checks: `{"listsUA1596":true,"noEmptyCopy":true}`
+Checks: `{"listsUA1596":true,"ua1596RanksFirst":true,"noEmptyCopy":true}`
 
 Panel text as rendered:
 ```
-🛰️ SFO→DEN · Aug 28
-↻ ▾
+🛰️ SFO → DEN · Aug 29
+ESTIMATES
+↻
+▾
 ⭐ UA1596 · 8:30 a.m.
 68%
 UA1214 · 11:05 a.m.
 41%
 UA2019 · not in results
 40%
-UA1758 · not in results
-30%
 UA540 · not in results
 30%
 auto-sort by odds when the page loads
 keep sorted when the page updates
 via MSO · all-legs estimate
 96%
-Tail assignments publish ~48h out — firm ✓s appear closer to Aug 28.
+Tail assignments publish ~48h out — firm ✓s appear closer to Aug 29.
 wifiodds.com ↗
 ```
 Screenshot: `out/shots/SFO-DEN-positive.png`
@@ -56,8 +58,10 @@ Checks: `{"ua2402RealOdds":true,"ua1596RealOdds":true,"panelListsFlights":true,"
 
 Panel text as rendered:
 ```
-🛰️ SFO→SIN · Aug 28
-↻ ▾
+🛰️ SFO → SIN · Aug 29
+ESTIMATES
+↻
+▾
 ⭐ UA1596 · 10:30 a.m.
 68%
 UA2402 · 2:15 p.m.
@@ -65,7 +69,7 @@ UA2402 · 2:15 p.m.
 Flights in these results · per-flight odds (no Starlink route history yet)
 auto-sort by odds when the page loads
 keep sorted when the page updates
-Tail assignments publish ~48h out — firm ✓s appear closer to Aug 28.
+Tail assignments publish ~48h out — firm ✓s appear closer to Aug 29.
 wifiodds.com ↗
 ```
 Screenshot: `out/shots/united-fallback-real-odds.png`
@@ -77,10 +81,12 @@ Checks: `{"saysUnavailable":true,"notFalseAbsence":true}`
 
 Panel text as rendered:
 ```
-🛰️ DEN→SFO · Aug 28
-↻ ▾
+🛰️ DEN → SFO · Aug 29
+ESTIMATES
+↻
+▾
 Direct-flight history unavailable right now.
-Tail assignments publish ~48h out — firm ✓s appear closer to Aug 28.
+Tail assignments publish ~48h out — firm ✓s appear closer to Aug 29.
 wifiodds.com ↗
 ```
 Screenshot: `out/shots/united-outage-unavailable.png`

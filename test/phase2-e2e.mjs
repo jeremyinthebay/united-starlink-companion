@@ -82,6 +82,9 @@ const CASES = [
     rows: [{ num: 1596, time: "8:30 a.m." }, { num: 1214, time: "11:05 a.m." }],
     expect: (txt) => ({
       listsUA1596: /UA1596/.test(txt),
+      // Codex P1-01: the page-visible top flight must rank FIRST in the panel
+      // (⭐ prefix), even if the route table omitted it.
+      ua1596RanksFirst: /⭐\s*UA1596/.test(txt),
       noEmptyCopy: !/No direct-flight Starlink history/.test(txt),
     }),
   },

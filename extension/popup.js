@@ -114,10 +114,16 @@ function renderItins(itins) {
   wrap.appendChild(el("div", "usl-section-label", "Best itineraries"));
   top.forEach(function (it) {
     var path = (it.via && it.via.length ? it.via : []).join(" → ");
-    var text = path
-      ? path + " · " + it.joint + "% · " + it.hours + "h"
-      : it.joint + "% · " + it.hours + "h";
-    wrap.appendChild(el("div", "usl-itin-row", text));
+    // The joint % rides the SAME ramp/pill as flight odds (pctClass), not plain
+    // text — one consistent scale on every surface.
+    var row = el("div", "usl-itin-row");
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.justifyContent = "space-between";
+    row.style.gap = "8px";
+    row.appendChild(el("span", null, (path ? path + " · " : "") + it.hours + "h"));
+    row.appendChild(el("span", "usl-pct " + pctClass(it.joint), it.joint + "%"));
+    wrap.appendChild(row);
   });
   return wrap;
 }

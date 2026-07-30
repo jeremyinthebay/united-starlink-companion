@@ -115,8 +115,13 @@
 
 /* v1.1.1 */
 .usl-na{color:#93a1c0;border-color:rgba(147,161,192,.4);background:rgba(147,161,192,.08)}
-.usl-ghost{opacity:.45;cursor:default}
+.usl-ghost{cursor:default}
 .usl-ghost:hover{background:transparent}
+/* Ghost = a panel flight not currently on the page. Recede the row's surface and
+   dim only the "· not in results" metadata — the flight number and the odds pill
+   stay at full contrast (≥4.5:1), never faded with the whole row (Codex P1-03). */
+.usl-panel .usl-ghost{opacity:1;background:#101119;border-color:#1e1f28}
+.usl-panel .usl-ghost .usl-time{opacity:.6}
 
 /* v1.4 trip monitor — unfilled state restyled in 1.6 (see below).
  * The original was pale gold at opacity .55: a hairline yellow outline on a
@@ -184,16 +189,19 @@
 /* v2.2 — ONE consistent odds ramp, high → low likelihood, used identically
  * on-page (white host rows) AND in the dark panel. Light fills + near-black text
  * read on both. The ramp is monotonic: green (likely) → lime → amber → coral
- * (unlikely). Grey is reserved for UNKNOWN, never a zero; the ✓ best-badge is the
- * green top of the ramp plus a ring. Every band clears 4.5:1 (dark text/light
- * fill). cls() in content.js maps ≥50→hi, 35–49→mid, 20–34→low, <20→no. */
+ * (unlikely). Grey is reserved for UNKNOWN, never a zero; "best" is a RING
+ * modifier that keeps the flight's true ramp colour. Every band clears 4.5:1
+ * (dark text/light fill). cls() in content.js maps ≥50→hi, 35–49→mid, 20–34→low,
+ * <20→no — the ONE shared threshold contract used by every surface. */
 .usl-badge{font-size:13px;font-weight:800;padding:3px 11px;color:#0a0a12;background:#9aa8bb;border:none;box-shadow:0 1px 3px rgba(16,24,40,.24);letter-spacing:.2px;line-height:1.5}
 .usl-badge.usl-hi{background:#33cf80;color:#04140c}    /* likely  */
 .usl-badge.usl-mid{background:#b6d04f;color:#14170a}   /*  ↕      */
 .usl-badge.usl-low{background:#efb84d;color:#1c1305}   /*  ↕      */
 .usl-badge.usl-no{background:#ef8168;color:#210a06}    /* unlikely*/
 .usl-badge.usl-na{background:#656b76;color:#fff}       /* unknown, never zero */
-.usl-badge.usl-best-badge{background:#33cf80;color:#04140c;box-shadow:0 0 0 2.5px rgba(51,207,128,.42),0 1px 4px rgba(16,24,40,.3)}
+/* "best" is a ring only — the ramp band (usl-hi/mid/low/no) still sets the fill
+   and text colour, so the best flight keeps its true likelihood colour. */
+.usl-badge.usl-best{box-shadow:0 0 0 2.5px rgba(41,216,255,.55),0 1px 4px rgba(16,24,40,.3)}
 .usl-panel .usl-badge{font-size:12px;padding:2px 9px}
 
 /* v2.0 — Google Flights chips.
@@ -282,3 +290,18 @@ span.usl-watching:focus-visible{
 }
 .usl-panel .usl-sortbtn:hover{filter:brightness(1.07);background:linear-gradient(90deg,#29d8ff,#7b8cff 55%,#926cff)}
 .usl-panel a{color:#8ecdff}
+
+/* v2.2 accessibility (Codex P2-01): the header controls are real <button>s and
+   the flight rows are role=button/tabindex — reset the button chrome and give
+   every interactive control a visible keyboard focus ring. */
+.usl-panel .usl-refresh,.usl-panel .usl-x{
+  background:none;border:none;padding:2px 5px;margin:0;cursor:pointer;color:#7b8190;
+  font:inherit;font-size:14px;line-height:1;border-radius:6px;
+}
+.usl-panel .usl-refresh:hover,.usl-panel .usl-x:hover{color:#cfd3dc}
+.usl-panel .usl-jump{outline:none}
+.usl-panel .usl-refresh:focus-visible,.usl-panel .usl-x:focus-visible,
+.usl-panel .usl-jump:focus-visible,.usl-panel .usl-sortbtn:focus-visible,
+.usl-panel .usl-auto:focus-visible,.usl-panel .usl-keep:focus-visible{
+  outline:2px solid #29d8ff;outline-offset:2px;
+}

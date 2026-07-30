@@ -88,11 +88,20 @@ async function run() {
   await page.setViewportSize({ width: W, height: H });
   await page.goto(`https://www.united.com/en/us/fsr/choose-flights?f=DEN&t=SFO&d=2026-08-28&tt=1`, { waitUntil: "domcontentloaded" });
   await page.waitForSelector(".usl-panel", { timeout: 30000 });
+  // Fail-CLOSED (Codex P2-02): the required UI must be present or the capture
+  // throws — a regressed tracker/DOM can never produce a "release" screenshot.
   await page.waitForFunction(() => {
     const b = [...document.querySelectorAll(".usl-badge")];
     return b.some((x) => /\d+%/.test(x.textContent));
-  }, null, { timeout: 20000 }).catch(() => {});
+  }, null, { timeout: 25000 });
   await page.waitForTimeout(2500);
+  // Assert the panel carries a ramp band and the ESTIMATES chip before shooting.
+  const ok = await page.evaluate(() => {
+    const p = document.querySelector(".usl-panel");
+    if (!p || !/ESTIMATES/.test(p.innerText)) return false;
+    return !!p.querySelector(".usl-badge.usl-hi, .usl-badge.usl-mid, .usl-badge.usl-low, .usl-badge.usl-no");
+  });
+  if (!ok) throw new Error("panel missing ESTIMATES chip or ramp band — refusing to capture");
   await page.screenshot({ path: join(OUT, "1-panel-united.png"), clip: { x: 0, y: 0, width: W, height: H } });
 
   // 2 · popup, captured raw then composited onto a branded 1280×800 canvas
@@ -101,9 +110,10 @@ async function run() {
   await pop.goto(`chrome-extension://${extId}/popup.html`, { waitUntil: "domcontentloaded" });
   await pop.fill("#usl-from", "DEN"); await pop.fill("#usl-to", "SFO");
   await pop.click("#usl-go");
-  await pop.waitForSelector(".usl-pct", { timeout: 20000 }).catch(() => {});
+  await pop.waitForSelector(".usl-pct", { timeout: 20000 }); // required, not swallowed
   await pop.waitForTimeout(1200);
-  const popShot = (await pop.screenshot()).toString("base64");
+  // fullPage → the COMPLETE popup, so the hero can never clip a control mid-row.
+  const popShot = (await pop.screenshot({ fullPage: true })).toString("base64");
   const canvas = await ctx.newPage();
   await canvas.setViewportSize({ width: W, height: H });
   await canvas.setContent(`<!doctype html><html><body style="margin:0;width:${W}px;height:${H}px;
@@ -113,9 +123,9 @@ async function run() {
       <div style="font:700 13px ui-monospace,Menlo,monospace;letter-spacing:.12em;
         background:linear-gradient(105deg,#29d8ff,#926cff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:14px">STARLINK + AMAZON LEO ODDS</div>
       <div style="font-size:54px;line-height:1.05;font-weight:800;letter-spacing:-.02em;margin:0 0 18px">Will your flight have real WiFi?</div>
-      <div style="font-size:19px;color:#aab2c5;line-height:1.5">Odds on every flight in your search results, before you book. Free, no account, nothing tracked.</div>
+      <div style="font-size:19px;color:#aab2c5;line-height:1.5">Odds on every flight in your search results, before you book. Free · no account or ad tracking.</div>
     </div>
-    <img src="data:image/png;base64,${popShot}" style="width:360px;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.6);border:1px solid #23232e">
+    <img src="data:image/png;base64,${popShot}" style="max-height:724px;width:auto;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.6);border:1px solid #23232e">
   </body></html>`);
   await canvas.waitForTimeout(400);
   await canvas.screenshot({ path: join(OUT, "2-popup-hero.png"), clip: { x: 0, y: 0, width: W, height: H } });
