@@ -76,11 +76,15 @@
   // distinct UA flight numbers scan() last saw on the page; navanLoading marks
   // the "reading the page" state so renderPanel shows a loading line, not the
   // empty-history copy. Both are only consulted on Navan.
-  let navanUnitedCount = 0, navanLoading = false;
+  let navanUnitedCount = 0, navanLoading = false, navanUnavailable = false;
+  // Bug 3: the exact SET of on-page United flight numbers scan() last saw. The
+  // panel is "loading" ONLY while a genuine prediction is pending for one of
+  // these — never because a periodic/DOM scan happens to be scheduled.
+  let navanUnitedFns = new Set();
   let data = null, panelEl = null, scanScheduled = false;
   let probMap = new Map();
   let registry = new Map();
-  let keepSorted = false, autoSort = false, desiredOrder = null, lastSortTs = 0;
+  let prioritizeActive = false, desiredOrder = null, lastSortTs = 0;
   let watched = new Set(); // "UA1812|2026-07-25"
   // Selector/tuning values, overridable by the remotely-hosted manifest the
   // service worker caches. Absent a remote config these defaults are used
@@ -169,11 +173,11 @@
     if (!chrome.runtime.lastError && res && res.trips)
       watched = new Set(res.trips.map((t) => t.fn + "|" + t.date));
   }); } catch {}
-  // v2.2: both sort aids default ON for a fresh install/update (undefined in
-  // storage), so results sort by odds out of the box. An explicit user choice
-  // (true OR false) is always respected — unchecking sticks.
-  try { chrome.storage.local.get("uslKeepSorted", (v) => { keepSorted = v.uslKeepSorted === undefined ? true : !!v.uslKeepSorted; }); } catch {}
-  try { chrome.storage.local.get("uslAutoSort", (v) => { autoSort = v.uslAutoSort === undefined ? true : !!v.uslAutoSort; if (autoSort) scheduleScan(); }); } catch {}
+  // Round-18 Bug 4 ruling: NOTHING reorders cross-carrier by default — the
+  // page's own order is preserved on load. Reordering happens only when the user
+  // activates the explicit "Prioritize United flights…" action, which persists
+  // as uslPrioritize so a deliberate choice sticks across reloads (default off).
+  try { chrome.storage.local.get("uslPrioritize", (v) => { prioritizeActive = !!v.uslPrioritize; if (prioritizeActive) scheduleScan(); }); } catch {}
 
   /* ── Navan: derive route context from the DOM (no URL params there) ── */
   function getNavanContext() {
@@ -840,6 +844,7 @@
     if (NAVAN) {
       const seenNav = new Set();
       for (const n of targets) { const m = n.nodeValue.match(FN_RE); if (m) seenNav.add(AIRLINE + m[1]); }
+      navanUnitedFns = seenNav;
       navanUnitedCount = seenNav.size;
     }
     let registered = false;
@@ -916,7 +921,6 @@
     if (registered) { updatePanelSortBtn(); refreshPanelTimes(); }
     if ((PAGE_PREDICT || UNITED_FALLBACK) && navanWants.length) requestPredictions([...new Set(navanWants)]);
     maybeResort();
-    maybeAutoSort();
   }
   function scheduleScan() {
     if (scanScheduled) return;
@@ -993,78 +997,102 @@
     }
     return bestScore >= 2 ? best : null;
   }
-  function currentOrder(P) {
-    return [...P.children].map((k) => ((k.textContent || "").match(FN_RE) || [])[1])
-      .filter(Boolean).map((n) => AIRLINE + n);
+  /* ── validated flight-result rows only (Round-18 Bug 4) ────────────────────
+   * A "flight unit" is a results row that is genuinely a flight: it carries a
+   * recognized flight-number token AND a clock time. That pairing is what keeps
+   * headings, filters, banners, result-tools/notice blocks, pagination and
+   * loading sentinels OUT of the reorder — the old sorter moved every direct
+   * child of the container and detached the reading order from the booking
+   * controls. GEN_FN_RE is deliberately generic (any carrier), so an unscored
+   * Frontier/Southwest row is still recognized as a flight and kept in the
+   * sort's stable tail rather than mistaken for structure. */
+  const GEN_FN_RE = /\b(?:[A-Z]{2,3}|[A-Z][a-zA-Z]{3,})\s?\d{2,4}\b/;
+  function isFlightUnit(el) {
+    const t = el.textContent || "";
+    return TIME_ONE.test(t) && GEN_FN_RE.test(t);
+  }
+  // Stable per-row identity from its flight token ("United 1596" → "UNITED1596",
+  // "Frontier 1229" → "FRONTIER1229"). Used to compare the FULL cross-carrier row
+  // order so a Navan rerender that lifts another carrier back above United — even
+  // while United's own relative order is preserved — is detected and re-corrected.
+  function rowToken(el) {
+    const m = (el.textContent || "").match(GEN_FN_RE);
+    return m ? m[0].replace(/\s+/g, "").toUpperCase() : null;
+  }
+  function currentFlightOrder(P) {
+    return [...P.children].filter(isFlightUnit).map(rowToken).filter(Boolean);
+  }
+  // Numeric odds for a United row, or null when the row is unscored (another
+  // carrier, an n/a United flight, or one still loading). null is NOT "worse
+  // than 0" — unscored rows simply follow the scored ones in their own order.
+  function unitScore(el) {
+    const m = (el.textContent || "").match(FN_RE);
+    const hit = m ? probMap.get(AIRLINE + m[1]) : null;
+    return hit && typeof hit.prob === "number" ? hit.prob : null;
+  }
+  // The target flight-token order given the CURRENT prediction set: scored United
+  // rows by odds desc (stable), then every unscored flight row in its existing
+  // relative order. Recomputed each pass so a score that settles in a later batch
+  // (beyond the worker's 25-per-call cap) reranks correctly.
+  function idealFlightTokens(P) {
+    const flights = [...P.children].filter(isFlightUnit)
+      .map((el, k) => ({ el, k, s: unitScore(el), tok: rowToken(el) }));
+    const scored = flights.filter((x) => x.s !== null).slice()
+      .sort((a, b) => b.s - a.s || a.k - b.k);
+    const unscored = flights.filter((x) => x.s === null);
+    return { scoredCount: scored.length, tokens: [...scored, ...unscored].map((x) => x.tok) };
   }
   function sortPage() {
     const P = findContainer();
     if (!P) return { ok: false, why: "results container not found" };
-    const key = (u) => {
-      const m = (u.textContent || "").match(FN_RE);
-      const hit = m ? probMap.get(AIRLINE + m[1]) : null;
-      // "unavailable" and "n/a" have no numeric prob — they sort to the bottom.
-      return hit && typeof hit.prob === "number" ? hit.prob : -1;
-    };
-    // Bug 4 (Jeremy's ruling: "sink unscored, keep carriers"). Every direct child
-    // is a sortable unit, not just the United rows. A stable sort by odds (score
-    // desc, original index asc) floats United-with-odds to the top and SINKS every
-    // unscored row (other carriers, n/a, still-loading) to the bottom while
-    // preserving their relative order. The old code reordered only FN_RE rows and
-    // pinned everything else, so on a mixed Navan list a Frontier row stayed on
-    // top and the sort looked dead until the list was filtered to United only.
-    const units = [...P.children];
-    const scored = units.filter((u) => key(u) >= 0);
+    const kids = [...P.children];
+    const flightIdx = [];
+    kids.forEach((el, i) => { if (isFlightUnit(el)) flightIdx.push(i); });
+    const meta = flightIdx.map((i, k) => ({ el: kids[i], k, s: unitScore(kids[i]) }));
+    const scored = meta.filter((x) => x.s !== null);
     if (scored.length < 2) return { ok: false, why: "fewer than 2 scored flights" };
-    const sorted = units.map((u, i) => ({ u, i, k: key(u) }))
-      .sort((a, b) => b.k - a.k || a.i - b.i).map((x) => x.u);
+    const scoredSorted = scored.slice().sort((a, b) => b.s - a.s || a.k - b.k);
+    const unscored = meta.filter((x) => x.s === null); // original relative order
+    const newFlightEls = [...scoredSorted, ...unscored].map((x) => x.el);
+    // Reinsert so the FLIGHT slots take the new flight sequence and every
+    // non-flight sibling stays in its own slot — structure never moves.
+    const flightSet = new Set(flightIdx);
+    let fi = 0;
+    const desired = kids.map((el, i) => (flightSet.has(i) ? newFlightEls[fi++] : el));
     const anchor = document.createComment("usl-anchor");
     P.insertBefore(anchor, P.firstChild);
-    for (const u of sorted) P.insertBefore(u, anchor);
+    for (const el of desired) P.insertBefore(el, anchor);
     anchor.remove();
-    desiredOrder = currentOrder(P);
+    desiredOrder = currentFlightOrder(P);
     lastSortTs = Date.now();
     return { ok: true, count: scored.length };
   }
-  /* Re-assert the sort after United re-renders (opt-in, loop-guarded). */
+  /* While the explicit action is active, re-assert the order after United/Navan
+   * re-renders AND after new odds settle. Recomputes the ideal from current
+   * scores and compares it to the live FULL flight-row order (all carriers), so
+   * both a cross-carrier rerender and a late high score re-correct. Loop-guarded:
+   * our own reorder is a DOM mutation that reschedules a scan, so a short window
+   * after each sort is ignored. */
   function maybeResort() {
-    if ((!keepSorted && !autoSort) || !desiredOrder || Date.now() - lastSortTs < 1500) return;
+    if (!prioritizeActive || Date.now() - lastSortTs < 1200) return;
     const P = findContainer();
     if (!P) return;
-    const now = currentOrder(P);
-    if (now.join(",") !== desiredOrder.join(",")) sortPage();
-  }
-  /* Auto-sort once on load (opt-in) after odds for the on-page flights have settled;
-     maybeResort() then keeps it sorted through United's re-renders. */
-  function maybeAutoSort() {
-    if (!autoSort || desiredOrder) return;
-    const P = findContainer();
-    if (!P) return;
-    const units = [...P.children].filter((k) => FN_RE.test(k.textContent || ""));
-    if (units.length < 2) return;
-    const withOdds = units.filter((u) => {
-      const m = (u.textContent || "").match(FN_RE);
-      const hit = m ? probMap.get(AIRLINE + m[1]) : null;
-      return hit && hit.prob >= 0;
-    }).length;
-    if (withOdds < 2) return;
-    sortPage();
+    const ideal = idealFlightTokens(P);
+    if (ideal.scoredCount < 2) return;
+    const now = currentFlightOrder(P);
+    if (now.join(",") !== ideal.tokens.join(",")) sortPage();
   }
 
   /* ── panel ── */
   function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
   function updatePanelSortBtn() {
-    const btn = panelEl && panelEl.querySelector(".usl-sortbtn");
+    const btn = panelEl && panelEl.querySelector(".usl-prioritize");
     if (!btn) return;
+    // Show the explicit action once there is at least one on-page United row it
+    // could act on. It reorders only when ≥2 are actually scored (sortPage guards
+    // that), so it can appear before the second score settles.
     const n = [...registry.values()].filter((r) => r.rowEl.isConnected).length;
-    // The manual sort button is only useful when auto-sort is OFF. When auto-sort
-    // is on (the v2.2 default) the page is already ordered on load, so the button
-    // is redundant and hidden (Jeremy). The checkboxes stay whenever there's ≥1.
-    btn.style.display = (n >= 1 && !autoSort) ? "" : "none";
-    const kc = panelEl.querySelector(".usl-keep-wrap");
-    if (kc) kc.style.display = n >= 1 ? "flex" : "none";
-    const ac = panelEl.querySelector(".usl-auto-wrap");
-    if (ac) ac.style.display = n >= 1 ? "flex" : "none";
+    btn.style.display = n >= 1 ? "" : "none";
   }
   function renderPanel() {
     if (panelEl) panelEl.remove();
@@ -1107,6 +1135,8 @@
     // is only ever set on Navan (see refresh()), so this is inert elsewhere.
     const emptyCopy = navanLoading
       ? "Checking this page's flights…"
+      : navanUnavailable
+      ? "Direct-flight history unavailable right now."
       : note
       ? note
       : !directOk
@@ -1130,11 +1160,7 @@
             `<span class="usl-badge ${cls(f.prob)}">${f.prob}%</span></div>`).join("")
         : `<div class="usl-row" style="display:block;line-height:1.45">${esc(emptyCopy)}</div>`) +
       (fromFallback && flights.length ? `<div style="margin-top:6px;font-size:11px;opacity:.7">Flights in these results · per-flight odds (no Starlink route history yet)</div>` : "") +
-      (flights.length ? `<button class="usl-sortbtn" style="display:none">Sort these flights by WiFi odds</button>
-        <label class="usl-auto-wrap" style="display:none;font-size:11.5px;color:#93a1c0;margin-top:6px;gap:6px;align-items:center;cursor:pointer">
-        <input type="checkbox" class="usl-auto"> auto-sort by odds when the page loads</label>
-        <label class="usl-keep-wrap" style="display:none;font-size:11.5px;color:#93a1c0;margin-top:4px;gap:6px;align-items:center;cursor:pointer">
-        <input type="checkbox" class="usl-keep"> keep sorted when the page updates</label>` : "") +
+      (flights.length ? `<button type="button" class="usl-sortbtn usl-prioritize" aria-pressed="${prioritizeActive ? "true" : "false"}" style="display:none">Prioritize United flights with available WiFi odds; unscored flights follow</button>` : "") +
       (itin ? `<div class="usl-row" style="border-top:1px solid rgba(148,178,255,.14);margin-top:6px;padding-top:8px">` +
         `<span>via ${esc(itin.via.join("+"))} · all-legs estimate</span><span class="usl-badge ${cls(Math.round(itin.joint))}">${Math.round(itin.joint)}%</span></div>` : "") +
       (deps.length ? `<div style="margin-top:8px;font-size:11px;opacity:.75">Confirmed tails (next ~72h): ` +
@@ -1179,31 +1205,28 @@
         if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); jump(); }
       });
     });
-    const sb = p.querySelector(".usl-sortbtn");
-    if (sb) sb.addEventListener("click", () => {
-      const r = sortPage();
-      sb.textContent = r.ok ? `✓ sorted ${r.count} flights (best first)` : `couldn't sort (${r.why})`;
-      setTimeout(() => { sb.textContent = "Sort these flights by WiFi odds"; }, 3500);
-    });
-    const keep = p.querySelector(".usl-keep");
-    if (keep) {
-      keep.checked = keepSorted;
-      keep.addEventListener("change", () => {
-        keepSorted = keep.checked;
-        chrome.storage.local.set({ uslKeepSorted: keepSorted });
-        if (keepSorted && !desiredOrder) sortPage();
-      });
-    }
-    const auto = p.querySelector(".usl-auto");
-    if (auto) {
-      auto.checked = autoSort;
-      auto.addEventListener("change", () => {
-        autoSort = auto.checked;
-        chrome.storage.local.set({ uslAutoSort: autoSort });
-        desiredOrder = null;
-        if (autoSort) maybeAutoSort();
-        // Show/hide the now-redundant (or now-needed) manual sort button live.
-        updatePanelSortBtn();
+    // Bug 4 ruling: one explicit, keyboard-operable action. Off by default; the
+    // page's cross-carrier order is untouched until the user presses it. When on,
+    // it reorders only validated flight rows now and stays on (maybeResort reranks
+    // as odds settle and re-corrects rerenders). Pressing again turns it off.
+    const PRIORITIZE_LABEL = "Prioritize United flights with available WiFi odds; unscored flights follow";
+    const pr = p.querySelector(".usl-prioritize");
+    if (pr) {
+      const applyState = () => {
+        pr.setAttribute("aria-pressed", prioritizeActive ? "true" : "false");
+        pr.classList.toggle("usl-prioritize-on", prioritizeActive);
+        pr.textContent = prioritizeActive
+          ? "✓ Prioritizing United flights — unscored follow (press to undo)"
+          : PRIORITIZE_LABEL;
+      };
+      applyState();
+      // A real <button> is keyboard-operable (Enter/Space) and focusable for free;
+      // the focus ring lives in content.css (.usl-prioritize:focus-visible).
+      pr.addEventListener("click", () => {
+        prioritizeActive = !prioritizeActive;
+        try { chrome.storage.local.set({ uslPrioritize: prioritizeActive }); } catch (e) {}
+        applyState();
+        if (prioritizeActive) { lastSortTs = 0; sortPage(); }
       });
     }
     document.documentElement.appendChild(p);
@@ -1285,6 +1308,16 @@
     });
   } catch {}
 
+  // Bug 3: is any on-page United flight number still awaiting its FIRST resolved
+  // prediction? A flight counts as resolved once probMap has it — numeric odds,
+  // a genuine n/a (null), or a terminal "unavailable" all count. This, plus a
+  // request in flight (pendingPredict), is the ONLY thing that keeps the Navan
+  // panel in its loading line; a scheduled scan does not.
+  function navanHasUnresolved() {
+    for (const fn of navanUnitedFns) if (!probMap.has(fn)) return true;
+    return false;
+  }
+
   /* ── orchestration ── */
   async function refresh() {
     // GF carries no single route/leg context, so none of the route machinery
@@ -1295,7 +1328,7 @@
     const key = `${c.o}-${c.d}|${c.date}|${c.phase}`;
     if (c.navan) {
       // Navan: badges come from scan()/predictions; just (re)render the panel from
-      // the on-page flights and let sortPage/auto-sort/keep-sorted do their thing.
+      // the on-page flights and let the explicit Prioritize action reorder if on.
       const routeChanged = !ctx || c.o !== ctx.o || c.d !== ctx.d || c.phase !== ctx.phase;
       ctx = c; ctxKey = key;
       if (routeChanged) { desiredOrder = null; navanSig = ""; }
@@ -1307,11 +1340,22 @@
       // are still in flight (or a scan is pending), show a loading line instead.
       if (!flights.length && !navanUnitedCount) {
         if (panelEl) { panelEl.remove(); panelEl = null; }
-        navanSig = ""; navanLoading = false;
+        navanSig = ""; navanLoading = false; navanUnavailable = false;
         return;
       }
-      navanLoading = !flights.length && (pendingPredict.size > 0 || scanScheduled);
-      const sig = navanLoading ? " loading" : flights.map((f) => f.fn + f.prob).join(",");
+      // Bug 3 fix: loading is true ONLY while a prediction is genuinely pending
+      // for an on-page United row — a request in flight, or a United flight
+      // number scan() saw that is not yet resolved in probMap (numeric, genuine
+      // n/a, or terminal "unavailable" all count as resolved). scanScheduled — a
+      // periodic/DOM flag that is ~always true on a churny Navan page — is NOT a
+      // settlement signal and must never keep the panel loading.
+      navanLoading = !flights.length && (pendingPredict.size > 0 || navanHasUnresolved());
+      // Terminal-but-empty classification: every on-page United row has resolved
+      // and none produced odds. If they ALL terminally failed (repeated tracker
+      // errors → "unavailable"), say so rather than claim a proven absence.
+      navanUnavailable = !navanLoading && !flights.length && navanUnitedFns.size > 0 &&
+        [...navanUnitedFns].every((fn) => { const h = probMap.get(fn); return h && h.unavailable; });
+      const sig = navanLoading ? "loading" : navanUnavailable ? " unavail" : flights.map((f) => f.fn + f.prob).join(",");
       if (!panelEl || !panelEl.isConnected || sig !== navanSig) { navanSig = sig; renderPanel(); }
       refreshPanelTimes();
       return;

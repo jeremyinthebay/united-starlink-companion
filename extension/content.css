@@ -302,6 +302,10 @@ span.usl-watching:focus-visible{
 .usl-panel .usl-jump{outline:none}
 .usl-panel .usl-refresh:focus-visible,.usl-panel .usl-x:focus-visible,
 .usl-panel .usl-jump:focus-visible,.usl-panel .usl-sortbtn:focus-visible,
-.usl-panel .usl-auto:focus-visible,.usl-panel .usl-keep:focus-visible{
+.usl-panel .usl-prioritize:focus-visible{
   outline:2px solid #29d8ff;outline-offset:2px;
+}
+/* The explicit "Prioritize United flights" action, in its pressed/active look. */
+.usl-panel .usl-prioritize[aria-pressed="true"]{
+  background:linear-gradient(90deg,#0a8a4d,#29d8ff 130%);color:#04120a;
 }
