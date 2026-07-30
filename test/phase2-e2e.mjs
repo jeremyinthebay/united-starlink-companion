@@ -59,6 +59,12 @@ function farDate() {
   const d = new Date(Date.now() + 30 * 864e5);
   return d.toISOString().slice(0, 10);
 }
+// A near date so confirmed-tail ✓s (which only publish ~48h out and only show
+// when the searched date is within ~3 days) are RELEVANT — used by the
+// sample-size + confirmed-tail case.
+function isoDaysFromNow(n) {
+  return new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+}
 
 // Minimal united.com results fixture. Only the URL query params drive the route
 // context; `rows` inject "United ####" text (with a clock time) for the badges.
@@ -203,6 +209,82 @@ const CASES = [
       listsUA1596: /UA1596/.test(txt),
       ua1596RanksFirst: /⭐\s*UA1596/.test(txt),
       noEmptyCopy: !/No direct-flight Starlink history/.test(txt),
+      // v2.3 decision strip: two scored flights, a decisive 38-pt lead → crown
+      // UA1596 and show its lead, the winner's observation count, and confidence.
+      stripCrownsWinner: /Best WiFi:\s*UA1596/.test(txt),
+      stripShowsLead: /leads by 38 pts/.test(txt),
+      stripShowsWinnerObs: /50 departures observed/.test(txt),
+      stripShowsConfidence: /high confidence/.test(txt),
+    }),
+  },
+  {
+    // v2.3 (a): CONFIDENCE ON THE BADGE. A near date (so confirmed tails are
+    // relevant) plus a confirmed-departure fixture for UA1596. The badge must
+    // carry the sample size the tracker returned (obs 51 → "· 51 flights") AND
+    // the confirmed-tail ✓ together, and the panel row must echo the sample size.
+    name: "united-confirmed-tail-sample-size",
+    o: "SFO", d: "DEN", dateOffsetDays: 1,
+    rows: [{ num: 1596, time: "8:30 a.m." }, { num: 1214, time: "11:05 a.m." }],
+    mock: {
+      o: "SFO", d: "DEN",
+      route: [
+        { fn: "UA1596", prob: 68, obs: 51, conf: "high" },
+        { fn: "UA1214", prob: 30, obs: 40, conf: "medium" },
+      ],
+      predict: { "UA1596": 0.68, "UA1214": 0.30 },
+      deps: [{ fn: "UA1596", o: "SFO", d: "DEN", date: isoDaysFromNow(1), time: "09:00", tail: "N127UA" }],
+      itins: [],
+    },
+    awaitBadge: /🛰️\s*68%.*✓/,
+    expect: (txt, badges) => {
+      const joined = badges.join(" ");
+      return {
+        badgeShowsSampleSize: /68%\s*·\s*51 flights/.test(joined),
+        badgeShowsConfirmedTail: badges.some((b) => /68%.*✓/.test(b)),
+        badgeSampleAndTailTogether: badges.some((b) => /68%\s*·\s*51 flights\s*✓/.test(b)),
+        panelRowShowsSampleSize: /51 flights/.test(txt),
+      };
+    },
+  },
+  {
+    // v2.3 (b) REFUSAL — gap too small. Two scored flights 41% vs 36% (5 pts,
+    // under the 8-pt floor). The strip must NOT crown a winner; it must say the
+    // top options are close, and never print "Best WiFi:".
+    name: "united-decision-strip-close",
+    o: "SFO", d: "LAS",
+    rows: [{ num: 700, time: "8:30 a.m." }, { num: 701, time: "11:05 a.m." }],
+    mock: {
+      o: "SFO", d: "LAS",
+      route: [
+        { fn: "UA700", prob: 41, obs: 40, conf: "high" },
+        { fn: "UA701", prob: 36, obs: 38, conf: "high" },
+      ],
+      predict: { "UA700": 0.41, "UA701": 0.36 }, itins: [],
+    },
+    awaitBadge: /🛰️\s*41%/,
+    expect: (txt) => ({
+      saysClose: /Top options are close — no clear WiFi winner/.test(txt),
+      explainsWhy: /within 5 pts/.test(txt),
+      noWinnerCrowned: !/Best WiFi:/.test(txt),
+    }),
+  },
+  {
+    // v2.3 (b) REFUSAL — only one scored flight. UA800 scored (55%); UA801 has
+    // no tracker history (settles to n/a), so nothing to compare. The strip must
+    // say "Only one scored flight" and never crown a winner.
+    name: "united-decision-strip-one-scored",
+    o: "SFO", d: "PDX",
+    rows: [{ num: 800, time: "8:30 a.m." }, { num: 801, time: "11:05 a.m." }],
+    mock: {
+      o: "SFO", d: "PDX",
+      route: [{ fn: "UA800", prob: 55, obs: 42, conf: "high" }],
+      predict: { "UA800": 0.55, "UA801": null }, itins: [],
+    },
+    awaitBadge: /🛰️\s*55%/,
+    expect: (txt) => ({
+      saysOnlyOne: /Only one scored flight/.test(txt),
+      noWinnerCrowned: !/Best WiFi:/.test(txt),
+      noFalseCloseCopy: !/Top options are close/.test(txt),
     }),
   },
   {
@@ -564,6 +646,14 @@ function routeTableText(mock) {
   return rows.map((r) =>
     `${r.fn} [OK] (${mock.o}-${mock.d}) ${r.prob}% (${r.obs || 0} obs · ${r.conf || "low"} confidence)`).join("\n");
 }
+// Confirmed-departure lines in the exact shape bg.js parseDeps() expects, so a
+// case can exercise the confirmed-tail ✓ deterministically. Empty by default.
+function depsText(mock) {
+  const deps = mock.deps || [];
+  if (!deps.length) return ""; // no confirmed departures
+  return deps.map((x) =>
+    `${x.fn} ${x.o}→${x.d} dep ${x.date} ${x.time}Z (tail ${x.tail})`).join("\n");
+}
 
 async function fulfillTracker(route) {
   if (trackerFail) {
@@ -612,7 +702,7 @@ async function fulfillTracker(route) {
     try { name = JSON.parse(req.postData() || "{}").params.name; } catch (e) {}
     let text = "";
     if (name === "predict_route_starlink") text = routeTableText(MOCK);
-    else if (name === "search_starlink_flights") text = ""; // no confirmed departures
+    else if (name === "search_starlink_flights") text = depsText(MOCK); // confirmed departures (per-case)
     else if (name === "check_flight") text = "assignment not yet published";
     return route.fulfill({ status: 200, contentType: "application/json", body: mcpBody(text) });
   }
@@ -664,9 +754,12 @@ async function run() {
       // it before every case so each starts from the shipped defaults (nothing
       // reorders cross-carrier by default).
       if (sw) { try { await sw.evaluate(() => chrome.storage.local.clear()); } catch (e) {} }
+      // Most cases search a far date (stable, no firm-tail ✓). A case may opt
+      // into a near date (dateOffsetDays) to exercise the confirmed-tail path.
+      const searchDate = c.dateOffsetDays != null ? isoDaysFromNow(c.dateOffsetDays) : farDate();
       const url = c.navan
-        ? `https://app.navan.com/app/user2/search/flights-ngs/${c.o}-${c.d}-${farDate()}`
-        : `https://www.united.com/en/us/fsr/choose-flights?f=${c.o}&t=${c.d}&d=${farDate()}&tt=1`;
+        ? `https://app.navan.com/app/user2/search/flights-ngs/${c.o}-${c.d}-${searchDate}`
+        : `https://www.united.com/en/us/fsr/choose-flights?f=${c.o}&t=${c.d}&d=${searchDate}&tt=1`;
 
       // Multi-step cases drive themselves.
       if (c.driver) {

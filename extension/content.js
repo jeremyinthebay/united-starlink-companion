@@ -901,7 +901,14 @@
           // "best" is a RING modifier on top of the ramp colour, never a colour
           // replacement — a 30% best flight must stay amber, not turn green.
           b.className = "usl-badge " + cls(hit.prob) + (isBest ? " usl-best" : "");
-          b.textContent = (isBest ? "★ " : "") + "🛰️ " + hit.prob + "%" + (hit.dep ? " ✓" : "");
+          // v2.3: surface the sample size the tracker already returns (obs count)
+          // inline — "68% · 51 flights" — so trust rides along with the number
+          // without extra chrome. The confirmed-tail ✓ and the ★ "best" prefix
+          // are unchanged. Only a genuine per-flight departure count is shown
+          // (obsCount() drops type-derived odds, which have no sample).
+          const obsN = obsCount(hit);
+          b.textContent = (isBest ? "★ " : "") + "🛰️ " + hit.prob + "%" +
+            (obsN ? " · " + obsN + " flights" : "") + (hit.dep ? " ✓" : "");
           // "type" confidence = the tracker derived the odds from the aircraft
           // type/subfleet rather than this flight number's own history.
           const typed = hit.conf === "type";
@@ -909,7 +916,8 @@
             (typed
               ? `~${hit.prob}% odds derived from aircraft type`
               : `gets a Starlink-equipped plane ~${hit.prob}% of the time (${hit.obs} recent departures)`) +
-            (hit.dep ? ` — CONFIRMED Starlink tail ${hit.dep.tail} on ${hit.dep.date}` : "") +
+            (hit.dep ? ` — ✓ CONFIRMED Starlink tail ${hit.dep.tail} on ${hit.dep.date}` : "") +
+            (hit.asOf ? ` · as of ${hit.asOf}` : "") +
             " · data: " + TRACKER;
           b.dataset.b = fn;
           el.appendChild(b);
@@ -1106,6 +1114,79 @@
 
   /* ── panel ── */
   function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+  /* ══ v2.3 (prototype) — confidence surfacing + "Best WiFi choice" strip ══════
+   * Everything here reads ONLY fields the tracker already returns and stores in
+   * probMap (prob, obs, conf, dep). Nothing is invented: when a value is absent
+   * (e.g. no observation count, or odds derived from aircraft type rather than
+   * this flight's own departures), the corresponding bit is simply omitted. */
+
+  // Sample size to display next to the odds, but ONLY a genuine per-flight
+  // departure count. conf === "type" means the odds came from the aircraft type,
+  // not this flight number's history, so there is no sample to show.
+  function obsCount(hit) {
+    return hit && typeof hit.obs === "number" && hit.obs > 0 && hit.conf !== "type" ? hit.obs : null;
+  }
+  // Coarse, human confidence word. Prefer the tracker's own label; fall back to
+  // bucketing its returned observation count. Returns "" when neither is known.
+  function confWord(hit) {
+    if (!hit) return "";
+    if (hit.conf === "type") return "estimated from aircraft type";
+    if (hit.conf === "high") return "high confidence";
+    if (hit.conf === "medium") return "moderate confidence";
+    if (hit.conf === "low") return "low confidence";
+    if (typeof hit.obs === "number")
+      return hit.obs >= 30 ? "high confidence" : hit.obs >= 10 ? "moderate confidence" : "low confidence";
+    return "";
+  }
+  // The muted " · N flights" sample-size tag for a panel row, or "" when unknown.
+  function obsSpan(fn) {
+    const on = obsCount(probMap.get(fn));
+    return on ? `<span class="usl-obs"> · ${on} flights</span>` : "";
+  }
+
+  // Below this lead (in percentage points) the top two are "too close to call".
+  const STRIP_MIN_GAP = 8;
+  /* Build the decision strip. Honest by construction: it crowns a winner ONLY
+   * when there are ≥2 scored flights, the leader's margin over 2nd-best clears
+   * STRIP_MIN_GAP, and the leader's confidence is not "low". Otherwise it says so
+   * plainly — "close, no clear winner" or "only one scored flight" — and never
+   * manufactures a winner. Returns "" when there is nothing scored to speak to. */
+  function decisionStrip(flights) {
+    const scored = (flights || []).filter((f) => typeof f.prob === "number");
+    if (!scored.length) return "";
+    if (scored.length === 1) {
+      return `<div class="usl-strip usl-strip-single">` +
+        `<div class="usl-strip-t">Only one scored flight</div>` +
+        `<div class="usl-strip-s">${esc(scored[0].fn)} at ${scored[0].prob}% — nothing else here to compare it against yet.</div>` +
+        `</div>`;
+    }
+    const best = scored[0], second = scored[1];
+    const gap = best.prob - second.prob;
+    const bestHit = probMap.get(best.fn);
+    const lowConf = !!bestHit && bestHit.conf === "low";
+    if (gap < STRIP_MIN_GAP || lowConf) {
+      const why = lowConf
+        ? "the top pick's odds are low-confidence"
+        : `the top two are within ${gap} pt${gap === 1 ? "" : "s"}`;
+      return `<div class="usl-strip usl-strip-close">` +
+        `<div class="usl-strip-t">Top options are close — no clear WiFi winner</div>` +
+        `<div class="usl-strip-s">${esc(why)}. Both are listed below.</div>` +
+        `</div>`;
+    }
+    const obsN = obsCount(bestHit);
+    const conf = confWord(bestHit);
+    const bits = [`leads by ${gap} pts`];
+    if (obsN) bits.push(`${obsN} departures observed`);
+    if (conf) bits.push(conf);
+    bits.push("cached ≤6h");
+    return `<div class="usl-strip usl-strip-win">` +
+      `<div class="usl-strip-t">🏆 Best WiFi: ${esc(best.fn)}</div>` +
+      `<div class="usl-strip-s">${esc(bits.join(" · "))}</div>` +
+      `<button type="button" class="usl-strip-cta">Prioritize ${esc(best.fn)} in these results</button>` +
+      `</div>`;
+  }
+
   function updatePanelSortBtn() {
     const btn = panelEl && panelEl.querySelector(".usl-prioritize");
     if (!btn) return;
@@ -1173,12 +1254,13 @@
       `<button type="button" class="usl-refresh" aria-label="Refresh odds (bypass cache)" title="Refresh odds (bypass cache)">↻</button>` +
       `<button type="button" class="usl-x" aria-expanded="true" aria-label="Collapse panel" title="Collapse">▾</button></span></header>
       <div class="usl-body">` +
+      decisionStrip(flights) +
       (flights.length
         ? flights.map((f, i) =>
             `<div class="usl-row usl-jump" data-fn="${esc(f.fn)}" role="button" tabindex="0" aria-label="Jump to ${esc(f.fn)} on the page">` +
             `<span>${i === 0 ? "⭐ " : ""}${esc(f.fn)}${probMap.get(f.fn) && probMap.get(f.fn).dep ? " ✓" : ""}` +
             (isGuarded(f.fn) ? GUARD_MARK : "") +
-            `<span class="usl-time" data-time="${esc(f.fn)}"></span></span>` +
+            `<span class="usl-time" data-time="${esc(f.fn)}"></span>${obsSpan(f.fn)}</span>` +
             `<span class="usl-badge ${cls(f.prob)}">${f.prob}%</span></div>`).join("")
         : `<div class="usl-row" style="display:block;line-height:1.45">${esc(emptyCopy)}</div>`) +
       (fromFallback && flights.length ? `<div style="margin-top:6px;font-size:11px;opacity:.7">Flights in these results · per-flight odds (no Starlink route history yet)</div>` : "") +
@@ -1269,6 +1351,12 @@
         applyState();
       });
     }
+    // v2.3: the decision strip's CTA REUSES the existing, audited Prioritize
+    // action — it does not reimplement sorting. It simply forwards to the same
+    // button, so all of that button's truthfulness guards (won't claim an active
+    // prioritization over an unchanged page) apply unchanged.
+    const stripCta = p.querySelector(".usl-strip-cta");
+    if (stripCta && pr) stripCta.addEventListener("click", () => pr.click());
     document.documentElement.appendChild(p);
     panelEl = p;
     refreshPanelTimes();
