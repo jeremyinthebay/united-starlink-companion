@@ -6,6 +6,7 @@
 # file, and on any store screenshot that is not 1280×800).
 set -e
 VER=$(node -e "console.log(require('./extension/manifest.json').version)")
+ADIR=v$(printf '%s' "$VER" | cut -d. -f1,2)   # asset folder is major.minor, e.g. v2.2
 STAGE=$(mktemp -d)/wifiodds-v${VER}-store-bundle
 OUT="dist/wifiodds-v${VER}-store-bundle.zip"
 mkdir -p "$STAGE/store-screenshots" "$STAGE/promo-tiles" dist
@@ -14,11 +15,11 @@ mkdir -p "$STAGE/store-screenshots" "$STAGE/promo-tiles" dist
 [ -f "dist/wifiodds-v${VER}.zip" ] || { echo "FAIL: run build-store-zip.sh first"; exit 1; }
 cp "dist/wifiodds-v${VER}.zip" "$STAGE/wifi-odds-extension-${VER}.zip"
 cp "dist/wifiodds-v${VER}.files.sha256" "$STAGE/"
-cp "store-assets/v${VER}/SUBMIT-${VER}.md" "$STAGE/"
+cp "store-assets/${ADIR}/SUBMIT-${VER}.md" "$STAGE/"
 
 # EXACTLY the two current store screenshots (uploaded, in this order).
-cp "store-assets/v${VER}/store-1-panel-united-1280x800.png" "$STAGE/store-screenshots/"
-cp "store-assets/v${VER}/store-2-popup-hero-1280x800.png"  "$STAGE/store-screenshots/"
+cp "store-assets/${ADIR}/store-1-panel-united-1280x800.png" "$STAGE/store-screenshots/"
+cp "store-assets/${ADIR}/store-2-popup-hero-1280x800.png"  "$STAGE/store-screenshots/"
 # Brand tiles (not version-specific).
 cp store-assets/v2.1/promo-marquee-1400x560.png store-assets/v2.1/promo-small-440x280.png store-assets/v2.1/store-icon-128.png "$STAGE/promo-tiles/"
 
