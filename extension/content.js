@@ -119,6 +119,11 @@
   // scan. A recognised answer (odds or genuine n/a) clears the ledger entry.
   const PREDICT_MAX_TRIES = 4;
   const PREDICT_BACKOFFS = [3000, 8000, 20000, 60000];
+  // Must equal bg.js's PREDICT_ERR: the message-safe sentinel the worker sends
+  // for a per-flight fetch that was ATTEMPTED but failed transiently. Distinct
+  // from null (genuine n/a) and from an absent key (25-cap, not attempted) — a
+  // plain `undefined` would be dropped by Chrome messaging and read as absent.
+  const PREDICT_ERR = "error";
   let predictFail = new Map(); // fn -> { tries, nextTry }
   function markPredictFail(f) {
     const pf = predictFail.get(f) || { tries: 0, nextTry: 0 };
@@ -153,13 +158,22 @@
         for (const f of need) {
           // A flight NOT present in the reply was beyond the worker's 25-per-call
           // cap — not attempted, so retry next scan with NO penalty (fair
-          // progress past item 25). Present-but-undefined means it WAS attempted
-          // and errored, which is a real failure.
+          // progress past item 25). A present value is a settled outcome.
           if (!Object.prototype.hasOwnProperty.call(flights, f)) continue;
           const v = flights[f];
-          if (v) { probMap.set(f, { prob: v.prob, obs: v.obs, conf: v.conf || null, dep: depFor(f) }); predictFail.delete(f); }
-          else if (v === null) { probMap.set(f, null); predictFail.delete(f); } // genuine n/a
-          else markPredictFail(f); // attempted, transient error
+          // PREDICT_ERR is bg.js's ATTEMPTED-failure sentinel. A plain undefined
+          // is dropped by Chrome messaging and would look absent (the 25-cap
+          // case), so the worker sends this instead. It is a non-empty (truthy)
+          // string, so it MUST be checked before the odds-object branch below,
+          // and it counts against the bounded ledger (backoff, then terminal).
+          if (v === PREDICT_ERR) { markPredictFail(f); continue; }              // attempted, transient error
+          if (v === null) { probMap.set(f, null); predictFail.delete(f); continue; } // genuine n/a
+          if (v && typeof v.prob === "number") {                               // real per-flight odds
+            probMap.set(f, { prob: v.prob, obs: v.obs, conf: v.conf || null, dep: depFor(f) });
+            predictFail.delete(f);
+            continue;
+          }
+          markPredictFail(f); // any other unexpected shape → attempted failure
         }
         scheduleScan();
       });
@@ -990,10 +1004,14 @@
     if (!badge) return null;
     let best = null, bestScore = 0, e = badge.parentElement;
     for (let i = 0; i < SEL.containerDepth && e && e !== document.body; i++, e = e.parentElement) {
-      const fns = [...e.children]
-        .map((k) => ((k.textContent || "").match(FN_RE) || [])[1]).filter(Boolean);
-      const distinct = new Set(fns).size;
-      if (distinct > bestScore) { bestScore = distinct; best = e; }
+      // Score each ancestor by how many validated flight-result rows of ANY
+      // carrier it holds as direct children — the results list is the ancestor
+      // with the most. This must NOT gate on ≥2 United rows (Round-19 finding):
+      // a single scored United row among other-carrier rows is still a container
+      // we can prioritize within. Requiring ≥2 flight rows of any carrier still
+      // separates the real results list from an incidental single-row block.
+      const flights = [...e.children].filter(isFlightUnit).length;
+      if (flights > bestScore) { bestScore = flights; best = e; }
     }
     return bestScore >= 2 ? best : null;
   }
@@ -1050,7 +1068,10 @@
     kids.forEach((el, i) => { if (isFlightUnit(el)) flightIdx.push(i); });
     const meta = flightIdx.map((i, k) => ({ el: kids[i], k, s: unitScore(kids[i]) }));
     const scored = meta.filter((x) => x.s !== null);
-    if (scored.length < 2) return { ok: false, why: "fewer than 2 scored flights" };
+    // ONE scored United row is enough to prioritize (Round-19 finding): float it
+    // into the first flight slot ahead of the unscored rows. Only a genuinely
+    // EMPTY scored set is a no-op the caller reports truthfully.
+    if (scored.length < 1) return { ok: false, why: "no scored flights" };
     const scoredSorted = scored.slice().sort((a, b) => b.s - a.s || a.k - b.k);
     const unscored = meta.filter((x) => x.s === null); // original relative order
     const newFlightEls = [...scoredSorted, ...unscored].map((x) => x.el);
@@ -1078,7 +1099,7 @@
     const P = findContainer();
     if (!P) return;
     const ideal = idealFlightTokens(P);
-    if (ideal.scoredCount < 2) return;
+    if (ideal.scoredCount < 1) return; // one scored row is enough to keep floated
     const now = currentFlightOrder(P);
     if (now.join(",") !== ideal.tokens.join(",")) sortPage();
   }
@@ -1089,8 +1110,9 @@
     const btn = panelEl && panelEl.querySelector(".usl-prioritize");
     if (!btn) return;
     // Show the explicit action once there is at least one on-page United row it
-    // could act on. It reorders only when ≥2 are actually scored (sortPage guards
-    // that), so it can appear before the second score settles.
+    // could act on. It reorders as soon as ≥1 is actually scored (sortPage guards
+    // that); if none can be scored, the click handler keeps the button truthful
+    // rather than claiming an active prioritization over an unchanged page.
     const n = [...registry.values()].filter((r) => r.rowEl.isConnected).length;
     btn.style.display = n >= 1 ? "" : "none";
   }
@@ -1223,10 +1245,28 @@
       // A real <button> is keyboard-operable (Enter/Space) and focusable for free;
       // the focus ring lives in content.css (.usl-prioritize:focus-visible).
       pr.addEventListener("click", () => {
-        prioritizeActive = !prioritizeActive;
+        if (!prioritizeActive) {
+          // Turning ON: only claim an active prioritization if the sort can
+          // actually run. sortPage() returns {ok:false} when there is no scored
+          // United row in a findable results container — in that case stay OFF
+          // and say so, never show "✓ Prioritizing" over a byte-identical page
+          // (Round-19 finding: the button must not lie about what it did).
+          lastSortTs = 0;
+          const res = sortPage();
+          if (!res || !res.ok) {
+            prioritizeActive = false;
+            try { chrome.storage.local.set({ uslPrioritize: false }); } catch (e) {}
+            applyState();
+            pr.textContent = "No scored United flight to prioritize in these results yet";
+            pr.setAttribute("aria-pressed", "false");
+            return;
+          }
+          prioritizeActive = true;
+        } else {
+          prioritizeActive = false;
+        }
         try { chrome.storage.local.set({ uslPrioritize: prioritizeActive }); } catch (e) {}
         applyState();
-        if (prioritizeActive) { lastSortTs = 0; sortPage(); }
       });
     }
     document.documentElement.appendChild(p);
@@ -1351,10 +1391,12 @@
       // settlement signal and must never keep the panel loading.
       navanLoading = !flights.length && (pendingPredict.size > 0 || navanHasUnresolved());
       // Terminal-but-empty classification: every on-page United row has resolved
-      // and none produced odds. If they ALL terminally failed (repeated tracker
-      // errors → "unavailable"), say so rather than claim a proven absence.
+      // and none produced odds. If ANY of them terminally FAILED (repeated
+      // tracker errors → "unavailable"), the honest summary is "unavailable right
+      // now", never a proven absence — that flight could not be measured, so a
+      // "no history" claim would be unsupported (mixed n/a + failure included).
       navanUnavailable = !navanLoading && !flights.length && navanUnitedFns.size > 0 &&
-        [...navanUnitedFns].every((fn) => { const h = probMap.get(fn); return h && h.unavailable; });
+        [...navanUnitedFns].some((fn) => { const h = probMap.get(fn); return h && h.unavailable; });
       const sig = navanLoading ? "loading" : navanUnavailable ? " unavail" : flights.map((f) => f.fn + f.prob).join(",");
       if (!panelEl || !panelEl.isConnected || sig !== navanSig) { navanSig = sig; renderPanel(); }
       refreshPanelTimes();

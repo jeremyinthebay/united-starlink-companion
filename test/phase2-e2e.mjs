@@ -121,6 +121,35 @@ function orderProbe() {
   return { order, found: true };
 }
 
+// Flight-row order probe that mirrors content.js's ROUND-19 findContainer:
+// score each ancestor by how many validated flight-result rows (any carrier) it
+// holds, pick the richest, require ≥2. Unlike orderProbe (which scores by
+// distinct UNITED rows) this resolves the container even with a single United
+// row among other-carrier rows — the case the Round-19 fix is about.
+function flightOrderProbe() {
+  const FN_RE = /\b(?:UA|United)\s?(\d{2,4})\b/;
+  const GEN = /\b(?:[A-Z]{2,3}|[A-Z][a-zA-Z]{3,})\s?\d{2,4}\b/;
+  const TIME = /\b\d{1,2}:\d{2}\s?[ap]\.?m\.?/i;
+  const isFlightUnit = (el) => { const t = el.textContent || ""; return TIME.test(t) && GEN.test(t); };
+  const badge = document.querySelector(".usl-badge");
+  if (!badge) return { order: [], found: false };
+  let best = null, bestScore = 0, e = badge.parentElement;
+  for (let i = 0; i < 20 && e && e !== document.body; i++, e = e.parentElement) {
+    const flights = [...e.children].filter(isFlightUnit).length;
+    if (flights > bestScore) { bestScore = flights; best = e; }
+  }
+  if (!best || bestScore < 2) return { order: [], found: false };
+  const order = [...best.children].map((k) => {
+    const t = k.textContent || "";
+    if (!isFlightUnit(k)) return "STRUCT";
+    const m = t.match(FN_RE);
+    if (m) return "UA" + m[1];
+    const g = t.match(GEN);
+    return g ? g[0].replace(/\s+/g, "").toUpperCase() : "OTHER";
+  });
+  return { order, found: true };
+}
+
 // Late-batch fixture: 26 United rows so the 26th (UA6026, the highest score)
 // resolves in a SECOND worker call, beyond the 25-per-call cap. Everything else
 // is a low 10%.
@@ -380,12 +409,151 @@ const CASES = [
     ],
     expect: () => ({}),
   },
+  {
+    // ROUND-19 FIX 1: per-flight HTTP failures must be BOUNDED by the 4-attempt
+    // ledger, not retried forever. One genuine no-data United flight (200→null)
+    // and one that always answers HTTP 500. The 500 flight must be requested AT
+    // MOST 4 times (backoffs 3s/8s/20s), then go terminal, and the panel must
+    // settle to "Direct-flight history unavailable right now." while the no-data
+    // flight settles to n/a. The audited bug requested the 500 flight 18× in 15s
+    // and never left "Checking this page's flights…" — content.js read the
+    // dropped-`undefined` result as an un-attempted 25-cap miss.
+    name: "navan-http-failure-bounded",
+    navan: true, o: "DEN", d: "SFO",
+    rows: [{ label: "United 1596", time: "8:30 a.m." }, { label: "United 2777", time: "9:15 a.m." }],
+    mock: { o: "DEN", d: "SFO", predict: { "UA1596": null, "UA2777": { http: 500 } } },
+    driver: async ({ page, url }) => {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".usl-panel", { timeout: 30000 });
+      // Terminal only after the 4th (final) attempt exhausts the ledger; the
+      // cumulative backoff is 3+8+20 ≈ 31s plus scan jitter, so allow 60s.
+      let reachedTerminal = false;
+      try {
+        await page.waitForFunction(() => {
+          const el = document.querySelector(".usl-panel");
+          return !!el && /Direct-flight history unavailable right now\./.test(el.innerText);
+        }, null, { timeout: 60000 });
+        reachedTerminal = true;
+      } catch (e) {}
+      const at2777 = PREDICT_HITS["UA2777"] || 0;
+      // Prove no request fires after the terminal state: sample, wait, resample.
+      await page.waitForTimeout(5000);
+      const after2777 = PREDICT_HITS["UA2777"] || 0;
+      const panelText = await page.$eval(".usl-panel", (e) => e.innerText).catch(() => "(no panel)");
+      const badges = await page.$$eval(".usl-badge", (els) => els.map((e) => e.textContent.trim()));
+      return {
+        appeared: true, panelText, badges,
+        probe: { ua2777Requests: at2777, ua2777AfterTerminal: after2777, ua1596Requests: PREDICT_HITS["UA1596"] || 0 },
+        checks: {
+          reachedTerminalUnavailable: reachedTerminal,
+          ua2777Attempted: at2777 >= 1,
+          ua2777AtMost4Attempts: at2777 <= 4,
+          noRequestAfterTerminal: after2777 === at2777,
+          noDataFlightSettlesNa: badges.some((b) => /^🛰️ n\/a$/.test(b.trim())),
+          notStuckLoading: !/Checking this page's flights/.test(panelText),
+        },
+      };
+    },
+  },
+  {
+    // ROUND-19 FIX 2 (case 1): ONE scored United row is enough for Prioritize.
+    // Order [Frontier 1229, United 1596 (68%), Frontier 3435] → activating floats
+    // United 1596 into the first flight slot; the two Frontier rows keep their
+    // relative order. The old bug required ≥2 United rows in findContainer AND
+    // ≥2 scored rows in sortPage, so this page reordered by zero bytes.
+    name: "navan-prioritize-one-scored-united",
+    navan: true, o: "DEN", d: "SFO",
+    rows: [
+      { label: "Frontier 1229", time: "8:59 a.m." },
+      { label: "United 1596", time: "8:30 a.m." },
+      { label: "Frontier 3435", time: "6:55 a.m." },
+    ],
+    mock: { o: "DEN", d: "SFO", predict: { "UA1596": 0.68 } },
+    driver: async ({ page, url }) => {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".usl-panel", { timeout: 30000 });
+      await page.waitForFunction(() => {
+        const b = [...document.querySelectorAll(".usl-badge")].map((x) => x.textContent || "");
+        return b.some((t) => /68%/.test(t)) && !!document.querySelector(".usl-prioritize");
+      }, null, { timeout: 25000 }).catch(() => {});
+      await page.waitForTimeout(700);
+      const pre = await page.evaluate(flightOrderProbe);
+      await page.click(".usl-prioritize");
+      await page.waitForTimeout(900);
+      const post = await page.evaluate(flightOrderProbe);
+      const pressed = await page.$eval(".usl-prioritize", (b) => b.getAttribute("aria-pressed"));
+      const label = await page.$eval(".usl-prioritize", (b) => b.textContent.trim());
+      const panelText = await page.$eval(".usl-panel", (e) => e.innerText).catch(() => "");
+      const badges = await page.$$eval(".usl-badge", (els) => els.map((e) => e.textContent.trim()));
+      const P = pre.order, Q = post.order;
+      return {
+        appeared: true, panelText, badges, probe: { pre: P, post: Q },
+        checks: {
+          containerFoundWithOneUnited: pre.found === true,
+          preOrderUnchanged: eq(P, ["FRONTIER1229", "UA1596", "FRONTIER3435"]),
+          oneScoredUnitedFloatsFirst: Q[0] === "UA1596",
+          frontiersKeepRelOrder: eq(Q.slice(1), ["FRONTIER1229", "FRONTIER3435"]),
+          buttonClaimsActiveTruthfully: pressed === "true" && /Prioritizing United/.test(label),
+        },
+      };
+    },
+  },
+  {
+    // ROUND-19 FIX 2 (case 2, truthfulness): with ZERO scored United rows the
+    // Prioritize button must NOT claim an active prioritization. Route history
+    // offers a ghost UA1596 (so the panel renders the button), but the two
+    // on-page United rows both answer HTTP 500 and settle to terminal
+    // "unavailable" — nothing scored to float. Activating must leave the page
+    // order byte-identical and the button truthful, never "✓ Prioritizing".
+    name: "united-prioritize-no-scored-truthful",
+    o: "DEN", d: "SFO",
+    rows: [{ num: 2777, time: "9:15 a.m." }, { num: 3888, time: "7:40 a.m." }],
+    mock: {
+      o: "DEN", d: "SFO",
+      route: [{ fn: "UA1596", prob: 68, obs: 50, conf: "high" }],
+      predict: { "UA2777": { http: 500 }, "UA3888": { http: 500 } }, itins: [],
+    },
+    driver: async ({ page, url }) => {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".usl-panel", { timeout: 30000 });
+      // The button surfaces only once the two on-page United rows exhaust their
+      // ledgers and register as terminal "unavailable" rows (~31s of backoffs);
+      // the panel HTML already carries the button (hidden) via the route ghost.
+      await page.waitForFunction(() => {
+        const b = document.querySelector(".usl-prioritize");
+        return !!b && getComputedStyle(b).display !== "none";
+      }, null, { timeout: 60000 }).catch(() => {});
+      const visible = await page.evaluate(() => {
+        const b = document.querySelector(".usl-prioritize");
+        return !!b && getComputedStyle(b).display !== "none";
+      });
+      const pre = await page.evaluate(flightOrderProbe);
+      await page.click(".usl-prioritize").catch(() => {});
+      await page.waitForTimeout(900);
+      const post = await page.evaluate(flightOrderProbe);
+      const pressed = await page.$eval(".usl-prioritize", (b) => b.getAttribute("aria-pressed")).catch(() => null);
+      const label = await page.$eval(".usl-prioritize", (b) => b.textContent.trim()).catch(() => "");
+      const panelText = await page.$eval(".usl-panel", (e) => e.innerText).catch(() => "");
+      const badges = await page.$$eval(".usl-badge", (els) => els.map((e) => e.textContent.trim()));
+      return {
+        appeared: true, panelText, badges, probe: { pre: pre.order, post: post.order },
+        checks: {
+          buttonVisibleWithNoScoredUnited: visible === true,
+          orderUnchangedAfterClick: eq(pre.order, post.order),
+          buttonDoesNotClaimActive: pressed === "false" && !/Prioritizing United/.test(label),
+        },
+      };
+    },
+  },
 ];
 
 // ── deterministic tracker fixtures ─────────────────────────────────────────
 // MOCK/trackerFail are swapped in per case; the route handlers below read them.
 let MOCK = {};
 let trackerFail = false;
+// Per-flight predict-flight request tally (reset per case). Drivers read it to
+// prove the 4-attempt ledger bounds a repeatedly-failing flight (Round-19 FIX 1).
+let PREDICT_HITS = {};
 
 function mcpBody(text) {
   return JSON.stringify({ jsonrpc: "2.0", id: 1, result: { content: [{ type: "text", text }] } });
@@ -407,10 +575,17 @@ async function fulfillTracker(route) {
 
   if (u.pathname === "/api/predict-flight") {
     const fn = (u.searchParams.get("flight_number") || "").toUpperCase();
+    PREDICT_HITS[fn] = (PREDICT_HITS[fn] || 0) + 1;   // tally attempts per flight
     if (MOCK.predictDelayMs) await new Promise((r) => setTimeout(r, MOCK.predictDelayMs));
     const tbl = MOCK.predict || {};
     if (Object.prototype.hasOwnProperty.call(tbl, fn)) {
       const v = tbl[fn];
+      // {http:<code>} → an HTTP error the worker must treat as an ATTEMPTED
+      // transient failure (message-safe sentinel), NOT a genuine n/a. Used to
+      // prove the 4-attempt ledger caps a repeatedly-500ing flight (FIX 1).
+      if (v && typeof v === "object" && v.http) {
+        return route.fulfill({ status: v.http, contentType: "application/json", body: '{"error":"server"}' });
+      }
       if (v === null) {
         // Recognized no-data schema → a genuine, negative-cacheable n/a.
         return route.fulfill({ status: 200, contentType: "application/json",
@@ -483,6 +658,7 @@ async function run() {
         : fixture({ o: c.o, d: c.d, rows: c.rows });
       trackerFail = !!c.trackerFail;
       MOCK = c.mock || {};
+      PREDICT_HITS = {};   // reset the per-flight attempt tally for this case
       // The persistent context shares chrome.storage.local across cases, so a
       // prior case's uslPrioritize/uslCollapsed would leak into the next. Reset
       // it before every case so each starts from the shipped defaults (nothing

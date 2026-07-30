@@ -54,6 +54,17 @@ function apiBase(airline) {
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const FETCH_TIMEOUT_MS = 9000;
 
+// Message-safe ATTEMPTED-failure sentinel for per-flight predictions. Chrome's
+// runtime messaging serializes with structured clone, which DROPS any property
+// whose value is `undefined`; a failed flight encoded as undefined therefore
+// arrives with its key ABSENT, and content.js reads an absent key as "beyond the
+// 25-flight cap, not attempted" and retries forever with no penalty (audit: one
+// HTTP-500 flight requested 18× in 15s, never settling). A plain string survives
+// serialization and is distinct from null (genuine n/a) and from a numeric-odds
+// object. content.js's requestPredictions matches this EXACT value — keep both
+// files in sync.
+const PREDICT_ERR = "error";
+
 // United keeps the original "usl:SFO-SEA" shape so existing cached entries stay
 // valid; every other airline is namespaced so routes can never collide.
 function cacheKey(o, d, airline) {
@@ -344,9 +355,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         try {
           const r = await fetchWithTimeout(apiBase(a) + "/api/predict-flight?flight_number=" + fn);
           // A non-2xx (429/500/…) must NOT be cached as a genuine "no data" —
-          // that would show a false "n/a" for six hours. Treat it as a transient
-          // error (undefined), leave the cache empty so a later scan retries.
-          if (!r.ok) { out[fn] = undefined; }
+          // that would show a false "n/a" for six hours. Encode it as the
+          // message-safe attempted-error sentinel (survives Chrome messaging,
+          // unlike undefined) and leave the cache empty so a later scan retries.
+          if (!r.ok) { out[fn] = PREDICT_ERR; }
           else {
             const j = await r.json();
             if (j && typeof j.probability === "number") {
@@ -362,10 +374,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
               await chrome.storage.local.set({ [key]: { ts: Date.now(), v: null } });
             } else {
               // Unrecognised / error-shaped 200 — transient, never negative-cache.
-              out[fn] = undefined;
+              out[fn] = PREDICT_ERR;
             }
           }
-        } catch (e) { out[fn] = undefined; }
+        } catch (e) { out[fn] = PREDICT_ERR; }
         await new Promise((rr) => setTimeout(rr, 250));
       }
       sendResponse({ ok: true, flights: out });
