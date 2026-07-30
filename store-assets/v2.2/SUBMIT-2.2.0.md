@@ -7,12 +7,12 @@ the accurate disclosure for the v2.2 listing and privacy fields.
 ## What the extension does
 
 Adds a next-gen WiFi odds badge to each flight in your united.com / Navan search results (and, with
-your opt-in permission, alaskaair.com and Google Flights), and can sort the results by those odds.
+your opt-in permission, alaskaair.com and Google Flights), and can prioritize United flights by those odds when you ask it to.
 
 ## Single purpose
 
 Show, per flight, the odds of next-generation (Starlink / Amazon Leo) WiFi, sourced from the
-community trackers, and let the traveller sort their results by it.
+community trackers, and let the traveller prioritize United flights by it on request.
 
 ## Data that leaves the device — name BOTH in the privacy disclosure
 
@@ -26,20 +26,23 @@ Nothing else leaves the device. No account, no analytics, no third-party trackin
 identifiers, no page content beyond route and flight numbers. All caching is local
 (`chrome.storage.local`).
 
-## Default behaviour change in v2.2 (must be reflected in listing copy)
+## Sort behaviour in v2.2 — explicit opt-in (must be reflected in listing copy)
 
-- **Auto-sort defaults ON.** For a fresh install/update with no stored preference, "auto-sort by
-  odds when the page loads" and "keep sorted when the page updates" start checked. The user can
-  uncheck either in the panel; the choice is remembered. The manifest description (kept under Chrome's
-  132-char limit) reads: "See your flight's odds of next-gen WiFi in your search results. Auto-sorts
-  by odds (toggle off anytime). Unofficial."
-- **Sorting only reorders existing result rows.** `sortPage()` re-inserts the page's own flight-row
-  elements into a different order within their container. It never edits fares, prices, selection
-  state, or any booking control, and it never navigates. It is structurally incapable of changing
-  what a flight costs or which flight is selected.
-  - Automated proof on real united.com markup is NOT included: the E2E harness fulfils united.com
-    from a local fixture to avoid hammering the live site / bot-detection. The safety claim rests on
-    the code path (DOM reorder only). A manual real-page spot-check before submission is recommended.
+- **No automatic reordering; the booking site's own order is preserved until the traveller acts.**
+  v2.2 does NOT auto-sort on load, and no sort control is pre-checked. The panel offers one explicit,
+  keyboard-operable action — "Prioritize United flights with available WiFi odds; unscored flights
+  follow" — that the user must activate. The manifest description (under Chrome's 132-char limit)
+  reads exactly:
+  "See each flight's odds of next-gen WiFi in your search results. Tap to prioritize United flights by odds. Unofficial."
+- **When activated, it only reorders validated flight-result rows.** The action floats scored United
+  flights up by odds and keeps every unscored flight row in its relative order; it never moves
+  headings, filters, banners, tools, pagination, or loading elements, never edits fares, prices,
+  selection state, or any booking control, and never navigates. It is structurally incapable of
+  changing what a flight costs or which flight is selected.
+  - Automated proof on real united.com / Navan markup is NOT included: the E2E harness fulfils those
+    hosts from local fixtures to avoid hammering the live sites / bot-detection. The safety claim
+    rests on the code path (DOM reorder of validated flight rows only). A manual real-page spot-check
+    before submission is recommended.
 
 ## Permissions justification
 
