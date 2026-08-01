@@ -4,6 +4,6 @@
   "version": "1.0.0",
   "description": "Development only. Reloads the unpacked WiFi Odds extension on request from a local server. Never published.",
   "permissions": ["management"],
-  "host_permissions": ["http://127.0.0.1:8391/*"],
+  "host_permissions": ["http://127.0.0.1/*"],
   "background": { "service_worker": "bg.js" }
 }

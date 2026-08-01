@@ -20,6 +20,14 @@ So the bridge is a second, tiny, unpacked extension that never goes near the sto
 `management` permission and the localhost permission. The product extension is untouched: the diff
 across `extension/` for this feature is empty, which is the property that makes it safe.
 
+## A trap, if you ever edit the reloader's manifest
+
+**Chrome match patterns cannot contain a port.** The host component of a pattern is a host, so
+`http://127.0.0.1:8391/*` is invalid and Chrome refuses to load the extension rather than warning
+and continuing. The correct pattern is `http://127.0.0.1/*`, which covers every port on loopback.
+This shipped broken once and cost a round of "did you load it yet" before I checked my own manifest
+instead of the human.
+
 ## One-time setup
 
 1. Start the server (leave it running):
