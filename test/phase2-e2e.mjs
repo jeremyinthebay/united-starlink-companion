@@ -416,15 +416,37 @@ async function pixelContrast(page, selector) {
 }
 async function frameContrast(page, selector) {
   const el = await page.$(selector);
-  if (!el) return null;
+  if (!el) return { outcome: "unmeasurable", reason: "selector-not-found", ratio: null };
   let buf;
-  try { buf = await el.screenshot(); } catch (e) { return null; }
-  return await page.evaluate(async (b64) => {
+  let lastError = null;
+  // Element screenshots can transiently fail while the booking surface is
+  // settling. Retry the SAME rendered-pixel measurement a bounded number of
+  // times; this does not weaken the gate. If every attempt fails, the result is
+  // explicitly unmeasurable and remains a release failure.
+  for (let attempt = 1; attempt <= 3 && !buf; attempt++) {
+    try {
+      await el.waitForElementState("stable", { timeout: 1000 });
+      buf = await el.screenshot();
+    } catch (e) {
+      lastError = String(e && (e.message || e)).split("\n")[0].slice(0, 180);
+      if (attempt < 3) await page.waitForTimeout(100);
+    }
+  }
+  if (!buf) return {
+    outcome: "unmeasurable",
+    reason: "element-screenshot-failed",
+    detail: lastError || "unknown screenshot failure",
+    ratio: null,
+  };
+  try { return await page.evaluate(async (b64) => {
     const img = new Image();
     await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = "data:image/png;base64," + b64; });
     const c = document.createElement("canvas");
     c.width = img.naturalWidth; c.height = img.naturalHeight;
+    if (!c.width || !c.height)
+      return { outcome: "unmeasurable", reason: "empty-screenshot", ratio: null };
     const g = c.getContext("2d");
+    if (!g) return { outcome: "unmeasurable", reason: "canvas-context-unavailable", ratio: null };
     g.drawImage(img, 0, 0);
     const d = g.getImageData(0, 0, c.width, c.height).data;
     const lin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
@@ -444,8 +466,22 @@ async function frameContrast(page, selector) {
     // its p85 cannot exceed the true border luminance.
     const f = frame[Math.floor(frame.length * 0.85)];
     const n = inner[Math.floor(inner.length / 2)];
-    return (Math.max(f, n) + 0.05) / (Math.min(f, n) + 0.05);
-  }, buf.toString("base64"));
+    if (!Number.isFinite(f) || !Number.isFinite(n))
+      return { outcome: "unmeasurable", reason: "insufficient-pixel-samples", ratio: null };
+    return {
+      outcome: "measured",
+      reason: null,
+      ratio: (Math.max(f, n) + 0.05) / (Math.min(f, n) + 0.05),
+    };
+  }, buf.toString("base64")); }
+  catch (e) {
+    return {
+      outcome: "unmeasurable",
+      reason: "pixel-decode-failed",
+      detail: String(e && (e.message || e)).split("\n")[0].slice(0, 180),
+      ratio: null,
+    };
+  }
 }
 // Focus-ring probe: focus the control, capture a clip EXPANDED past the border
 // box (the ring sits at offset 2px outside), and compare the brightest ring
@@ -1245,7 +1281,7 @@ const CASES = [
       }
       const winFrame = await frameContrast(page, ".usl-decision--winner");
       contrast.winnerBorder = winFrame;
-      checks.winnerBorderMeaningful = winFrame !== null && winFrame >= B;
+      checks.winnerBorderMeaningful = winFrame.outcome === "measured" && winFrame.ratio >= B;
       const ringR = await focusRingContrast(page, ".usl-decision__cta");
       contrast.ctaFocusRing = ringR;
       checks.ctaFocusRingVisible = ringR !== null && ringR >= B;
@@ -2061,8 +2097,9 @@ async function run() {
       if (c.frameProbe && !c.expectNoPanel) {
         const fr = await frameContrast(page, c.frameProbe);
         if (probe) probe.frameContrast = fr;
-        process.stderr.write(`  frameContrast(${c.frameProbe}) = ${fr}\n`);
-        checks.meaningfulBorderContrast = fr !== null && fr >= 3.0;
+        process.stderr.write(`  frameContrast(${c.frameProbe}) = ${fr.outcome}` +
+          (fr.outcome === "measured" ? ` ratio=${fr.ratio}` : ` ratio=null reason=${fr.reason}`) + "\n");
+        checks.meaningfulBorderContrast = fr.outcome === "measured" && fr.ratio >= 3.0;
       }
       results.push({ name: c.name, route: `${c.o}→${c.d}`, appeared, expectNoPanel: !!c.expectNoPanel, panelText, badges, probe, checks, shot });
       process.stderr.write(`  ${c.name}: panel ${appeared ? "rendered" : (c.expectNoPanel ? "suppressed (OK)" : "MISSING")} · ${JSON.stringify(checks)}\n`);
@@ -2077,7 +2114,13 @@ async function run() {
     if (!swUrl) reasons.push("service worker not detected");
     if (consoleErrors.length) reasons.push(consoleErrors.length + " console error(s)");
     for (const r of failedChecks) {
-      const bad = Object.entries(r.checks).filter(([, v]) => v !== true).map(([k]) => k);
+      const bad = Object.entries(r.checks).filter(([, v]) => v !== true).map(([k]) => {
+        if (k !== "meaningfulBorderContrast" || !r.probe?.frameContrast) return k;
+        const fr = r.probe.frameContrast;
+        return fr.outcome === "unmeasurable"
+          ? `${k} (unmeasurable: ${fr.reason})`
+          : `${k} (measured ratio ${fr.ratio})`;
+      });
       reasons.push(`${r.name} ${r.appeared ? "FAILED: " + bad.join(",") : "panel MISSING"}`);
     }
     if (reasons.length) {
