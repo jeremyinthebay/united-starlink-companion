@@ -208,8 +208,14 @@
    Compact, and NEVER position/float/display-block: GF result rows are tight
    flex/grid cells and a chip that changes layout is how you break someone's
    search page. inline-flex + a small font is the whole design. */
-.usl-gf-chip{font-size:11.5px;padding:2px 8px;margin-left:6px;vertical-align:middle;flex:0 0 auto}
+.usl-gf-chip{font-size:11px;padding:2px 7px;margin-left:6px;vertical-align:middle;flex:0 0 auto;letter-spacing:.02em;font-weight:800}
 .usl-gf-chip.usl-gf-live{box-shadow:0 0 0 2px rgba(0,106,128,.38),0 1px 3px rgba(16,24,40,.28)}
+/* The STREAMING chip is the airline's ConnectScore, a different kind of fact
+   from a per-flight next-gen probability, so it takes a neutral outline rather
+   than the odds ramp's filled pill (Codex round 26). */
+.usl-gf-chip.usl-gf-cs{
+  background:transparent;color:#3f4a5a;border:1px solid #b6bec9;box-shadow:none;font-weight:700;
+}
 
 /* v1.6 fix — star spacing + watched gold. LAST BLOCK IN THE FILE ON PURPOSE.
  *
@@ -334,3 +340,186 @@ span.usl-watching:focus-visible{
 }
 .usl-panel .usl-strip-cta:hover{filter:brightness(1.07)}
 .usl-panel .usl-strip-cta:focus-visible{outline:2px solid #29d8ff;outline-offset:2px}
+
+/* ══ v3.0 — structured decision component (Codex spec §4/§8) ═══════════════════
+ * ONE component, explicit state modifiers. Winner uses the brand cyan→violet
+ * wash (NEVER green — green is the odds ramp); refusal states use a neutral
+ * raised surface and carry no CTA. Tokens from spec §2; all text ≥4.5:1 on the
+ * card grounds, the CTA ink is near-black on the cyan→violet fill. Scoped to
+ * .usl-panel so on-page host badges are untouched. */
+/* spec §4: 356px desktop panel. Media-scoped so it cannot override the ≤600px
+ * gutter layout (left:12/right:12/width:auto) — an unscoped .usl-panel rule
+ * here would win on source order and break the 12px right gutter at 390. */
+@media (min-width:601px){.usl-panel{width:356px}}
+.usl-panel .usl-decision{
+  border:1px solid #5b6474;border-radius:14px;padding:14px;margin:0 0 12px;
+  background:#0d0f16;font-family:inherit;
+}
+.usl-panel .usl-decision__top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.usl-panel .usl-decision__kicker{
+  margin:0;font-size:10px;line-height:14px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.12em;color:#b8bfcc;
+}
+.usl-panel .usl-decision__title{
+  margin:6px 0 0;font-size:18px;line-height:22px;font-weight:800;color:#f7f8fb;
+  font-variant-numeric:tabular-nums;
+}
+.usl-panel .usl-decision__comparison{
+  margin:4px 0 0;font-size:13px;line-height:18px;font-weight:650;color:#f7f8fb;
+  font-variant-numeric:tabular-nums;
+}
+.usl-panel .usl-decision__evidence{
+  margin:3px 0 0;font-size:12px;line-height:18px;font-weight:500;color:#b8bfcc;
+  font-variant-numeric:tabular-nums;
+}
+.usl-panel .usl-decision__note{margin:5px 0 0;font-size:11px;line-height:16px;color:#929aa8}
+.usl-panel .usl-decision__confirm{
+  margin:5px 0 0;font-size:11px;line-height:16px;font-weight:700;color:#f7f8fb;
+}
+.usl-panel .usl-decision__cta{
+  margin-top:12px;width:100%;min-height:44px;padding:0 12px;border:none;border-radius:11px;
+  cursor:pointer;font-family:inherit;font-weight:800;font-size:13px;line-height:18px;color:#05060a;
+  background:linear-gradient(90deg,#29d8ff,#7b8cff 55%,#926cff);
+}
+.usl-panel .usl-decision__cta:hover{filter:brightness(1.07)}
+.usl-panel .usl-decision__cta:focus-visible{outline:2px solid #29d8ff;outline-offset:2px}
+/* Activated CTA: static dark surface with a cyan meaningful border — never a
+ * second green state (green stays the odds ramp). */
+.usl-panel .usl-decision__cta[aria-pressed="true"]{
+  background:#10131c;color:#e8eefb;box-shadow:inset 0 0 0 1.5px #29d8ff;
+}
+/* WINNER — cyan border + subtle brand wash over the ground. Never green. */
+.usl-panel .usl-decision--winner{
+  border-color:#29d8ff;
+  background:linear-gradient(135deg,rgba(41,216,255,.10),rgba(146,108,255,.08)),#0d0f16;
+}
+.usl-panel .usl-decision--winner .usl-decision__kicker{color:#29d8ff}
+/* REFUSAL states (close / single) — neutral raised surface, no gradient, no CTA. */
+.usl-panel .usl-decision--close,
+.usl-panel .usl-decision--single{background:#151821;border-color:#5b6474}
+
+/* ══ v3.0 — three-layer on-page badge (Codex spec §3) ════════════════════════
+ * On white host rows (united.com / Navan). The odds PILL (.usl-badge, styled
+ * above) carries only 🛰 + %. The EVIDENCE label sits OUTSIDE the pill in
+ * neutral ink; the CONFIRMED token is a separate near-black/slate fact, never
+ * folded into the coloured pill and never green. */
+.usl-badge-grp{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;margin-left:6px}
+.usl-badge-grp .usl-badge{margin-left:0}         /* the group owns the left margin */
+.usl-ev{font-size:11px;line-height:16px;font-weight:600;color:#4b5565;white-space:nowrap}
+.usl-confirm{
+  display:inline-flex;align-items:center;font-size:11px;line-height:16px;font-weight:700;
+  color:#fff;background:#20242f;border:1px solid #5b6474;border-radius:999px;padding:1px 7px;white-space:nowrap;
+}
+/* ≤600px: hide the visible evidence label and shorten "✓ Confirmed" to "✓";
+ * the full text stays in each element's accessible name / the group aria-label. */
+@media (max-width:600px){
+  .usl-ev{display:none}
+  .usl-confirm-w{display:none}
+}
+
+/* ══ v3.0 — the labelled dual-metric row group (Codex round 26) ═══════════════
+ * Two stacked labelled lines on a WHITE host row: NEXT-GEN primary, STREAMING
+ * secondary. inline-flex column so the group grows the metadata block only and
+ * never joins the host's price/action flex row — the geometry contract is that
+ * price and booking-action boxes must not shift, wrap or overlap at 340, 390,
+ * 600, 601 and desktop. Metric identity is NEVER hidden at any width; only the
+ * evidence words and the "ConnectScore" word drop. */
+.usl-metrics{
+  display:inline-flex;flex-direction:column;align-items:flex-start;gap:2px;
+  vertical-align:middle;margin-left:8px;flex:0 0 auto;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+.usl-ng,.usl-stream-line{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;line-height:16px}
+.usl-ng__label{
+  font-size:9.5px;font-weight:800;letter-spacing:.08em;color:#3f4a5a;
+}
+.usl-ng__value{font-size:12.5px;font-weight:800;color:#14181f;font-variant-numeric:tabular-nums}
+/* A real per-flight probability ALSO carries .usl-badge, so it takes the shared
+   odds ramp from the block far above. Fleet share and every absence state stay
+   outline/neutral here so the two kinds of fact never look alike. */
+.usl-ng--fleet .usl-ng__value{
+  font-weight:700;color:#3f4a5a;border:1px solid #98a2b3;border-radius:6px;padding:0 5px;background:transparent;
+}
+.usl-ng--none .usl-ng__value{color:#5b6474;font-weight:700}
+.usl-ng__sub{font-size:11px;line-height:16px;font-weight:600;color:#4b5565;white-space:nowrap}
+.usl-stream__label{font-size:9px;font-weight:800;letter-spacing:.08em;color:#6b7280}
+.usl-stream__value{
+  font-size:11.5px;font-weight:700;color:#3f4a5a;font-variant-numeric:tabular-nums;
+  border:1px solid #b6bec9;border-radius:6px;padding:0 5px;
+}
+.usl-stream__value--none{border-style:dashed;font-weight:600}
+.usl-stream__word{font-size:10.5px;color:#6b7280;font-weight:600}
+.usl-metrics .usl-confirm{margin-top:2px}
+
+/* ≤600px — drop the evidence words and the "ConnectScore" word. The LABELS
+ * stay: an unlabelled percentage is the exact defect this group replaced. */
+@media (max-width:600px){
+  .usl-ng__sub{display:none}
+  .usl-stream__word{display:none}
+}
+/* ≤390px — the narrow edge. "STREAMING" abbreviates to "STREAM" via CSS
+ * content so the accessible name (which spells out "Streaming-class
+ * ConnectScore") is untouched. Nothing drops below 11px. */
+@media (max-width:390px){
+  .usl-stream__label{font-size:0}
+  .usl-stream__label::after{content:"STREAM";font-size:9px;letter-spacing:.08em}
+  .usl-ng__label{font-size:9px}
+  .usl-ng__value{font-size:12px}
+}
+
+/* ══ v3.0 — system states + coverage boundary (spec §5) ══════════════════════
+ * LOADING: neutral card, two STATIC skeleton blocks — no shimmer or animated
+ * gradient anywhere, so prefers-reduced-motion needs no override.
+ * UNAVAILABLE: coral MEANINGFUL border (≥3:1 on the card ground), no CTA.
+ * NO-DATA: neutral refusal surface, same as close/single.
+ * BOUNDARY: information, not warning — muted ink, hairline separators. */
+.usl-panel .usl-decision--loading{background:#151821;border-color:#5b6474}
+.usl-panel .usl-decision__skel{
+  height:10px;border-radius:5px;margin-top:8px;background:#262b38;
+}
+.usl-panel .usl-decision__skel--short{width:62%}
+.usl-panel .usl-decision--unavailable{background:#151821;border-color:#ef8168}
+.usl-panel .usl-decision--unavailable .usl-decision__kicker{color:#f4a58f}
+.usl-panel .usl-decision--no-data{background:#151821;border-color:#5b6474}
+.usl-panel .usl-boundary{
+  margin:0 0 10px;padding:8px 0;font-size:11px;line-height:16px;color:#b8bfcc;
+  border-bottom:1px solid #23242f;
+}
+
+/* ══ v3.0 — next-gen-first split sections (Jeremy, 31 Jul) ════════════════════
+ * Section labels: NEXT-GEN ODDS above the ranked flights (the product's
+ * primary number), STREAMING-CLASS · CONNECTSCORE below (today's systems,
+ * secondary). Streaming rows are quieter than flight rows on purpose. */
+.usl-panel .usl-sect{
+  margin:2px 0 7px;font-size:10px;line-height:14px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.1em;color:#8b93a4;
+}
+.usl-panel .usl-sect--stream{margin-top:12px;border-top:1px solid #1c1c26;padding-top:9px}
+.usl-panel .usl-row.usl-stream{
+  padding:4px 0;font-family:inherit;font-size:12.5px;font-weight:500;color:#c6cbd7;
+}
+.usl-panel .usl-stream .usl-badge.usl-cs{font-size:11.5px;padding:2px 8px;border-radius:8px}
+
+/* ≤360px: nothing in the decision component may drop below the 11px floor
+ * (spec §6) — the 10px kicker steps up on narrow screens. */
+@media (max-width:360px){
+  .usl-panel .usl-decision__kicker{font-size:11px;letter-spacing:.09em}
+}
+
+/* ══ v3.0 — sorted-state disclosure + real undo (Codex round 26) ══════════════
+ * The label NAMES the metric. "Best", "Smart sort" and "WiFi order" are all
+ * forbidden: they hide which number moved the rows. The Undo button is a real
+ * <button> (keyboard-operable, focus-ringed) and only renders while rows are
+ * actually moved, so the strip can never claim a sort that did not happen. */
+.usl-panel .usl-sorted{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin:0 0 10px;padding:7px 9px;border:1px solid #5b6474;border-radius:9px;background:#151821;
+}
+.usl-panel .usl-sorted__t{font-size:11px;line-height:16px;font-weight:700;color:#dfe2ea}
+.usl-panel .usl-undo{
+  flex:0 0 auto;font-family:inherit;font-size:11px;font-weight:700;line-height:16px;
+  color:#29d8ff;background:none;border:1px solid #29d8ff;border-radius:7px;
+  padding:4px 8px;cursor:pointer;min-height:28px;
+}
+.usl-panel .usl-undo:hover{background:rgba(41,216,255,.12)}
+.usl-panel .usl-undo:focus-visible{outline:2px solid #29d8ff;outline-offset:2px}

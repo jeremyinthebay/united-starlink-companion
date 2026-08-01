@@ -315,7 +315,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ ok: false, error: "Max " + MAX_TRIPS + " guarded trips — remove one first.", trips });
           return;
         }
-        trips.push(newTrip(fn, date, msg.route || null));
+        // Route-back source: prefer an explicit shortlist/source from the
+        // message (full rescue, later), else capture the page the star was
+        // clicked on straight off the sender — no content.js change needed.
+        const senderUrl = (sender && (sender.url || (sender.tab && sender.tab.url))) || null;
+        trips.push(newTrip(fn, date, msg.route || null, {
+          source: msg.source || null,
+          sourceUrl: (typeof senderUrl === "string" && /^https:\/\//.test(senderUrl)) ? senderUrl : null,
+          shortlist: msg.shortlist,
+        }));
         await setTrips(trips);
       }
       const updated = await runTripChecks(true);
@@ -363,7 +371,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             const j = await r.json();
             if (j && typeof j.probability === "number") {
               // Real per-flight odds.
-              const v = { prob: Math.round(j.probability * 100), obs: j.n_observations || 0, conf: j.confidence || "low" };
+              // A missing confidence stays MISSING (null), never coerced to
+              // "low": the tracker didn't supply a calibrated label, and R23
+              // forbids inventing one. Both are winner-ineligible either way;
+              // this keeps the DISPLAY from claiming "Low confidence" unsourced.
+              const v = { prob: Math.round(j.probability * 100), obs: j.n_observations || 0, conf: j.confidence || null };
               out[fn] = v;
               await chrome.storage.local.set({ [key]: { ts: Date.now(), v } });
             } else if (j && typeof j === "object" && !Array.isArray(j) && !j.error &&
@@ -432,13 +444,64 @@ const HISTORY_CAP = 20;        // per-trip history entries, oldest dropped first
 const GUARD_BUDGET = 100;      // hard cap on MCP calls per local day
 const BUDGET_KEY = "uslGuardBudget";
 // Transitions that earn a desktop notification; everything else is timeline-only.
-const NOTIFY_TRANSITIONS = { "publish-yes": 1, "publish-no": 1, "swap-lost": 1, "swap-gained": 1 };
+// v2.4: widened past the original four so the three honest states (§4.2) all
+// surface — a reassuring same-✓ swap (A), a worse-but-still-✗ swap (B), and a
+// regression back to unpublished (C). `unknown` is still never in here.
+const NOTIFY_TRANSITIONS = {
+  "publish-yes": 1, "publish-no": 1, "swap-lost": 1, "swap-gained": 1,
+  "swap-yes-yes": 1, "swap-no-no": 1, "withdrawn": 1,
+};
 
-function newTrip(fn, date, route) {
+/* v2.4 three-state honest model (guard-and-rescue §4). Folds the internal
+ * transition vocabulary into exactly three user-facing states so every
+ * notification maps to one defensible claim:
+ *   A = Starlink confirmed        B = not Starlink / unconfirmed
+ *   C = assignment unavailable    null = timeline-only, do not notify
+ * `unknown` never reaches here (applyCheckResult returns before notifying), so
+ * a transient failure can never be dressed up as A or B — the load-bearing
+ * "unknown is transient" guarantee. */
+function notifyState(transition) {
+  if (transition === "publish-yes" || transition === "swap-gained" || transition === "swap-yes-yes") return "A";
+  if (transition === "publish-no" || transition === "swap-lost" || transition === "swap-no-no") return "B";
+  if (transition === "withdrawn") return "C";
+  return null; // first-early, none, invalid, unknown → timeline only
+}
+
+// Newest history entry that recorded a published tail state, used to tell an
+// A→C regression (was ✓, now unpublished) from a B→C one (was ✗, now unpublished).
+function lastPublishedStatus(trip) {
+  const h = (trip && trip.history) || [];
+  for (let i = h.length - 1; i >= 0; i--)
+    if (h[i].status === "yes" || h[i].status === "no") return h[i].status;
+  return null;
+}
+
+/* The "worsened" predicate that earns a rescue line. Per Codex Round 23 P1-02:
+ * state B (any concrete non-Starlink assignment) is worsened, AND an A→C
+ * `withdrawn` (was confirmed Starlink, tail pulled back to unpublished) is ALSO
+ * worsened. A B→C withdrawal, first/continuing early, transient, budget and
+ * invalid states are NOT worsened. The rescue is still only shown when
+ * suggestAlt() returns a genuinely grounded alternative (notifyTrip filters the
+ * generic fallback) — a worsened state never invents one. */
+function worsened(transition, trip) {
+  if (notifyState(transition) === "B") return true;
+  if (transition === "withdrawn" && lastPublishedStatus(trip) === "yes") return true;
+  return false;
+}
+
+function newTrip(fn, date, route, opts) {
+  opts = opts || {};
   return {
     fn, date, route: route || null, added: Date.now(),
     history: [], asOf: null, lastError: null, lastNotifKey: null,
     invalidCount: 0, departs: null,
+    // v2.4 additions. shortlist ships EMPTY in 3.0 (rescue uses suggestAlt's
+    // live fallback); source/sourceUrl carry the route-back; assignedAt stays
+    // null until the @martinamps feed lands — never the departure time.
+    source: opts.source || null,
+    sourceUrl: opts.sourceUrl || null,
+    shortlist: Array.isArray(opts.shortlist) ? opts.shortlist.slice(0, 5) : [],
+    assignedAt: null,
   };
 }
 
@@ -453,6 +516,12 @@ function migrateTrips(trips) {
     if (t.lastNotifKey === undefined) { t.lastNotifKey = null; changed = true; }
     if (t.invalidCount === undefined) { t.invalidCount = 0; changed = true; }
     if (t.departs === undefined) { t.departs = null; changed = true; }
+    // v2.4 fields on trips saved by 1.4–2.2. Empty/null defaults preserve the
+    // exact pre-2.4 behaviour (no shortlist, route-back falls back to carrier).
+    if (t.source === undefined) { t.source = null; changed = true; }
+    if (t.sourceUrl === undefined) { t.sourceUrl = null; changed = true; }
+    if (!Array.isArray(t.shortlist)) { t.shortlist = []; changed = true; }
+    if (t.assignedAt === undefined) { t.assignedAt = null; changed = true; }
     // Seed one history entry from the pre-1.6 state so the timeline isn't blank.
     if (!t.history.length && t.lastStatus) {
       t.history.push({
@@ -505,6 +574,12 @@ function parseCheck(text) {
     alts.sort((a, b) => b.pct - a.pct);
     return { status: "no", tail: no[1], equip: no[2], alts };
   }
+  // R23 P1-01: a response that names an assigned tail WITHOUT determining
+  // Starlink either way is a REAL answer — "known aircraft, Starlink
+  // unconfirmed" — not a transient failure and never a confirmed no. It maps to
+  // its own status so no surface can collapse it into "No Starlink".
+  const amb = text.match(/assigned to tail (N[A-Z0-9]+)/);
+  if (amb) return { status: "unconfirmed", tail: amb[1] };
   if (/assignment not yet published|no assignment data/i.test(text)) {
     const p = (text.match(/~?(\d+)% Starlink probability/) || [])[1];
     const typed = /Starlink status is set by the operating subfleet|aircraft equipped\)/.test(text);
@@ -535,7 +610,7 @@ function applyCheckResult(trip, res, now) {
   const prevRaw = trip.lastStatus;
   // A previous "invalid" is treated like "unchecked": a later publish is still
   // the first real observation of this trip.
-  const prev = prevRaw === "yes" || prevRaw === "no" || prevRaw === "early" ? prevRaw : "unchecked";
+  const prev = prevRaw === "yes" || prevRaw === "no" || prevRaw === "early" || prevRaw === "unconfirmed" ? prevRaw : "unchecked";
   const next = res.status;
   const prevTail = trip.tail || null;
   const nextTail = res.tail || null;
@@ -543,8 +618,11 @@ function applyCheckResult(trip, res, now) {
 
   let transition;
   if (next === "invalid") transition = "invalid";
-  else if ((prev === "unchecked" || prev === "early") && next === "yes") transition = "publish-yes";
-  else if ((prev === "unchecked" || prev === "early") && next === "no") transition = "publish-no";
+  // "unconfirmed" is timeline-only in either direction: ambiguity is never a
+  // notification-worthy fact and never dressed up as a publish or a loss.
+  else if (next === "unconfirmed") transition = "unconfirmed";
+  else if ((prev === "unchecked" || prev === "early" || prev === "unconfirmed") && next === "yes") transition = "publish-yes";
+  else if ((prev === "unchecked" || prev === "early" || prev === "unconfirmed") && next === "no") transition = "publish-no";
   else if (prev === "yes" && next === "no") transition = "swap-lost";
   else if (prev === "no" && next === "yes") transition = "swap-gained";
   else if (prev === "yes" && next === "yes") transition = tailChanged ? "swap-yes-yes" : "none";
@@ -680,40 +758,100 @@ async function suggestAlt(trip, res) {
   return "Consider a same-day switch.";
 }
 
-// Exact notification copy per transition; null for timeline-only transitions.
+// "2026-07-25" → "Jul 25" for the terse notification head. Falls back to the
+// raw string if it doesn't parse — never invent a date.
+function fmtTripDate(dateStr) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(dateStr || ""));
+  if (!m) return String(dateStr || "");
+  const mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(m[2],10)-1];
+  return mon ? mon + " " + parseInt(m[3], 10) : String(dateStr);
+}
+
+/* v2.4 notification copy — exactly the three honest states (§7.2). Every state
+ * carries the trip identity and a route-back cue ("Open booking ↗"); only a
+ * WORSENED state (B) carries a rescue line, and that line is passed in as
+ * altText so the transient suggestAlt() call stays out of the pure formatter.
+ * Titles use "· <date> —" per the design; bodies stay plain for the prose
+ * ratchet. null means timeline-only (no toast). */
 function buildGuardNotification(trip, transition, res, altText) {
-  const head = trip.fn + " " + trip.date + ": ";
+  const state = notifyState(transition);
+  if (!state) return null;
+  const head = trip.fn + " · " + fmtTripDate(trip.date) + " — ";
   const tail = (res && res.tail) || trip.tail || "?";
-  const equip = (res && res.equip) || "non-Starlink";
-  const was = priorTail(trip) || "?";
-  const tailBit = altText ? " " + altText : "";
-  if (transition === "publish-yes")
-    return { title: "🛰️ " + head + "Starlink CONFIRMED",
-      message: "Tail " + tail + " is Starlink-equipped. You're set.", priority: 2 };
-  if (transition === "publish-no")
+  const equip = (res && res.equip) || "Viasat";
+  const back = " Open booking ↗";
+  const rescue = altText ? " Better option you saw: " + altText : "";
+
+  if (state === "A") {
+    // Reassuring same-✓ swap reads differently from a first confirmation.
+    if (transition === "swap-yes-yes")
+      return { title: "🛰️ " + head + "tail changed, still Starlink",
+        message: "New tail " + tail + " also has Starlink. No action needed." + back, priority: 2 };
+    if (transition === "swap-gained")
+      return { title: "🛰️ " + head + "now Starlink",
+        message: "New tail " + tail + " has Starlink. You're set." + back, priority: 2 };
+    return { title: "🛰️ " + head + "Starlink confirmed",
+      message: "Tail " + tail + " has Starlink. You're set." + back, priority: 2 };
+  }
+  if (state === "B")
     return { title: "✗ " + head + "no Starlink",
-      message: "Assigned tail " + tail + " (" + equip + ")." + tailBit, priority: 2 };
-  if (transition === "swap-lost")
-    return { title: "⚠️ " + head + "tail swap LOST Starlink",
-      message: "Was ✓ " + was + ", now " + tail + " (" + equip + ")." + tailBit, priority: 2 };
-  if (transition === "swap-gained")
-    return { title: "🛰️ " + head + "tail swap GAINED Starlink",
-      message: "New tail " + tail + " is Starlink-equipped (was " + was + "). No action needed.", priority: 2 };
-  return null;
+      message: "Assigned tail " + tail + " (" + equip + ")." + rescue + back, priority: 2 };
+  // state === "C" (withdrawn back to unpublished). Per Codex R23 P1-02, an A→C
+  // regression may carry a grounded rescue (passed in as altText only when
+  // worsened); a B→C one carries none. Copy stays "no assignment yet" because
+  // withdrawn is genuinely early/unpublished — never an outage (that is
+  // `unknown`, which never reaches here).
+  return { title: "⏳ " + head + "no assignment yet",
+    message: "Aircraft not assigned yet (tails publish ~48h out). We'll keep watching." + rescue + back, priority: 2 };
 }
 
 async function notifyTrip(t, transition, res) {
   try {
-    const needsAlt = transition === "publish-no" || transition === "swap-lost";
-    const altText = needsAlt ? await suggestAlt(t, res) : "";
+    // Rescue is sourced live only on a worsened transition (state B, or an A→C
+    // withdrawal per R23 P1-02); shortlist is empty in 3.0 so this is
+    // suggestAlt()'s live fallback. The generic "Consider a same-day switch"
+    // is NOT grounded, so it is filtered out — a worsened state never invents an
+    // alternative. Trim the trailing period so it reads inline.
+    let altText = "";
+    if (worsened(transition, t)) {
+      const s = await suggestAlt(t, res);
+      if (s && !/^Consider a same-day switch/.test(s)) altText = String(s).replace(/\.$/, "");
+    }
     const n = buildGuardNotification(t, transition, res, altText);
     if (!n) return;
-    // Stable id: a re-fire replaces the old toast instead of stacking.
+    // Stable id encodes fn+date so the onClicked handler can route back, and a
+    // re-fire replaces the old toast instead of stacking.
     chrome.notifications.create("usl-" + t.fn + "-" + t.date, {
       type: "basic", iconUrl: "icons/icon128.png",
       title: n.title, message: n.message, priority: n.priority,
     });
   } catch (e) {}
+}
+
+/* Route back to where the guard was created. Uses the captured results URL when
+ * we have one; otherwise the carrier's own site for the flight's airline. Never
+ * fabricates a booking-confirmation deep link (guard-and-rescue §5). */
+function routeBackUrl(trip) {
+  if (trip && typeof trip.sourceUrl === "string" && /^https:\/\//.test(trip.sourceUrl)) return trip.sourceUrl;
+  return airlineOf(trip && trip.fn) === "AS" ? "https://www.alaskaair.com/" : "https://www.united.com/";
+}
+
+// Notification click → focus/open the route-back tab. Fail-silent like every
+// other bg.js entry point; parses the trip identity out of the stable id.
+if (chrome.notifications && chrome.notifications.onClicked) {
+  chrome.notifications.onClicked.addListener((notifId) => {
+    (async () => {
+      try {
+        const m = /^usl-((?:UA|AS)\d{1,4})-(\d{4}-\d{2}-\d{2})$/.exec(notifId || "");
+        if (!m) return;
+        const trips = await getTrips();
+        const trip = trips.find((t) => t.fn === m[1] && t.date === m[2]);
+        const url = routeBackUrl(trip || { fn: m[1] });
+        await chrome.tabs.create({ url });
+        try { chrome.notifications.clear(notifId); } catch (e) {}
+      } catch (e) {}
+    })();
+  });
 }
 
 // A trip stops earning calls once its tail is published and it has departed.
@@ -748,8 +886,13 @@ async function runTripChecksInner(force) {
     if (isTerminal(t, now)) continue;                  // published + already departed
     // near departure (<=4 days): check every run; farther out: at most daily
     if (!force && t.lastChecked && d > 4 && now - t.lastChecked < 24 * 36e5) continue;
-    // Manual "check now" bypasses the cadence, never the budget.
-    if (!(await budgetTake(1))) break;
+    // Manual "check now" bypasses the cadence, never the budget. When the
+    // budget is exhausted the CURRENT check could not run, so mark the trip:
+    // the popup must label the current check unavailable rather than let a
+    // stale "Awaiting assignment" (or any prior fact, undated) stand as
+    // current (R23 P1-01: exhausted budget never reads as awaiting). The last
+    // successful fact stays, dated by its own asOf.
+    if (!(await budgetTake(1))) { t.lastError = "check budget exhausted"; continue; }
     const res = await checkTrip(t);
     const out = applyCheckResult(t, res, Date.now());
     Object.assign(t, out.trip);

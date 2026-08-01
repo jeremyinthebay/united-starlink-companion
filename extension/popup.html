@@ -221,6 +221,26 @@
   .usl-trip-sub{color:var(--dim);font-size:10.5px;margin-top:2px;line-height:1.35}
   .usl-t-yes{color:var(--green)} .usl-t-no{color:var(--red)} .usl-t-early{color:var(--dim)}
   .usl-t-swap{color:#ffd166}
+  /* v2.4 three-state chip — one glanceable A/B/C token per trip, reusing the
+     existing green/red/dim palette (no new colours). Placed before the detail
+     line, which keeps its fuller honest wording. */
+  /* v3.0 settings (Codex round 26): three independent controls. The mixed and
+     metrics groups are RADIO groups, not checkboxes — each is a choice between
+     mutually exclusive states, and a checkbox pair would leave "neither" and
+     "both" undefined, which is the ambiguity the ruling called out. */
+  .usl-set{padding:8px 2px 4px;display:flex;flex-direction:column;gap:12px}
+  .usl-set-group{display:flex;flex-direction:column;gap:5px}
+  .usl-set-row{display:flex;align-items:flex-start;gap:8px;cursor:pointer;line-height:1.4}
+  .usl-set-row input{margin:2px 0 0;flex:0 0 auto;accent-color:#29d8ff;width:14px;height:14px}
+  .usl-set-t{font-size:12px;font-weight:600;color:#dfe2ea;display:block}
+  .usl-set-h{display:block;font-size:10.5px;font-weight:400;line-height:1.45;color:#9aa2b1;margin-top:2px}
+  .usl-set-note{margin:0;font-size:10.5px;line-height:1.45;color:#9aa2b1}
+  .usl-set-row input:focus-visible{outline:2px solid #29d8ff;outline-offset:2px}
+  .usl-chip{display:inline-block;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.02em;padding:1px 6px;border-radius:20px;margin-right:6px;vertical-align:middle;border:1px solid currentColor}
+  .usl-chip-a{color:var(--green)} .usl-chip-b{color:var(--red)} .usl-chip-c{color:var(--dim)}
+  /* Route back to where the guard was created. Small, on the trip's main line. */
+  .usl-trip-back{font-family:var(--mono);font-size:10px;color:var(--sky);margin-left:6px;text-decoration:none;font-weight:400;white-space:nowrap}
+  .usl-trip-back:hover{text-decoration:underline}
   .usl-asof{color:var(--dim);font-size:10px;opacity:.7;margin-left:4px}
   .usl-hist{margin-top:4px;border-top:1px solid var(--card-edge);padding-top:4px}
   .usl-hist-row{color:var(--dim);font-size:10px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -284,8 +304,45 @@
       <div id="usl-cs-method" class="usl-cs-method"></div>
     </details>
 
+    <details id="usl-settings" class="usl-cs">
+      <summary class="usl-cs-sum">⚙ Settings · sorting and row metrics</summary>
+      <div class="usl-set">
+        <label class="usl-set-row">
+          <input type="checkbox" id="usl-set-single" />
+          <span class="usl-set-t">Sort single-carrier results automatically
+            <span class="usl-set-h">united.com and alaskaair.com. Orders flights by historical per-flight next-gen odds. Every row is the same airline, so no other carrier moves.</span>
+          </span>
+        </label>
+
+        <div class="usl-set-group" role="radiogroup" aria-labelledby="usl-set-mixed-lbl">
+          <div class="usl-set-t" id="usl-set-mixed-lbl">Mixed-carrier results
+            <span class="usl-set-h">Navan and Google Flights. Per-flight next-gen odds cover United and Alaska only; other airlines are unknown to WiFi Odds, not worse.</span>
+          </div>
+          <label class="usl-set-row"><input type="radio" name="usl-mixed" value="preserve" id="usl-set-mixed-preserve" />
+            <span class="usl-set-t">Keep the booking site's order</span></label>
+          <label class="usl-set-row"><input type="radio" name="usl-mixed" value="prioritize" id="usl-set-mixed-prioritize" />
+            <span class="usl-set-t">Move scored United and Alaska flights first</span></label>
+        </div>
+
+        <div class="usl-set-group" role="radiogroup" aria-labelledby="usl-set-metrics-lbl">
+          <div class="usl-set-t" id="usl-set-metrics-lbl">Row metrics
+            <span class="usl-set-h">Changes what each flight row shows. Never changes sorting or which flight is recommended.</span>
+          </div>
+          <label class="usl-set-row"><input type="radio" name="usl-metrics" value="both" id="usl-set-m-both" />
+            <span class="usl-set-t">Both · next-gen and streaming</span></label>
+          <label class="usl-set-row"><input type="radio" name="usl-metrics" value="nextgen" id="usl-set-m-ng" />
+            <span class="usl-set-t">Next-gen only</span></label>
+          <label class="usl-set-row"><input type="radio" name="usl-metrics" value="streaming" id="usl-set-m-st" />
+            <span class="usl-set-t">Streaming only</span></label>
+        </div>
+
+        <p class="usl-set-note">Sorting only reorders flight rows. It never changes fares, seat
+          selection, or any booking control, and unscored airlines keep their relative order.</p>
+      </div>
+    </details>
+
     <div class="usl-section-label" style="margin-top:14px;display:flex;justify-content:space-between;align-items:baseline">
-      <span>Guardian · booking-to-boarding tail watch</span>
+      <span>Guarded trips · booking-to-boarding tail watch</span>
       <button id="usl-check-now" class="usl-check-now" type="button">check now</button>
     </div>
     <div id="usl-trips"></div>

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WiFi Odds for Flights",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "description": "See each flight's odds of next-gen WiFi in your search results. Tap to prioritize United flights by odds. Unofficial.",
   "permissions": [
     "storage",

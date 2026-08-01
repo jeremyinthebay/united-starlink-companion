@@ -85,7 +85,44 @@
   let probMap = new Map();
   let registry = new Map();
   let prioritizeActive = false, desiredOrder = null, lastSortTs = 0;
+  /* ══ v3.0 settings (Codex round 26) ═══════════════════════════════════════
+   * THREE independent controls. The two the brief proposed ("auto-sort on
+   * mixed" + "prioritize next-gen on cross-carrier") overlapped — neither said
+   * what mixed auto-sort does when prioritize is off — so they collapse into
+   * one mixed-carrier MODE.
+   *
+   *   uslSortSingle : bool          single-carrier auto-sort           default ON
+   *   uslSortMixed  : preserve|prioritize   mixed-carrier behaviour    default preserve
+   *   uslMetrics    : both|nextgen|streaming   row display             default both
+   *
+   * Codex approved default-ON only for SINGLE-carrier pages, where every row is
+   * the same airline and carries the same per-flight metric. Mixed-carrier
+   * default-ON was REJECTED: floating a scored row up necessarily moves an
+   * unscored airline DOWN in absolute position, handing an unknown flight the
+   * rank of a worse one, and silently displacing whatever the traveller sorted
+   * by. Jeremy took the recommendation, so mixed defaults to preserve.
+   *
+   * DISPLAY MODE NEVER CHANGES SORT. uslMetrics is presentation only: it must
+   * not touch sort metric, winner eligibility, requests, or the candidate set. */
+  const MIXED_HOST = NAVAN || GFLIGHTS;          // several carriers on one page
+  const SINGLE_HOST = !MIXED_HOST;               // united.com / alaskaair.com
+  let sortSingle = true;                          // default ON (Codex-approved)
+  let sortMixed = "preserve";                     // default preserve (Codex-recommended)
+  let metricsMode = "both";                       // default both
+  let settingsReady = false;
+  // The booking site's OWN flight order, captured before this extension moves
+  // anything. "Keep site order" restores exactly this, so turning the setting
+  // off is a real undo rather than a promise (Codex round 26, gate assertion 2).
+  let hostOrder = null;      // array of row tokens, or null when never captured
+  let hostOrderKey = "";     // route+phase the capture belongs to
+  let didAutoSort = false;   // this context has been auto-sorted at least once
   let watched = new Set(); // "UA1812|2026-07-25"
+  // R23 cross-model precedence: the Guard's latest published fact for an EXACT
+  // fn|date, read from the same trip store the popup renders. "no" (confirmed
+  // non-Starlink) disqualifies that candidate from winner treatment; "no",
+  // "early" (withdrawn/unpublished) and "invalid" all suppress the separate
+  // ✓-confirmed token, so a stale deps feed can never contradict a newer check.
+  let guardFacts = new Map(); // "UA1812|2026-07-25" -> lastStatus
   // Selector/tuning values, overridable by the remotely-hosted manifest the
   // service worker caches. Absent a remote config these defaults are used
   // verbatim, so behavior is unchanged.
@@ -184,14 +221,47 @@
     if (res.cfg && res.cfg.selectors) SEL = Object.assign({}, DEFAULT_SEL, res.cfg.selectors);
   }); } catch {}
   try { chrome.runtime.sendMessage({ type: "tripList" }, (res) => {
-    if (!chrome.runtime.lastError && res && res.trips)
+    if (!chrome.runtime.lastError && res && res.trips) {
       watched = new Set(res.trips.map((t) => t.fn + "|" + t.date));
+      guardFacts = new Map(res.trips.map((t) => [t.fn + "|" + t.date, t.lastStatus || ""]));
+    }
   }); } catch {}
   // Round-18 Bug 4 ruling: NOTHING reorders cross-carrier by default — the
   // page's own order is preserved on load. Reordering happens only when the user
   // activates the explicit "Prioritize United flights…" action, which persists
   // as uslPrioritize so a deliberate choice sticks across reloads (default off).
-  try { chrome.storage.local.get("uslPrioritize", (v) => { prioritizeActive = !!v.uslPrioritize; if (prioritizeActive) scheduleScan(); }); } catch {}
+  try {
+    chrome.storage.local.get(["uslPrioritize", "uslSortSingle", "uslSortMixed", "uslMetrics"], (v) => {
+      // Defaults apply only when the key is genuinely ABSENT, so a stored
+      // `false` is never silently re-enabled on the next load. A fresh profile
+      // and the rendered settings state must agree (gate assertion 1).
+      sortSingle = v.uslSortSingle === undefined ? true : !!v.uslSortSingle;
+      sortMixed = v.uslSortMixed === "prioritize" ? "prioritize" : "preserve";
+      metricsMode = ["both", "nextgen", "streaming"].includes(v.uslMetrics) ? v.uslMetrics : "both";
+      // The legacy explicit action persists per-session on mixed hosts only.
+      prioritizeActive = MIXED_HOST ? (!!v.uslPrioritize || sortMixed === "prioritize") : false;
+      settingsReady = true;
+      scheduleScan();
+      if (panelEl) renderPanel();
+    });
+  } catch { settingsReady = true; }
+  // A settings change made in the popup takes effect in open tabs immediately:
+  // turning single-carrier sort OFF must restore the captured host order right
+  // then, not on the next reload (Codex round 26: off is a real undo).
+  try {
+    chrome.storage.onChanged.addListener((ch, area) => {
+      if (area !== "local") return;
+      let touched = false;
+      if (ch.uslSortSingle) { sortSingle = !!ch.uslSortSingle.newValue; touched = true; }
+      if (ch.uslSortMixed) { sortMixed = ch.uslSortMixed.newValue === "prioritize" ? "prioritize" : "preserve"; touched = true; }
+      if (ch.uslMetrics) { metricsMode = ch.uslMetrics.newValue || "both"; touched = true; }
+      if (!touched) return;
+      if (SINGLE_HOST && !sortSingle) restoreHostOrder();
+      if (MIXED_HOST && sortMixed === "preserve") { prioritizeActive = false; restoreHostOrder(); }
+      rebadge();
+      if (panelEl) renderPanel();
+    });
+  } catch {}
 
   /* ── Navan: derive route context from the DOM (no URL params there) ── */
   function getNavanContext() {
@@ -619,11 +689,13 @@
         (op.marketedAs ? " (marketed as " + op.marketedAs + ")" : "")
       : "";
     if (hit && typeof hit.prob === "number") {
-      // Tier 2: live per-flight odds replace the static score.
+      // Tier 2: live per-flight odds replace the static score. LABELLED (Codex
+      // round 26): an unlabelled "🛰 42" meant ConnectScore here and per-flight
+      // next-gen odds on united.com, with nothing on screen to tell them apart.
       return {
         sig: "live|" + fn + "|" + hit.prob + "|" + (hit.dep ? hit.dep.tail : "") + "|" + (hit.conf || "") + opSig,
         cn: "usl-badge usl-gf-chip usl-gf-live " + cls(hit.prob),
-        tx: "🛰️ " + hit.prob + "%" + (hit.dep ? " ✓" : ""),
+        tx: "NEXT-GEN " + hit.prob + "%" + (hit.dep ? " ✓" : ""),
         ti: fn + ": " +
           (hit.conf === "type"
             ? "~" + hit.prob + "% odds derived from aircraft type"
@@ -639,19 +711,21 @@
       return {
         sig: "na|" + fn + opSig,
         cn: "usl-badge usl-gf-chip usl-na",
-        tx: "🛰️ n/a",
-        ti: fn + ": no Starlink-assignment history for this flight number yet" +
+        tx: "NEXT-GEN —",
+        ti: fn + ": no per-flight next-gen history for this flight number yet" +
           opNote + " · " + GF_CREDIT,
       };
     }
-    // Tier 1: static ConnectScore.
+    // Tier 1: the airline's static STREAMING-class ConnectScore. This is NOT a
+    // per-flight next-gen probability and must never look like one, so it is
+    // labelled and stays on the neutral outline treatment.
     const fleet = a.fleet ? a.equipped + " of " + a.fleet + " aircraft" : "fleetwide";
     const freeTxt = GF_FREE_TEXT[String(entry.free || "unknown").toLowerCase()] || "";
     return {
       sig: "cs|" + key + "|" + a.score + opSig,
-      cn: "usl-badge usl-gf-chip " + cls(a.score),
-      tx: "🛰️ " + a.score,
-      ti: a.name + " · ConnectScore " + a.score + " (" + a.label + ") — " +
+      cn: "usl-badge usl-gf-chip usl-gf-cs " + cls(a.score),
+      tx: "STREAMING " + a.score,
+      ti: a.name + " · streaming-class ConnectScore " + a.score + " (" + a.label + ") — " +
         a.systemLabel + " on " + fleet + (freeTxt ? ", " + freeTxt : "") + ". " +
         (a.note || "") + opNote + " · " + GF_CREDIT,
     };
@@ -799,15 +873,39 @@
       chrome.storage.local.get("uslCollapsed", (v) => { if (v.uslCollapsed) p.classList.add("usl-collapsed"); });
     } catch (e) {}
     const liveRows = ranked.filter((a) => a.instrumented).length;
+    // Next-gen first (Jeremy, 31 Jul): section 1 ranks the airlines in these
+    // results by NEXT-GEN ODDS (chance of a Starlink / Amazon Leo aircraft,
+    // from the same published segment ledger); section 2 is the streaming-class
+    // ConnectScore (today's system quality, the floor). A missing next-gen
+    // number renders n/a — unknown is never zero.
+    const byNextGen = ranked.slice().sort((a, b) => {
+      const av = typeof a.nextGenScore === "number" ? a.nextGenScore : -1;
+      const bv = typeof b.nextGenScore === "number" ? b.nextGenScore : -1;
+      return (bv - av) || a.name.localeCompare(b.name);
+    });
     p.innerHTML =
       `<header><span>🛰️ WiFi odds in these results</span><span><span class="usl-x">▾</span></span></header>` +
       `<div class="usl-body">` +
+      `<p class="usl-sect">Next-gen odds · Starlink and Amazon Leo</p>` +
+      byNextGen.map((a) => {
+        const raw = typeof a.nextGenScore === "number" ? a.nextGenScore : null;
+        const ng = raw === null ? null : Math.round(raw);
+        // A real but tiny share must not print as a bare "0%": Southwest has 1
+        // next-gen aircraft in 803, which rounds to zero and would read as
+        // "none in the fleet" — a different and false fact. Show "<1%" instead.
+        // A genuine zero (no next-gen aircraft at all) still shows 0%.
+        const txt = raw === null ? "n/a" : (raw > 0 && ng === 0 ? "<1%" : ng + "%");
+        return `<div class="usl-row" title="${esc(a.note || "")}">` +
+          `<span>${esc(a.name)}<span class="usl-time"> · ${esc(a.nextGenLabel || "no next-gen fleet announced")}</span></span>` +
+          `<span class="usl-badge ${ng === null ? "usl-na" : cls(ng)}">${txt}</span></div>`;
+      }).join("") +
+      `<p class="usl-sect usl-sect--stream">Streaming-class · ConnectScore</p>` +
       ranked.map((a) =>
-        `<div class="usl-row" title="${esc(a.note || "")}">` +
+        `<div class="usl-row usl-stream" title="${esc(a.note || "")}">` +
         `<span>${esc(a.name)}<span class="usl-time"> · ${esc(a.systemLabel)}${a.fleet ? " " + a.equipped + "/" + a.fleet : ""}</span></span>` +
-        `<span class="usl-badge ${cls(a.score)}">${a.score}</span></div>`).join("") +
+        `<span class="usl-badge usl-cs ${cls(a.score)}">${a.score}</span></div>`).join("") +
       `<div style="margin-top:8px;font-size:11px;opacity:.75;line-height:1.45">` +
-      `ConnectScore = odds of the good satellite wifi, not of any wifi. ` +
+      `Next-gen odds = chance of a Starlink or Amazon Leo aircraft. ConnectScore = odds of the good satellite wifi today, not of any wifi. ` +
       (liveRows ? `United and Alaska rows upgrade to live per-flight odds when Google shows a flight number. ` : ``) +
       `</div>` +
       `<div style="margin-top:8px;font-size:11.5px">` +
@@ -829,6 +927,172 @@
       if (times && times.length) return { rowEl: e, times: times.slice(0, 2).join(" – ") };
     }
     return null;
+  }
+
+  /* ══ v3.0 — the labelled dual-metric row group (Codex round 26) ═════════════
+   * ONE compact group carrying a LABELLED primary next-gen figure and a
+   * LABELLED secondary streaming figure. The bare `🛰️ 48%` pill is retired: an
+   * identical-looking chip meant per-flight next-gen odds on united.com and an
+   * airline ConnectScore on Google Flights, and nothing on screen said which.
+   *
+   * Next-gen has SEVEN mutually exclusive states and none of them is a zero.
+   * A fleet share is a different fact from a per-flight probability, so it gets
+   * its own outline treatment and never enters the odds ramp, the winner
+   * comparison, or the sort.
+   *
+   * `metricsMode` chooses which lines are VISIBLE. It never changes the state
+   * that was computed, the requests made, or the sort — presentation only. */
+  const NG_STATES = {
+    prob:      { label: "NEXT-GEN", cls: "usl-ng--prob" },
+    nohistory: { label: "NEXT-GEN", cls: "usl-ng--none", value: "—", sub: "No flight history" },
+    unavail:   { label: "NEXT-GEN", cls: "usl-ng--none", value: "—", sub: "Unavailable" },
+    fleet:     { label: "NEXT-GEN · FLEET", cls: "usl-ng--fleet", sub: "Fleet context" },
+    announced: { label: "NEXT-GEN · ANNOUNCED", cls: "usl-ng--fleet", value: "", sub: "Not flying yet" },
+    notinfleet:{ label: "NEXT-GEN · NOT IN FLEET", cls: "usl-ng--none", value: "", sub: "" },
+    nofleet:   { label: "NEXT-GEN", cls: "usl-ng--none", value: "—", sub: "No fleet data" },
+  };
+  // The airline entry for a host row, or null. united.com/Navan rows are United,
+  // alaskaair.com rows are Alaska; Google Flights passes its matched key.
+  function airlineEntry(key) {
+    try { return typeof scoreAirline === "function" ? scoreAirline(key || (ALASKA ? "alaska" : "united")) : null; }
+    catch (e) { return null; }
+  }
+  /* Resolve the next-gen state for a row. `hit` is probMap's entry:
+   *   {prob:…}      a real per-flight tracker probability
+   *   {unavailable} the tracker was asked and failed  → NOT "no history"
+   *   null          the tracker answered with no data → known absence
+   *   undefined     never asked (caller does not render yet) */
+  function nextGenStateFor(hit, entry, instrumented) {
+    if (hit && typeof hit.prob === "number") return { k: "prob", value: hit.prob + "%", hit };
+    if (hit && hit.unavailable) return { k: "unavail" };
+    if (instrumented) return { k: "nohistory" };   // asked this flight, no history
+    if (!entry) return { k: "nofleet" };
+    // Not instrumented: fleet-level context only, and only when PUBLISHED.
+    // `nextGenPublished === false` means the count is unpublished, which is
+    // unknown — never a zero (the site's own fence).
+    if (entry.nextGenPublished === false) return { k: "nofleet" };
+    const share = typeof entry.nextGenScore === "number" ? Math.round(entry.nextGenScore) : null;
+    if (share === null) return { k: "nofleet" };
+    // Same fence as the panel: a real but sub-1% share reads "<1%", never a
+    // bare 0% that would claim the airline has no next-gen aircraft at all.
+    if (entry.nextGenScore > 0) return { k: "fleet", value: share === 0 ? "<1%" : share + "%" };
+    if (entry.future) return { k: "announced" };
+    return { k: "notinfleet" };
+  }
+  /* Build the group. Returns an element, or null when there is nothing honest
+   * to say yet. `fn` may be null for a carrier-only row (Google Flights). */
+  function metricsGroup(fn, hit, key, opts) {
+    opts = opts || {};
+    const entry = airlineEntry(key);
+    const instrumented = !!(entry && entry.instrumented) && !!fn;
+    const st = nextGenStateFor(hit, entry, instrumented);
+    const def = NG_STATES[st.k];
+    const grp = document.createElement("span");
+    grp.className = "usl-metrics" + (opts.compact ? " usl-metrics--compact" : "");
+    if (fn) grp.dataset.b = fn;
+    grp.dataset.ngState = st.k;
+
+    const showNg = metricsMode !== "streaming";
+    const showStream = metricsMode !== "nextgen";
+
+    const typed = !!(hit && hit.conf === "type");
+    const obsN = obsCount(hit);
+    let ngText = "";
+    if (showNg) {
+      const line = document.createElement("span");
+      line.className = "usl-ng " + def.cls;
+      const lab = document.createElement("span");
+      lab.className = "usl-ng__label";
+      lab.textContent = def.label;
+      line.appendChild(lab);
+      const val = st.value !== undefined ? st.value : def.value;
+      if (val) {
+        const v = document.createElement("span");
+        // Only a REAL per-flight probability takes the odds ramp. Fleet share
+        // and every absence state stay outline/neutral so the two can never be
+        // read as the same kind of fact.
+        v.className = "usl-ng__value" + (st.k === "prob" ? " usl-badge " + cls(hit.prob) : "");
+        v.textContent = (st.k === "prob" && typed ? "~" : "") + val;
+        line.appendChild(v);
+      }
+      grp.appendChild(line);
+      ngText = def.label + " " + (val || "");
+      // Evidence / reason sits OUTSIDE the value, hidden ≤600px by CSS while
+      // its meaning survives in the group's accessible name.
+      const subTxt = st.k === "prob" ? (obsN ? obsN + " tracked" : (typed ? "aircraft type" : "")) : (def.sub || "");
+      if (subTxt) {
+        const sub = document.createElement("span");
+        sub.className = "usl-ng__sub";
+        sub.textContent = subTxt;
+        line.appendChild(sub);
+      }
+    }
+
+    let streamText = "";
+    if (showStream) {
+      const line = document.createElement("span");
+      line.className = "usl-stream-line";
+      const lab = document.createElement("span");
+      lab.className = "usl-stream__label";
+      lab.textContent = "STREAMING";
+      line.appendChild(lab);
+      if (entry && typeof entry.score === "number") {
+        const v = document.createElement("span");
+        v.className = "usl-stream__value";
+        v.textContent = String(entry.score);
+        line.appendChild(v);
+        const w = document.createElement("span");
+        w.className = "usl-stream__word";     // hidden at narrow widths
+        w.textContent = "ConnectScore";
+        line.appendChild(w);
+        streamText = "Streaming-class ConnectScore " + entry.score + " out of 100";
+      } else {
+        const v = document.createElement("span");
+        v.className = "usl-stream__value usl-stream__value--none";
+        v.textContent = "No ConnectScore";
+        line.appendChild(v);
+        streamText = "No streaming-class ConnectScore for this airline";
+      }
+      grp.appendChild(line);
+    }
+
+    // The separate, dated confirmation token — never folded into a metric, and
+    // suppressed when the Guard's newer fact for this exact date contradicts it.
+    if (hit && hit.dep && fn && !guardContradicts(fn)) {
+      const cf = document.createElement("span");
+      cf.className = "usl-confirm";
+      cf.appendChild(document.createTextNode("✓"));
+      const cw = document.createElement("span");
+      cw.className = "usl-confirm-w";
+      cw.textContent = " Confirmed";
+      cf.appendChild(cw);
+      cf.setAttribute("aria-label", "Confirmed Starlink tail " + hit.dep.tail + " for " + hit.dep.date);
+      grp.appendChild(cf);
+    }
+
+    // The full accessible sentence. Every visible state's MEANING survives here
+    // even where CSS hides the words at narrow widths.
+    const ngSentence =
+      st.k === "prob"
+        ? (typed
+            ? `about ${hit.prob}% historical next-gen odds, estimated from aircraft type`
+            : `${hit.prob}% historical per-flight next-gen odds` + (obsN ? ` from ${obsN} tracked departures` : "")) +
+          (hit.conf && hit.conf !== "type" ? `. ${confWord(hit)}` : "")
+        : st.k === "nohistory" ? "no per-flight next-gen history for this flight number"
+        : st.k === "unavail" ? "per-flight next-gen odds unavailable right now"
+        : st.k === "fleet" ? `no per-flight odds for this flight; ${st.value} of this airline's known fleet is next-gen`
+        : st.k === "announced" ? "next-gen announced for this airline but not flying yet"
+        : st.k === "notinfleet" ? "no next-gen aircraft in this airline's current fleet"
+        : "no fleet data for this airline";
+    const sentence = (fn ? fn + ": " : "") +
+      (showNg ? ngSentence : "") + (showNg && showStream ? ". " : "") +
+      (showStream ? streamText : "") +
+      (hit && hit.dep && fn && !guardContradicts(fn) ? `. Confirmed Starlink tail ${hit.dep.tail} for ${hit.dep.date}` : "") +
+      `. Data from ${TRACKER}`;
+    grp.setAttribute("role", "img");
+    grp.setAttribute("aria-label", sentence);
+    grp.title = sentence;
+    return grp;
   }
 
   /* ── badge injection ── */
@@ -863,9 +1127,15 @@
     }
     let registered = false;
     const navanWants = [];
-    let bestFn = null, bestP = -1;
-    for (const [f, v] of probMap.entries())
-      if (v && v.prob > bestP) { bestP = v.prob; bestFn = f; }
+    // The on-page "best" ring binds to the SAME fail-closed winner eligibility as
+    // the panel/strip: rank the scored predictions and ask winnerFnOf(). A mere
+    // highest number that isn't decision-grade (gap <8pt, or low/type/missing
+    // confidence) gets NO ring anywhere (Codex R23 "leaked best ring" control).
+    const rankedOnPage = [...probMap.entries()]
+      .filter(([, v]) => v && typeof v.prob === "number")
+      .map(([f, v]) => ({ fn: f, prob: v.prob }))
+      .sort((a, b) => b.prob - a.prob);
+    const onPageWinnerFn = winnerFnOf(rankedOnPage);
     for (const n of targets) {
       const el = n.parentElement;
       if (!el) continue;
@@ -879,58 +1149,27 @@
       const hit = probMap.get(fn);
       const row = findRow(el);
       if (!el.dataset.uslBadged) {
-        const dup = row && row.rowEl.querySelector('.usl-badge[data-b="' + fn + '"]');
+        const dup = row && row.rowEl.querySelector('[data-b="' + fn + '"]');
         if (dup) {
           el.dataset.uslBadged = "dup";
-        } else if (hit && hit.unavailable) {
-          // Terminal: the tracker failed this flight repeatedly. Distinct from
-          // "n/a" (which means the tracker HAS no data) — this means we couldn't
-          // get an answer. Not badged "1", so a later manual refresh can retry.
-          el.dataset.uslBadged = "unavail";
-          const b = document.createElement("span");
-          b.className = "usl-badge usl-na";
-          b.textContent = "🛰️ —";
-          b.title = fn + ": odds temporarily unavailable (the tracker didn't respond) · refresh to retry · data: " + TRACKER;
-          b.dataset.b = fn;
-          el.appendChild(b);
+        } else if (hit !== undefined || row) {
+          // ONE labelled dual-metric group for every resolved state (Codex
+          // round 26). The old code had three separate branches emitting three
+          // differently-shaped chips — a bare "🛰️ —" for a failed request, a
+          // bare "🛰️ n/a" for a genuine absence, and a percentage pill — none
+          // of which said whether the number was per-flight next-gen or an
+          // airline ConnectScore. metricsGroup() resolves the state and labels
+          // it. `hit === undefined` still means "never asked": no group yet.
+          el.dataset.uslBadged = hit && hit.unavailable ? "unavail" : hit ? "1" : "na";
+          const grp = metricsGroup(fn, hit, null);
+          // "best" is a RING modifier bound to the shared winner eligibility,
+          // applied to the probability pill only, and never a colour change.
+          if (fn === onPageWinnerFn && !PAGE_PREDICT) {
+            const pill = grp.querySelector(".usl-ng__value.usl-badge");
+            if (pill) pill.classList.add("usl-best");
+          }
+          el.appendChild(grp);
           if (row) addWatchStar(el, fn);
-        } else if (hit) {
-          el.dataset.uslBadged = "1";
-          const b = document.createElement("span");
-          const isBest = fn === bestFn && hit.prob >= 30 && !PAGE_PREDICT;
-          // "best" is a RING modifier on top of the ramp colour, never a colour
-          // replacement — a 30% best flight must stay amber, not turn green.
-          b.className = "usl-badge " + cls(hit.prob) + (isBest ? " usl-best" : "");
-          // v2.3: surface the sample size the tracker already returns (obs count)
-          // inline — "68% · 51 flights" — so trust rides along with the number
-          // without extra chrome. The confirmed-tail ✓ and the ★ "best" prefix
-          // are unchanged. Only a genuine per-flight departure count is shown
-          // (obsCount() drops type-derived odds, which have no sample).
-          const obsN = obsCount(hit);
-          b.textContent = (isBest ? "★ " : "") + "🛰️ " + hit.prob + "%" +
-            (obsN ? " · " + obsN + " flights" : "") + (hit.dep ? " ✓" : "");
-          // "type" confidence = the tracker derived the odds from the aircraft
-          // type/subfleet rather than this flight number's own history.
-          const typed = hit.conf === "type";
-          b.title = `${fn}: ` +
-            (typed
-              ? `~${hit.prob}% odds derived from aircraft type`
-              : `gets a Starlink-equipped plane ~${hit.prob}% of the time (${hit.obs} recent departures)`) +
-            (hit.dep ? ` — ✓ CONFIRMED Starlink tail ${hit.dep.tail} on ${hit.dep.date}` : "") +
-            (hit.asOf ? ` · as of ${hit.asOf}` : "") +
-            " · data: " + TRACKER;
-          b.dataset.b = fn;
-          el.appendChild(b);
-          if (row) addWatchStar(el, fn);
-        } else if (row) {
-          el.dataset.uslBadged = "na";
-          const b = document.createElement("span");
-          b.className = "usl-badge usl-na";
-          b.textContent = "🛰️ n/a";
-          b.title = fn + ": no Starlink-assignment history for this flight number yet · data: " + TRACKER;
-          b.dataset.b = fn;
-          el.appendChild(b);
-          addWatchStar(el, fn);
         } else {
           el.dataset.uslBadged = "miss";
         }
@@ -942,6 +1181,10 @@
     }
     if (registered) { updatePanelSortBtn(); refreshPanelTimes(); }
     if ((PAGE_PREDICT || UNITED_FALLBACK) && navanWants.length) requestPredictions([...new Set(navanWants)]);
+    // Capture the host's own order on EVERY scan until something moves rows, so
+    // an undo target exists on mixed hosts too (where nothing auto-sorts).
+    captureHostOrder();
+    autoSortIfEnabled();
     maybeResort();
   }
   function scheduleScan() {
@@ -1033,8 +1276,32 @@
    * Frontier/Southwest row is still recognized as a flight and kept in the
    * sort's stable tail rather than mistaken for structure. */
   const GEN_FN_RE = /\b(?:[A-Z]{2,3}|[A-Z][a-zA-Z]{3,})\s?\d{2,4}\b/;
+  /* The HOST's own text for a row, with every element this extension injected
+   * removed. Load-bearing, and it cost a real defect to learn: the v3.0 row
+   * label "NEXT-GEN 68%" matches GEN_FN_RE as carrier "GEN" flight "68", so a
+   * row's identity token flipped from UA1596 to GEN68 the moment we badged it,
+   * which broke sorting and the order probes. Anything that reads a row to
+   * decide what it IS must read the page, never our own annotations. */
+  function hostText(el) {
+    if (!el) return "";
+    let out = "";
+    (function walk(n) {
+      for (const c of n.childNodes) {
+        if (c.nodeType === 1) {
+          const cl = c.classList;
+          if (cl && cl.length) {
+            let ours = false;
+            for (const k of cl) if (k.lastIndexOf("usl-", 0) === 0) { ours = true; break; }
+            if (ours) continue;
+          }
+          walk(c);
+        } else if (c.nodeType === 3) out += c.nodeValue;
+      }
+    })(el);
+    return out;
+  }
   function isFlightUnit(el) {
-    const t = el.textContent || "";
+    const t = hostText(el);
     return TIME_ONE.test(t) && GEN_FN_RE.test(t);
   }
   // Stable per-row identity from its flight token ("United 1596" → "UNITED1596",
@@ -1042,7 +1309,7 @@
   // order so a Navan rerender that lifts another carrier back above United — even
   // while United's own relative order is preserved — is detected and re-corrected.
   function rowToken(el) {
-    const m = (el.textContent || "").match(GEN_FN_RE);
+    const m = hostText(el).match(GEN_FN_RE);
     return m ? m[0].replace(/\s+/g, "").toUpperCase() : null;
   }
   function currentFlightOrder(P) {
@@ -1052,7 +1319,7 @@
   // carrier, an n/a United flight, or one still loading). null is NOT "worse
   // than 0" — unscored rows simply follow the scored ones in their own order.
   function unitScore(el) {
-    const m = (el.textContent || "").match(FN_RE);
+    const m = hostText(el).match(FN_RE);
     const hit = m ? probMap.get(AIRLINE + m[1]) : null;
     return hit && typeof hit.prob === "number" ? hit.prob : null;
   }
@@ -1102,6 +1369,70 @@
    * both a cross-carrier rerender and a late high score re-correct. Loop-guarded:
    * our own reorder is a DOM mutation that reschedules a scan, so a short window
    * after each sort is ignored. */
+  /* ── host-order capture and real undo (Codex round 26) ────────────────────
+   * Capture the booking site's OWN flight-row order BEFORE this extension has
+   * moved anything. "Keep site order" then restores those exact rows to those
+   * exact slots. Without a capture, turning sorting off could only stop future
+   * reorders, leaving the page in a state the traveller never chose — which is
+   * not an undo, and the gate asserts the difference. */
+  function captureHostOrder() {
+    if (didAutoSort || prioritizeActive) return;      // already moved: too late
+    const P = findContainer();
+    if (!P) return;
+    const key = ctx ? `${ctx.o}-${ctx.d}|${ctx.phase}` : "";
+    const now = currentFlightOrder(P);
+    if (now.length < 2) return;
+    if (hostOrder && hostOrderKey === key) return;    // keep the FIRST capture
+    hostOrder = now;
+    hostOrderKey = key;
+  }
+  function restoreHostOrder() {
+    const P = findContainer();
+    const key = ctx ? `${ctx.o}-${ctx.d}|${ctx.phase}` : "";
+    if (!P || !hostOrder || hostOrderKey !== key) { didAutoSort = false; desiredOrder = null; return false; }
+    const kids = [...P.children];
+    const flightIdx = [];
+    kids.forEach((el, i) => { if (isFlightUnit(el)) flightIdx.push(i); });
+    // Rebuild the captured sequence from the rows PRESENT now. A row the host
+    // has since removed is simply absent; anything unrecognised keeps its place
+    // at the end rather than being dropped.
+    const byTok = new Map();
+    for (const i of flightIdx) { const t = rowToken(kids[i]); if (t && !byTok.has(t)) byTok.set(t, kids[i]); }
+    const seq = [];
+    for (const t of hostOrder) { const el = byTok.get(t); if (el) { seq.push(el); byTok.delete(t); } }
+    for (const el of byTok.values()) seq.push(el);
+    if (seq.length !== flightIdx.length) { didAutoSort = false; desiredOrder = null; return false; }
+    const flightSet = new Set(flightIdx);
+    let fi = 0;
+    const desired = kids.map((el, i) => (flightSet.has(i) ? seq[fi++] : el));
+    const anchor = document.createComment("usl-anchor");
+    P.insertBefore(anchor, P.firstChild);
+    for (const el of desired) P.insertBefore(el, anchor);
+    anchor.remove();
+    didAutoSort = false;
+    desiredOrder = null;
+    lastSortTs = Date.now();
+    return true;
+  }
+  /* Single-carrier automatic sort. Codex approved default-ON here ONLY: every
+   * row is the same airline, so no other carrier is displaced and no
+   * cross-carrier order changes. Never runs on a mixed host, never before the
+   * stored settings have loaded (a default must not act before it is known),
+   * and never before the host's own order has been captured. */
+  function autoSortIfEnabled() {
+    if (!settingsReady || !SINGLE_HOST || !sortSingle) return;
+    if (Date.now() - lastSortTs < 1200) return;
+    const P = findContainer();
+    if (!P) return;
+    captureHostOrder();
+    const ideal = idealFlightTokens(P);
+    if (ideal.scoredCount < 2) return;   // nothing meaningful to order yet
+    const now = currentFlightOrder(P);
+    if (now.join(",") === ideal.tokens.join(",")) { didAutoSort = true; return; }
+    const res = sortPage();
+    if (res && res.ok) { didAutoSort = true; if (panelEl) renderPanel(); }
+  }
+
   function maybeResort() {
     if (!prioritizeActive || Date.now() - lastSortTs < 1200) return;
     const P = findContainer();
@@ -1127,16 +1458,17 @@
   function obsCount(hit) {
     return hit && typeof hit.obs === "number" && hit.obs > 0 && hit.conf !== "type" ? hit.obs : null;
   }
-  // Coarse, human confidence word. Prefer the tracker's own label; fall back to
-  // bucketing its returned observation count. Returns "" when neither is known.
+  // Confidence word straight from the tracker's calibrated label — NEVER
+  // synthesised from observation count (Codex R23: obs count is evidence shown
+  // to the traveller, not a confidence rule and not an eligibility threshold).
+  // Returns "" when the tracker gives no usable label, so a missing confidence
+  // stays missing rather than being invented from sample size.
   function confWord(hit) {
     if (!hit) return "";
-    if (hit.conf === "type") return "estimated from aircraft type";
-    if (hit.conf === "high") return "high confidence";
-    if (hit.conf === "medium") return "moderate confidence";
-    if (hit.conf === "low") return "low confidence";
-    if (typeof hit.obs === "number")
-      return hit.obs >= 30 ? "high confidence" : hit.obs >= 10 ? "moderate confidence" : "low confidence";
+    if (hit.conf === "high") return "High confidence";
+    if (hit.conf === "medium") return "Medium confidence";
+    if (hit.conf === "low") return "Low confidence";
+    if (hit.conf === "type") return "Estimated from aircraft type";
     return "";
   }
   // The muted " · N flights" sample-size tag for a panel row, or "" when unknown.
@@ -1147,44 +1479,231 @@
 
   // Below this lead (in percentage points) the top two are "too close to call".
   const STRIP_MIN_GAP = 8;
-  /* Build the decision strip. Honest by construction: it crowns a winner ONLY
-   * when there are ≥2 scored flights, the leader's margin over 2nd-best clears
-   * STRIP_MIN_GAP, and the leader's confidence is not "low". Otherwise it says so
-   * plainly — "close, no clear winner" or "only one scored flight" — and never
-   * manufactures a winner. Returns "" when there is nothing scored to speak to. */
-  function decisionStrip(flights) {
+
+  /* R23 Answer-3 precedence helpers. The Guard's latest published fact for the
+   * EXACT flight/date being shopped outranks the strip's historical comparison:
+   *   · lastStatus "no" (confirmed non-Starlink) → that candidate is ineligible
+   *     for winner/CTA/ring/star while the fact is current (historical odds may
+   *     stay visible, explicitly historical);
+   *   · "no" / "early" (withdrawn) / "invalid" → the separate ✓-Confirmed token
+   *     must not render for that flight (no confirmation token after B or C). */
+  function guardFact(fn) {
+    if (!ctx || !ctx.date) return "";
+    return guardFacts.get(fn + "|" + ctx.date) || "";
+  }
+  function guardNo(fn) { return guardFact(fn) === "no"; }
+  function guardContradicts(fn) {
+    const v = guardFact(fn);
+    return v === "no" || v === "early" || v === "invalid";
+  }
+
+  /* THE single winner-eligibility predicate. Codex R23 + freshness amendment:
+   * a winner is earned iff (1) ≥2 scored comparable flights, (2) finite gap ≥8
+   * pts, (3) the leader carries a TRACKER-SUPPLIED calibrated confidence of
+   * `high` or `medium` — low / type / missing / unknown / invented are all
+   * ineligible. No freshness fence (predict-flight has no source as-of), and
+   * observation count is evidence, never an eligibility threshold. Returns the
+   * winner shape or null. BOTH the strip and every best ring/star bind to THIS
+   * function, so a highest number that is not eligible never gets crowned or
+   * ringed anywhere (the "leaked best ring" mutation the gate hunts for). */
+  function eligibleWinner(flights) {
+    const scored = (flights || []).filter((f) => typeof f.prob === "number");
+    // R23 precedence: a candidate the Guard has CONFIRMED non-Starlink for this
+    // exact date cannot take winner treatment; another candidate may still win,
+    // so the comparison runs over the remaining eligible field.
+    const field = scored.filter((f) => !guardNo(f.fn));
+    if (field.length < 2) return null;
+    const best = field[0], second = field[1];
+    const gap = best.prob - second.prob;
+    if (!(gap >= STRIP_MIN_GAP)) return null;
+    const bestHit = probMap.get(best.fn);
+    const conf = bestHit && bestHit.conf;
+    if (conf !== "high" && conf !== "medium") return null;
+    return { best, second, gap, bestHit };
+  }
+  // The winning flight number for the current ranked list, or null. Marker
+  // binding (panel ⭐ and on-page ring) calls this so it can never disagree with
+  // the strip about who won.
+  function winnerFnOf(flights) { const w = eligibleWinner(flights); return w ? w.best.fn : null; }
+
+  /* Build the decision strip as ONE structured component with an explicit state
+   * modifier (Codex spec §4/§8). Winner is fail-closed via eligibleWinner();
+   * every non-winner state still tells the traveller what is known and why the
+   * extension declined to decide. No trophy glyph; the winner wash is the brand
+   * cyan/violet (CSS), never green (green is the odds ramp). No freshness claim
+   * — evidence is permanently scoped "Historical tracker odds" (R23 amendment).
+   * Returns "" when there is nothing scored to speak to. */
+  /* Announce-once (spec §7): the strip is a role=status live region, but it
+   * must announce only when its SEMANTIC state key changes, never on a
+   * same-state re-render — so an unchanged state renders with aria-live="off"
+   * and a replaced node with identical meaning cannot re-announce. */
+  let lastStripState = "";
+  function stripLive(key) {
+    const v = key === lastStripState ? "off" : "polite";
+    lastStripState = key;
+    return v;
+  }
+
+  function decisionStrip(flights, sys) {
+    // System states (spec §5): loading / tracker-unavailable / no-data are the
+    // SAME structured component with explicit modifiers, never a bare prose row.
+    // Loading carries aria-busy=true and settles; unavailable and genuine
+    // no-data stay distinct — an unmeasured route is never a proven absence.
+    if (sys) {
+      if (sys.state === "loading") {
+        return `<section class="usl-decision usl-decision--loading" data-usl-state="loading" role="status"` +
+          ` aria-live="${stripLive("loading")}" aria-busy="true"` +
+          ` aria-label="Checking this page. Comparing WiFi history.">` +
+          `<p class="usl-decision__kicker">Checking this page</p>` +
+          `<p class="usl-decision__comparison">Comparing WiFi history…</p>` +
+          `<div class="usl-decision__skel" aria-hidden="true"></div>` +
+          `<div class="usl-decision__skel usl-decision__skel--short" aria-hidden="true"></div>` +
+          `</section>`;
+      }
+      if (sys.state === "unavailable") {
+        return `<section class="usl-decision usl-decision--unavailable" data-usl-state="unavailable" role="status"` +
+          ` aria-live="${stripLive("unavailable")}" aria-busy="false"` +
+          ` aria-label="Comparison unavailable. We couldn't refresh flight odds. Page order is unchanged.">` +
+          `<p class="usl-decision__kicker">Comparison unavailable</p>` +
+          `<p class="usl-decision__comparison">We couldn't refresh flight odds.</p>` +
+          `<p class="usl-decision__note">Page order is unchanged. Use ↻ to retry.</p>` +
+          `</section>`;
+      }
+      return `<section class="usl-decision usl-decision--no-data" data-usl-state="no-data" role="status"` +
+        ` aria-live="${stripLive("no-data")}" aria-busy="false"` +
+        ` aria-label="No comparison available. ${esc(sys.body)}">` +
+        `<p class="usl-decision__kicker">No comparison available</p>` +
+        `<p class="usl-decision__comparison">${esc(sys.body)}</p>` +
+        `</section>`;
+    }
+
     const scored = (flights || []).filter((f) => typeof f.prob === "number");
     if (!scored.length) return "";
+    // R23 precedence: candidates the Guard confirmed non-Starlink for this exact
+    // date are out of the winner field (their historical odds stay in the rows).
+    const excluded = scored.filter((f) => guardNo(f.fn));
+    const field = scored.filter((f) => !guardNo(f.fn));
+
+    // SINGLE — only one scored flight; nothing to compare, no winner treatment.
     if (scored.length === 1) {
-      return `<div class="usl-strip usl-strip-single">` +
-        `<div class="usl-strip-t">Only one scored flight</div>` +
-        `<div class="usl-strip-s">${esc(scored[0].fn)} at ${scored[0].prob}% — nothing else here to compare it against yet.</div>` +
-        `</div>`;
+      const only = scored[0];
+      const obsN = obsCount(probMap.get(only.fn));
+      const ev = only.prob + "%" + (obsN ? ` · ${obsN} tracked departures` : "");
+      return `<section class="usl-decision usl-decision--single" data-usl-state="single" role="status"` +
+        ` aria-live="${stripLive("single")}" aria-busy="false"` +
+        ` aria-label="Not enough to compare: only ${esc(only.fn)} has a historical Starlink score.">` +
+        `<p class="usl-decision__kicker">Not enough to compare</p>` +
+        `<p class="usl-decision__comparison">Only ${esc(only.fn)} has a score</p>` +
+        `<p class="usl-decision__evidence">${esc(ev)} · Historical tracker odds</p>` +
+        `<p class="usl-decision__note">Other flights stay unscored and in place.</p>` +
+        `</section>`;
     }
-    const best = scored[0], second = scored[1];
-    const gap = best.prob - second.prob;
-    const bestHit = probMap.get(best.fn);
-    const lowConf = !!bestHit && bestHit.conf === "low";
-    if (gap < STRIP_MIN_GAP || lowConf) {
-      const why = lowConf
-        ? "the top pick's odds are low-confidence"
-        : `the top two are within ${gap} pt${gap === 1 ? "" : "s"}`;
-      return `<div class="usl-strip usl-strip-close">` +
-        `<div class="usl-strip-t">Top options are close — no clear WiFi winner</div>` +
-        `<div class="usl-strip-s">${esc(why)}. Both are listed below.</div>` +
-        `</div>`;
+
+    const w = eligibleWinner(flights);
+
+    // No eligible winner → CLOSE / refusal. Say plainly why (too close, the
+    // leader's confidence is not decision-grade, or the Guard disqualified the
+    // top candidate and too little is left), never manufacture a winner.
+    if (!w) {
+      let reason, detail;
+      if (excluded.length && field.length < 2) {
+        // The comparison collapsed because the Guard's published fact removed a
+        // candidate. Name the fact; ambiguity is never converted to a negative.
+        reason = `${excluded[0].fn} is confirmed non-Starlink for this date`;
+        detail = field.length
+          ? `${esc(field[0].fn)} ${field[0].prob}% is the only other scored flight.`
+          : `No other scored flight to compare.`;
+      } else {
+        const best = field[0], second = field[1];
+        const gap = best.prob - second.prob;
+        const bestHit = probMap.get(best.fn);
+        const conf = bestHit && bestHit.conf;
+        const lowGrade = conf !== "high" && conf !== "medium"; // low/type/missing/unknown
+        reason = lowGrade
+          ? `The leader is based on limited history`
+          : `Top two are ${gap} point${gap === 1 ? "" : "s"} apart`;
+        detail = lowGrade
+          ? `${esc(best.fn)} leads, but its odds are not decision-grade.`
+          : `${esc(best.fn)} ${best.prob}% · ${esc(second.fn)} ${second.prob}%`;
+      }
+      return `<section class="usl-decision usl-decision--close" data-usl-state="close" role="status"` +
+        ` aria-live="${stripLive("close")}" aria-busy="false"` +
+        ` aria-label="No clear winner. ${esc(reason)}.">` +
+        `<p class="usl-decision__kicker">No clear winner</p>` +
+        `<p class="usl-decision__comparison">${esc(reason)}</p>` +
+        `<p class="usl-decision__evidence">${detail}</p>` +
+        `<p class="usl-decision__note">Flights stay in the booking site's order.</p>` +
+        `</section>`;
     }
+
+    // WINNER — earned and rare. Evidence is permanently historical; a confirmed
+    // exact-date tail is a SEPARATE fact, never a freshness signal.
+    const { best, second, gap, bestHit } = w;
     const obsN = obsCount(bestHit);
-    const conf = confWord(bestHit);
-    const bits = [`leads by ${gap} pts`];
-    if (obsN) bits.push(`${obsN} departures observed`);
-    if (conf) bits.push(conf);
-    bits.push("cached ≤6h");
-    return `<div class="usl-strip usl-strip-win">` +
-      `<div class="usl-strip-t">🏆 Best WiFi: ${esc(best.fn)}</div>` +
-      `<div class="usl-strip-s">${esc(bits.join(" · "))}</div>` +
-      `<button type="button" class="usl-strip-cta">Prioritize ${esc(best.fn)} in these results</button>` +
-      `</div>`;
+    const cw = confWord(bestHit); // guaranteed High/Medium by eligibility
+    // No confirmation token after a Guard B or C fact for this exact date.
+    const dep = bestHit && !guardContradicts(best.fn) ? bestHit.dep : null;
+    const evBits = [];
+    if (obsN) evBits.push(`${obsN} tracked departures`);
+    if (cw) evBits.push(cw);
+    evBits.push("Historical tracker odds");
+    const confirm = dep
+      ? `<p class="usl-decision__confirm">✓ Confirmed for ${esc(dep.date)}</p>` : "";
+    const aria = `Best WiFi choice ${best.fn}: ${gap} points higher historical Starlink odds than ${second.fn}.` +
+      (obsN ? ` ${obsN} tracked departures.` : "") + (cw ? ` ${cw}.` : "") +
+      (dep ? ` Confirmed Starlink tail for ${dep.date}.` : "") +
+      ` Prioritize ${best.fn}; unscored flights remain after scored United flights.`;
+    return `<section class="usl-decision usl-decision--winner" data-usl-state="winner" role="status"` +
+      ` aria-live="${stripLive("winner")}" aria-busy="false"` +
+      ` aria-label="${esc(aria)}" aria-labelledby="usl-decision-title">` +
+      `<div class="usl-decision__top">` +
+        `<p class="usl-decision__kicker">Best WiFi choice</p>` +
+        `<span class="usl-badge ${cls(best.prob)}" aria-hidden="true">${best.prob}%</span>` +
+      `</div>` +
+      `<h2 id="usl-decision-title" class="usl-decision__title">${esc(best.fn)}</h2>` +
+      `<p class="usl-decision__comparison">${gap} points higher historical odds than ${esc(second.fn)}</p>` +
+      confirm +
+      `<p class="usl-decision__evidence">${esc(evBits.join(" · "))}</p>` +
+      `<button type="button" class="usl-decision__cta usl-strip-cta" data-fn="${esc(best.fn)}"` +
+      ` aria-pressed="${prioritizeActive ? "true" : "false"}">` +
+      `${prioritizeActive ? "✓ " + esc(best.fn) + " prioritized" : "Prioritize " + esc(best.fn)}</button>` +
+      `</section>`;
+  }
+
+  /* ── streaming-class section (next-gen first, streaming second) ────────────
+   * ConnectScore is TODAY'S system quality — the published floor from
+   * airlines.js — and answers a different question than the next-gen odds
+   * above it. On Navan the section lists every supported carrier matched in
+   * the results (falling back to United); single-carrier hosts list their own
+   * airline. Renders "" when airlines.js is absent. A missing score renders
+   * nothing: unknown is never zero. */
+  function streamingRows() {
+    if (metricsMode === "nextgen") return "";   // display mode: presentation only
+    if (typeof scoreAirline !== "function") return "";
+    let keys;
+    if (NAVAN) {
+      keys = ["united"];
+      try {
+        const P = findContainer();
+        const txt = P ? P.textContent || "" : "";
+        if (txt && typeof GF_AIRLINES !== "undefined") {
+          const found = GF_AIRLINES.filter((a) => a.re.test(txt)).map((a) => a.key);
+          if (found.length) keys = found;
+        }
+      } catch (e) {}
+    } else {
+      keys = [ALASKA ? "alaska" : "united"];
+    }
+    const rows = keys.map((k) => { try { return scoreAirline(k); } catch (e) { return null; } })
+      .filter((a) => a && typeof a.score === "number")
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6);
+    if (!rows.length) return "";
+    return `<p class="usl-sect usl-sect--stream">Streaming-class · ConnectScore</p>` +
+      rows.map((a) =>
+        `<div class="usl-row usl-stream" title="${esc(a.note || "")}">` +
+        `<span>${esc(a.name)}<span class="usl-time"> · ${esc(a.systemLabel)}</span></span>` +
+        `<span class="usl-badge usl-cs ${a.cls || cls(a.score)}">${a.score}</span></div>`).join("");
   }
 
   function updatePanelSortBtn() {
@@ -1215,6 +1734,10 @@
     // a flight visible on the page is never omitted by a stale/partial route
     // response — panel and page agree (Codex round-18 P1-01).
     const flights = (ctx.navan || ALASKA) ? navanTopFlights() : mergedFlights();
+    // The ⭐ marks the eligible winner ONLY — the same fail-closed predicate the
+    // strip uses. When there is no earned winner (too close, low-grade, single),
+    // NO row gets the star, exactly as no winner card renders (Codex R23).
+    const winFn = winnerFnOf(flights);
     // The "per-flight odds" caption shows when the list is carried purely by the
     // on-page fallback (no route-history rows at all — the empty-transcon case).
     const fromFallback = UNITED_FALLBACK && !ctx.navan && !hasRouteRows && flights.length > 0;
@@ -1222,7 +1745,12 @@
     const note = !flights.length && data && data.note ? data.note : "";
     const typed = flights.some((f) => { const h = probMap.get(f.fn); return h && h.conf === "type"; });
     const rel = depsRelevant();
-    const deps = rel ? (data && data.deps || []).slice(0, 3) : [];
+    // Footer confirmed-tails list: drop any entry whose exact fn/date the Guard
+    // has since contradicted (no/withdrawn/invalid) — same precedence as the ✓.
+    const deps = rel ? ((data && data.deps || []).filter((x) => {
+      const v = guardFacts.get(x.fn + "|" + x.date) || "";
+      return v !== "no" && v !== "early" && v !== "invalid";
+    })).slice(0, 3) : [];
     const itin = (data && data.itins || []).find((it) => it.via && it.via.length && it.coverage === "full");
     // Four-state empty copy (Codex-approved, v2.2). The panel must not claim "no
     // history" when the direct-history call FAILED, and must not say "no route"
@@ -1236,40 +1764,67 @@
     // Bug 3: on Navan, while the page's flights are still being read/predicted
     // the panel shows a loading line — never the empty-history copy. navanLoading
     // is only ever set on Navan (see refresh()), so this is inert elsewhere.
-    const emptyCopy = navanLoading
-      ? "Checking this page's flights…"
-      : navanUnavailable
-      ? "Direct-flight history unavailable right now."
-      : note
-      ? note
-      : !directOk
-        ? "Direct-flight history unavailable right now."
-        : itin
-          ? "No direct-flight Starlink history yet. Connection estimate below."
-          : "No direct-flight Starlink history for this route yet.";
+    // v3.0: the empty-state prose row became the SAME structured decision
+    // component with explicit system-state modifiers (spec §5). Precedence is
+    // unchanged from the audited v2.2 four-state copy: loading while genuinely
+    // pending; unavailable on a failed/unmeasured fetch (never a false absence);
+    // genuine no-data otherwise, with the connection-estimate variant intact.
+    const sys = flights.length ? null
+      : navanLoading ? { state: "loading" }
+      : navanUnavailable ? { state: "unavailable" }
+      : note ? { state: "no-data", body: note }
+      : !directOk ? { state: "unavailable" }
+      : itin ? { state: "no-data", body: "No direct-flight Starlink history yet. Connection estimate below." }
+      : { state: "no-data", body: "No direct-flight Starlink history for this route yet." };
     const legTag = ctx.phase === "return" ? " · return leg" : "";
     p.innerHTML =
       `<header><span class="usl-rt">🛰️ ${esc(ctx.o)} → ${esc(ctx.d)} · ${esc(fmtDate(ctx.date) || "WiFi odds")}${legTag}</span>` +
-      `<span class="usl-rhs"><span class="usl-est" title="Historical estimates, cached up to 6h">ESTIMATES</span>` +
+      `<span class="usl-rhs"><span class="usl-est" title="Historical Starlink tracker odds">ESTIMATES</span>` +
       `<button type="button" class="usl-refresh" aria-label="Refresh odds (bypass cache)" title="Refresh odds (bypass cache)">↻</button>` +
       `<button type="button" class="usl-x" aria-expanded="true" aria-label="Collapse panel" title="Collapse">▾</button></span></header>
       <div class="usl-body">` +
-      decisionStrip(flights) +
+      decisionStrip(flights, sys) +
+      // Mixed-carrier coverage boundary (spec §5): Navan lists several carriers
+      // and only United is scored there, so the boundary states the coverage
+      // honestly and persists across winner, refusal and system states. It
+      // renders exactly once, below the strip and above the rows.
+      (ctx.navan ? `<p class="usl-boundary">Coverage: United. Other airlines stay unscored and keep the booking site's order.</p>` : "") +
+      // Sorted-state disclosure + real undo (Codex round 26). The label names
+      // the metric explicitly — never "Best", "Smart sort" or "WiFi order" —
+      // and the Undo control is a real keyboard-operable button that restores
+      // the captured booking-site order. It renders only while rows are
+      // actually moved by us, so it can never claim a sort that did not happen.
+      (didAutoSort || prioritizeActive
+        ? `<div class="usl-sorted" role="status">` +
+          `<span class="usl-sorted__t">Sorted by historical next-gen odds</span>` +
+          `<button type="button" class="usl-undo" aria-label="Keep the booking site's order and stop sorting">Keep site order</button>` +
+          `</div>`
+        : "") +
+      // Next-gen first (Jeremy, 31 Jul): the ranked flight odds ARE the
+      // next-gen number — the chance of drawing a Starlink / Amazon Leo
+      // aircraft — and the section says so. Streaming-class (ConnectScore,
+      // today's system quality) renders BELOW as its own labelled section.
+      (flights.length ? `<p class="usl-sect">Next-gen odds · Starlink and Amazon Leo</p>` : "") +
       (flights.length
         ? flights.map((f, i) =>
             `<div class="usl-row usl-jump" data-fn="${esc(f.fn)}" role="button" tabindex="0" aria-label="Jump to ${esc(f.fn)} on the page">` +
-            `<span>${i === 0 ? "⭐ " : ""}${esc(f.fn)}${probMap.get(f.fn) && probMap.get(f.fn).dep ? " ✓" : ""}` +
+            `<span>${f.fn === winFn ? "⭐ " : ""}${esc(f.fn)}${probMap.get(f.fn) && probMap.get(f.fn).dep && !guardContradicts(f.fn) ? " ✓" : ""}` +
             (isGuarded(f.fn) ? GUARD_MARK : "") +
             `<span class="usl-time" data-time="${esc(f.fn)}"></span>${obsSpan(f.fn)}</span>` +
             `<span class="usl-badge ${cls(f.prob)}">${f.prob}%</span></div>`).join("")
-        : `<div class="usl-row" style="display:block;line-height:1.45">${esc(emptyCopy)}</div>`) +
+        : "") +
       (fromFallback && flights.length ? `<div style="margin-top:6px;font-size:11px;opacity:.7">Flights in these results · per-flight odds (no Starlink route history yet)</div>` : "") +
-      (flights.length ? `<button type="button" class="usl-sortbtn usl-prioritize" aria-pressed="${prioritizeActive ? "true" : "false"}" style="display:none">Prioritize United flights with available WiFi odds; unscored flights follow</button>` : "") +
+      // The carrier-framed action renders ONLY on mixed-carrier hosts. On
+      // united.com every flight is United, so "Prioritize United flights" is a
+      // meaningless promise there (Jeremy, 31 Jul) — the winner CTA carries the
+      // flight-specific action instead.
+      (flights.length && (NAVAN || ALASKA) ? `<button type="button" class="usl-sortbtn usl-prioritize" aria-pressed="${prioritizeActive ? "true" : "false"}" style="display:none">Prioritize United flights with available WiFi odds; unscored flights follow</button>` : "") +
       (itin ? `<div class="usl-row" style="border-top:1px solid rgba(148,178,255,.14);margin-top:6px;padding-top:8px">` +
         `<span>via ${esc(itin.via.join("+"))} · all-legs estimate</span><span class="usl-badge ${cls(Math.round(itin.joint))}">${Math.round(itin.joint)}%</span></div>` : "") +
       (deps.length ? `<div style="margin-top:8px;font-size:11px;opacity:.75">Confirmed tails (next ~72h): ` +
         deps.map((d) => `${esc(d.fn)} ${esc(d.date.slice(5))}`).join(" · ") + `</div>` :
         (ctx.date && daysOut(ctx.date) > 3 ? `<div style="margin-top:8px;font-size:11px;opacity:.6">Tail assignments publish ~48h out — firm ✓s appear closer to ${esc(fmtDate(ctx.date))}.</div>` : "")) +
+      streamingRows() +
       `<div style="margin-top:10px;font-size:11.5px">` +
       (ALASKA
         ? `data: <a href="https://alaskastarlinktracker.com" target="_blank" rel="noopener" style="color:#8ecdff">alaskastarlinktracker.com ↗</a>`
@@ -1290,6 +1845,18 @@
     p.querySelector("header").addEventListener("click", (ev) => {
       if (ev.target.closest("button")) return;   // buttons handle themselves
       toggleCollapse();
+    });
+    // "Keep site order": a REAL undo. It restores the captured booking-site
+    // order and persists the choice, so the page does not re-sort on the next
+    // paint, reload, rerender or late score (Codex round 26, assertion 2).
+    const undoBtn = p.querySelector(".usl-undo");
+    if (undoBtn) undoBtn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      restoreHostOrder();
+      prioritizeActive = false;
+      if (SINGLE_HOST) { sortSingle = false; try { chrome.storage.local.set({ uslSortSingle: false }); } catch (e) {} }
+      else { sortMixed = "preserve"; try { chrome.storage.local.set({ uslSortMixed: "preserve", uslPrioritize: false }); } catch (e) {} }
+      renderPanel();
     });
     const refreshBtn = p.querySelector(".usl-refresh");
     refreshBtn.addEventListener("click", async (ev) => {
@@ -1356,7 +1923,41 @@
     // button, so all of that button's truthfulness guards (won't claim an active
     // prioritization over an unchanged page) apply unchanged.
     const stripCta = p.querySelector(".usl-strip-cta");
-    if (stripCta && pr) stripCta.addEventListener("click", () => pr.click());
+    if (stripCta) stripCta.addEventListener("click", () => {
+      const fn = stripCta.dataset.fn || "";
+      if (pr) {
+        // Mixed-carrier host: forward to the audited carrier action and mirror
+        // its TRUE state — its truthfulness guards (no claim over an unchanged
+        // page) carry over to the CTA.
+        pr.click();
+        const on = pr.getAttribute("aria-pressed") === "true";
+        stripCta.setAttribute("aria-pressed", on ? "true" : "false");
+        stripCta.textContent = on ? "✓ " + fn + " prioritized" : "Prioritize " + fn;
+        return;
+      }
+      // united.com: no carrier-framed button exists (everything is United), so
+      // the CTA runs the SAME audited sortPage() directly, with the same
+      // truthfulness rule: never claim an active prioritization when the page
+      // could not actually be reordered.
+      if (stripCta.getAttribute("aria-pressed") === "true") {
+        prioritizeActive = false;
+        try { chrome.storage.local.set({ uslPrioritize: false }); } catch (e) {}
+        stripCta.setAttribute("aria-pressed", "false");
+        stripCta.textContent = "Prioritize " + fn;
+        return;
+      }
+      lastSortTs = 0;
+      const res = sortPage();
+      if (!res || !res.ok) {
+        stripCta.setAttribute("aria-pressed", "false");
+        stripCta.textContent = "Nothing to reorder in these results yet";
+        return;
+      }
+      prioritizeActive = true;
+      try { chrome.storage.local.set({ uslPrioritize: true }); } catch (e) {}
+      stripCta.setAttribute("aria-pressed", "true");
+      stripCta.textContent = "✓ " + fn + " prioritized";
+    });
     document.documentElement.appendChild(p);
     panelEl = p;
     refreshPanelTimes();
@@ -1410,7 +2011,9 @@
   function rebadge() {
     document.querySelectorAll("[data-usl-badged]").forEach((el) => {
       delete el.dataset.uslBadged;
-      el.querySelectorAll(".usl-badge").forEach((b) => b.remove());
+      // Remove the whole three-layer group AND any standalone badge (na/unavail
+      // rows inject a plain .usl-badge, scored rows inject a .usl-badge-grp).
+      el.querySelectorAll(".usl-metrics, .usl-badge-grp, .usl-badge").forEach((b) => b.remove());
     });
     registry = new Map();
     scheduleScan();

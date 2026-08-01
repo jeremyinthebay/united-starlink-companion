@@ -17,7 +17,9 @@ cp "dist/wifiodds-v${VER}.zip" "$STAGE/wifi-odds-extension-${VER}.zip"
 cp "dist/wifiodds-v${VER}.files.sha256" "$STAGE/"
 cp "store-assets/${ADIR}/SUBMIT-${VER}.md" "$STAGE/"
 
-# EXACTLY the four real store screenshots (shot on live sites, in upload order).
+# EXACTLY the four real store screenshots (shot on LIVE sites in Jeremy's
+# browser with the shipped build loaded — never a mocked-up backdrop; Jeremy's
+# rule, 31 Jul), in upload order.
 cp "store-assets/${ADIR}/real/store-1-united-1280x800.png"        "$STAGE/store-screenshots/"
 cp "store-assets/${ADIR}/real/store-2-googleflights-1280x800.png" "$STAGE/store-screenshots/"
 cp "store-assets/${ADIR}/real/store-3-alaska-1280x800.png"        "$STAGE/store-screenshots/"
@@ -32,6 +34,8 @@ WiFi Odds v${VER} — Chrome Web Store upload set (exact)
                 store-screenshots/store-2-googleflights-1280x800.png   (2nd)
                 store-screenshots/store-3-alaska-1280x800.png          (3rd)
                 store-screenshots/store-4-navan-1280x800.png           (4th)
+  Screenshot provenance: live sites, real odds, shipped build loaded in a real
+    browser. Never a mocked-up page.
   Promo tile:   promo-tiles/promo-marquee-1400x560.png
   Small tile:   promo-tiles/promo-small-440x280.png
   Icon:         promo-tiles/store-icon-128.png

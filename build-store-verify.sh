@@ -60,10 +60,33 @@ if [ -n "$BSUBMIT" ]; then
   cmp -s "$BSUBMIT" "$TMP/submit.head" || { echo "FAIL: SUBMIT-${VER}.md inside the committed bundle differs byte-for-byte from the committed source"; FAIL=1; }
   BS=$(cat "$BSUBMIT")
   printf '%s' "$BS" | grep -qF "$DESC" || { echo "FAIL: bundled SUBMIT-${VER}.md does not quote the exact manifest description"; FAIL=1; }
-  if printf '%s' "$BS" | grep -qiE "auto-sort defaults on|auto-sorts by odds|defaults on|starts? checked|start checked"; then
-    echo "FAIL: bundled SUBMIT-${VER}.md claims default auto-sort / pre-checked controls"; FAIL=1
+  # The rounds-20/21/22 check forbade EVERY default-auto-sort claim, because in
+  # v2.2 any such claim was false. In 3.0 single-carrier auto-sort is real, so
+  # that check would now block truthful copy — the same class of failure in the
+  # opposite direction. It is replaced by 3b-ii, which pins copy to BEHAVIOUR:
+  # the mixed-carrier default must still never be advertised as automatic.
+  if printf '%s' "$BS" | grep -qiE "sorts mixed-carrier|automatically (sorts|reorders) (all|every|mixed)"; then
+    echo "FAIL: bundled SUBMIT-${VER}.md claims automatic sorting on mixed-carrier pages"; FAIL=1
   fi
-  printf '%s' "$BS" | grep -qi "prioritize" || { echo "FAIL: bundled SUBMIT-${VER}.md does not describe the opt-in Prioritize action"; FAIL=1; }
+  printf '%s' "$BS" | grep -qi "prioritize\|move scored" || { echo "FAIL: bundled SUBMIT-${VER}.md does not describe the explicit mixed-carrier action"; FAIL=1; }
+  # 3b-ii. SORT DISCLOSURE (Codex round 26, assertion 6). v3.0 sorts single-carrier
+  #        pages automatically, so the retired v2.2 sentences are now FALSE and must
+  #        never ship; and the copy must carry both the automatic behaviour and the
+  #        "unknown, not worse" limitation. Three rounds were spent on copy drifting
+  #        from behaviour — this is the assertion that stops a fourth.
+  if printf '%s' "$BS" | grep -qiE "no automatic reordering|booking site's own order is preserved until|only when you ask|one-click sort"; then
+    echo "FAIL: bundled SUBMIT-${VER}.md still carries a retired no-automatic-reordering claim"; FAIL=1
+  fi
+  printf '%s' "$BS" | grep -qi "automatically sorts" || { echo "FAIL: bundled SUBMIT-${VER}.md does not disclose automatic sorting"; FAIL=1; }
+  printf '%s' "$BS" | grep -qi "not lower\|unknown, not worse" || { echo "FAIL: bundled SUBMIT-${VER}.md does not state that unscored airlines are unknown, not worse"; FAIL=1; }
+  printf '%s' "$BS" | grep -qi "turned off in Settings" || { echo "FAIL: bundled SUBMIT-${VER}.md does not say sorting can be turned off"; FAIL=1; }
+  # 3c. STALE VERSION COPY (R23 Answer 2): the bundled copy must name the shipped version and must
+  #     not present any pre-3.0 public version (2.2.0, or the never-public 2.3 / 2.4 intermediates)
+  #     as current. Historical references are not needed in this doc, so any hit is a failure.
+  printf '%s' "$BS" | grep -qF "v${VER}" || { echo "FAIL: bundled SUBMIT-${VER}.md never names v${VER}"; FAIL=1; }
+  if printf '%s' "$BS" | grep -qE '\b2\.2\.0\b|\bv2\.2\b|\bv2\.3\b|\bv2\.4\b|\b2\.3\.[0-9]\b|\b2\.4\.[0-9]\b'; then
+    echo "FAIL: bundled SUBMIT-${VER}.md carries stale pre-3.0 version copy"; FAIL=1
+  fi
 else
   echo "FAIL: committed bundle has no SUBMIT-${VER}.md"; FAIL=1
 fi
@@ -72,9 +95,20 @@ rm -rf "$TMP"
 # 4. the repository SUBMIT SOURCE must also match the shipped product (round 20 P1).
 SUBMIT=$(git show "HEAD:store-assets/${ADIR}/SUBMIT-${VER}.md")
 printf '%s' "$SUBMIT" | grep -qF "$DESC" || { echo "FAIL: SUBMIT-${VER}.md does not quote the exact committed manifest description"; FAIL=1; }
-if printf '%s' "$SUBMIT" | grep -qiE "auto-sort defaults on|auto-sorts by odds|defaults on|starts? checked|start checked"; then
-  echo "FAIL: SUBMIT-${VER}.md still claims default auto-sort / pre-checked controls"; FAIL=1
+if printf '%s' "$SUBMIT" | grep -qiE "sorts mixed-carrier|automatically (sorts|reorders) (all|every|mixed)"; then
+  echo "FAIL: SUBMIT-${VER}.md claims automatic sorting on mixed-carrier pages"; FAIL=1
 fi
-printf '%s' "$SUBMIT" | grep -qi "prioritize" || { echo "FAIL: SUBMIT-${VER}.md does not describe the explicit opt-in Prioritize action"; FAIL=1; }
+if printf '%s' "$SUBMIT" | grep -qiE "no automatic reordering|booking site's own order is preserved until|only when you ask|one-click sort"; then
+  echo "FAIL: SUBMIT-${VER}.md still carries a retired no-automatic-reordering claim"; FAIL=1
+fi
+printf '%s' "$SUBMIT" | grep -qi "automatically sorts" || { echo "FAIL: SUBMIT-${VER}.md does not disclose automatic sorting"; FAIL=1; }
+printf '%s' "$SUBMIT" | grep -qi "not lower\|unknown, not worse" || { echo "FAIL: SUBMIT-${VER}.md does not state that unscored airlines are unknown, not worse"; FAIL=1; }
+printf '%s' "$SUBMIT" | grep -qi "turned off in Settings" || { echo "FAIL: SUBMIT-${VER}.md does not say sorting can be turned off"; FAIL=1; }
+printf '%s' "$SUBMIT" | grep -qi "prioritize\|move scored" || { echo "FAIL: SUBMIT-${VER}.md does not describe the explicit mixed-carrier action"; FAIL=1; }
+# 4b. stale version copy in the SOURCE, same rule as 3c.
+printf '%s' "$SUBMIT" | grep -qF "v${VER}" || { echo "FAIL: SUBMIT-${VER}.md never names v${VER}"; FAIL=1; }
+if printf '%s' "$SUBMIT" | grep -qE '\b2\.2\.0\b|\bv2\.2\b|\bv2\.3\b|\bv2\.4\b|\b2\.3\.[0-9]\b|\b2\.4\.[0-9]\b'; then
+  echo "FAIL: SUBMIT-${VER}.md carries stale pre-3.0 version copy"; FAIL=1
+fi
 
 [ "$FAIL" = 0 ] && echo "store-verify OK · committed artifacts == HEAD:extension · bundle embeds them · store copy matches the shipped product (v${VER})" || { echo "store-verify FAILED — do not upload"; exit 1; }

@@ -472,7 +472,40 @@ function lastPublished(t) {
   return null;
 }
 function statusGlyph(s) {
-  return s === "yes" ? "✓" : s === "no" ? "✗" : s === "invalid" ? "⚠" : "⏳";
+  // "unconfirmed" is "?" on purpose: never "✗" — an unconfirmed aircraft is not
+  // a confirmed non-Starlink one (R23 P1-01).
+  return s === "yes" ? "✓" : s === "no" ? "✗" : s === "invalid" ? "⚠" : s === "unconfirmed" ? "?" : "⏳";
+}
+
+/* v2.4 three-state chip (guard-and-rescue §7.1) — the current state folded into
+ * exactly A/B/C, mirroring bg.js notifyState() but keyed off the stored
+ * lastStatus (the popup renders state, not a transition). A stale trip whose
+ * last check failed reads as C ("Unavailable"), never silently as its old state:
+ * the "as of …" note beside it already carries the last-good timestamp. */
+function tripState(t) {
+  // "stale" = a prior successful check exists but the latest one failed, i.e. an
+  // outage/update-unavailable — reason-specifically distinct from a genuine
+  // early/unpublished assignment (Codex R23 P1-01). C never collapses an outage,
+  // exhausted budget, or bad flight number into "awaiting assignment".
+  var stale = !!(t.lastError && t.asOf);
+  if (t.lastStatus === "yes") return { key: "a", cls: "usl-chip-a", label: "Starlink ✓" };
+  if (t.lastStatus === "no")  return { key: "b", cls: "usl-chip-b", label: "No Starlink ✗" };
+  // B-unconfirmed (R23 P1-01): a known aircraft whose Starlink status could not
+  // be determined says "Cannot confirm", NEVER "No Starlink" or ✗ — ambiguity
+  // is not a negative fact.
+  if (t.lastStatus === "unconfirmed")
+    return { key: "b", cls: "usl-chip-b", label: "Cannot confirm Starlink" };
+  if (t.lastStatus === "early")
+    return { key: "c", cls: "usl-chip-c", label: stale ? "Update unavailable" : "Awaiting assignment" };
+  if (t.lastStatus === "invalid") return { key: "c", cls: "usl-chip-c", label: "Flight not found" };
+  return { key: "c", cls: "usl-chip-c", label: stale ? "Update unavailable" : "Checking…" };
+}
+
+// Route back to where the guard was created; carrier fallback when no URL was
+// captured. Mirrors bg.js routeBackUrl() (§5). Never fabricates a deep link.
+function tripBackUrl(t) {
+  if (t && typeof t.sourceUrl === "string" && /^https:\/\//.test(t.sourceUrl)) return t.sourceUrl;
+  return /^AS/.test(t && t.fn || "") ? "https://www.alaskaair.com/" : "https://www.united.com/";
 }
 
 function tripLine(t) {
@@ -492,6 +525,8 @@ function tripLine(t) {
       return { cls: "usl-t-swap", txt: "✗ swapped, still ✗ — " + t.tail + " (" + (t.equip || "non-Starlink") + ")" + better };
     return { cls: "usl-t-no", txt: "✗ " + (t.equip || "non-Starlink tail") + better };
   }
+  if (t.lastStatus === "unconfirmed")
+    return { cls: "usl-t-early", txt: "? tail " + (t.tail || "?") + " assigned, Starlink unconfirmed" };
   if (t.lastStatus === "early") {
     var was = lastPublished(t);
     if (was)
@@ -531,9 +566,24 @@ function renderTrips(trips) {
   trips.forEach(function (t) {
     var row = el("div", "usl-trip-row");
     var left = el("div", "usl-trip-left");
-    left.appendChild(el("div", "usl-trip-main", t.fn + " · " + t.date + (t.routeSeen || t.route ? " · " + (t.routeSeen || t.route).replace("-", "→") : "")));
+    var main = el("div", "usl-trip-main", t.fn + " · " + t.date + (t.routeSeen || t.route ? " · " + (t.routeSeen || t.route).replace("-", "→") : ""));
+    // Route-back link — opens where the guard was created (or the carrier).
+    // stopPropagation so it doesn't also toggle the row's history expander.
+    var back = el("a", "usl-trip-back", "Open booking ↗");
+    back.href = tripBackUrl(t);
+    back.target = "_blank";
+    back.rel = "noopener";
+    back.title = "Open the booking surface you guarded from";
+    back.addEventListener("click", function (e) { e.stopPropagation(); });
+    main.appendChild(back);
+    left.appendChild(main);
     var line = tripLine(t);
-    var sub = el("div", "usl-trip-sub " + line.cls, line.txt);
+    // v2.4 three-state chip, prepended to the detail line.
+    var st = tripState(t);
+    var sub = el("div", "usl-trip-sub " + line.cls);
+    var chip = el("span", "usl-chip " + st.cls, st.label);
+    sub.appendChild(chip);
+    sub.appendChild(document.createTextNode(line.txt));
     // Stale data: last check failed, so say when the state was last confirmed.
     if (t.lastError && t.asOf) sub.appendChild(el("span", "usl-asof", "as of " + fmtTs(t.asOf)));
     left.appendChild(sub);
@@ -559,6 +609,55 @@ function renderTrips(trips) {
     tripsEl.appendChild(row);
   });
 }
+/* ══ v3.0 settings (Codex round 26) ═══════════════════════════════════════════
+ * Reads and writes the same three keys the content script reads. Defaults are
+ * applied ONLY when a key is genuinely absent, so what the popup renders always
+ * equals what a page will do — the gate asserts that a fresh profile's stored
+ * defaults, the rendered settings state, and first-paint behaviour agree.
+ * `chrome.storage.onChanged` in content.js applies a change to open tabs at
+ * once, so turning single-carrier sorting off restores the booking site's order
+ * immediately rather than at the next reload. */
+function initSettings() {
+  var single = document.getElementById("usl-set-single");
+  var mixP = document.getElementById("usl-set-mixed-preserve");
+  var mixQ = document.getElementById("usl-set-mixed-prioritize");
+  var mBoth = document.getElementById("usl-set-m-both");
+  var mNg = document.getElementById("usl-set-m-ng");
+  var mSt = document.getElementById("usl-set-m-st");
+  if (!single || !mixP || !mBoth) return;
+  chrome.storage.local.get(["uslSortSingle", "uslSortMixed", "uslMetrics"], function (v) {
+    void chrome.runtime.lastError;
+    single.checked = v.uslSortSingle === undefined ? true : !!v.uslSortSingle;
+    var mixed = v.uslSortMixed === "prioritize" ? "prioritize" : "preserve";
+    mixP.checked = mixed === "preserve";
+    mixQ.checked = mixed === "prioritize";
+    var met = ["both", "nextgen", "streaming"].indexOf(v.uslMetrics) >= 0 ? v.uslMetrics : "both";
+    mBoth.checked = met === "both";
+    mNg.checked = met === "nextgen";
+    mSt.checked = met === "streaming";
+  });
+  single.addEventListener("change", function () {
+    chrome.storage.local.set({ uslSortSingle: single.checked });
+  });
+  [mixP, mixQ].forEach(function (r) {
+    r.addEventListener("change", function () {
+      if (!r.checked) return;
+      // Turning mixed-carrier prioritization off also clears the legacy
+      // per-session flag, so an old stored `true` cannot resurrect a reorder
+      // the traveller has just switched off.
+      var o = { uslSortMixed: r.value };
+      if (r.value === "preserve") o.uslPrioritize = false;
+      chrome.storage.local.set(o);
+    });
+  });
+  [mBoth, mNg, mSt].forEach(function (r) {
+    r.addEventListener("change", function () {
+      if (r.checked) chrome.storage.local.set({ uslMetrics: r.value });
+    });
+  });
+}
+try { initSettings(); } catch (e) {}
+
 function loadTrips() {
   chrome.runtime.sendMessage({ type: "tripList" }, function (res) {
     void chrome.runtime.lastError;
