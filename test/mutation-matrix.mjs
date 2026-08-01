@@ -37,6 +37,7 @@ const MATRIX = {
   // so no assertion could catch it. Listing it here would manufacture a green
   // that means nothing — the exact false-pass this matrix exists to prevent.
   "zero-for-unknown":       { only: "row-metrics-no-history", expect: "row-metrics-no-history" },
+  "refusal-claims-unsorted": { only: "refusal-note-matches-sort-state", expect: "refusal-note-matches-sort-state" },
   "gf-setting-claims-reorder": { only: "popup-settings-truthful", expect: "popup-settings-truthful" },
   "resolved-only-denominator": { only: "airline-data-parity", expect: "airline-data-parity" },
 };

@@ -153,6 +153,13 @@ const MUTATIONS = {
     expect: "row-metrics-no-history",
     note: "an absence of history renders as a 0% probability",
   },
+  "refusal-claims-unsorted": {
+    file: "content.js",
+    from: 'const moved = didAutoSort || prioritizeActive;',
+    to: "const moved = false;",
+    expect: "refusal-note-matches-sort-state",
+    note: "a refusal card claims the page is unsorted while the sorted bar says otherwise",
+  },
   "gf-setting-claims-reorder": {
     file: "popup.html",
     from: "Google Flights is never reordered by this extension at all",
@@ -1616,6 +1623,43 @@ const CASES = [
           deltaHasNoCurrentNextGen: out.deltaNextGen === 0,
           deltaHasAnnouncedFuture: out.deltaFuture === true,
         },
+      };
+    },
+  },
+  {
+    // Codex relay round 5 (STOP verdict) — a refusal card and the sorted-state
+    // bar are on screen TOGETHER on a single-carrier page, because auto-sort is
+    // on by default and sorting does not depend on naming a winner. The card
+    // used to say "Flights stay in the booking site's order" unconditionally,
+    // which was true when nothing sorted unasked and became false the moment
+    // the default changed. Caught on a live alaskaair.com capture, not by this
+    // suite, because no case combined a refusal with sorting active. It does
+    // now. Two scored flights 4 points apart forces the refusal; auto-sort is
+    // left at its shipped default.
+    name: "refusal-note-matches-sort-state",
+    o: "SFO", d: "LAS",
+    rows: [{ num: 700, time: "8:30 a.m." }, { num: 701, time: "11:05 a.m." }, { num: 702, time: "2:40 p.m." }],
+    mock: {
+      o: "SFO", d: "LAS",
+      route: [
+        { fn: "UA701", prob: 44, obs: 40, conf: "high" },
+        { fn: "UA700", prob: 40, obs: 38, conf: "high" },
+        { fn: "UA702", prob: 12, obs: 30, conf: "high" },
+      ],
+      predict: {}, itins: [],
+    },
+    awaitPanel: /No clear winner/,
+    expect: (txt, badges, strip) => {
+      const sortedBarPresent = /Sorted by historical next-gen odds/.test(txt);
+      return {
+        refusalShown: !!strip && strip.state === "close",
+        sortedBarPresent,
+        // THE ASSERTION: the two statements may never contradict each other.
+        // If the bar says sorted, no note may claim the host order is intact.
+        noContradiction: !(sortedBarPresent && /stay in the booking site's order|stay unscored and in place/.test(txt)),
+        noteAcknowledgesSort: !sortedBarPresent || /Sorted by odds, but neither is a clear pick/.test(txt),
+        stillRefusesToPick: !/best wifi choice/i.test(txt),
+        noStar: !/⭐/.test(txt),
       };
     },
   },

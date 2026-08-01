@@ -1545,6 +1545,30 @@
    * cyan/violet (CSS), never green (green is the odds ramp). No freshness claim
    * — evidence is permanently scoped "Historical tracker odds" (R23 amendment).
    * Returns "" when there is nothing scored to speak to. */
+  /* What a refusal state may say about ORDER.
+   *
+   * Codex found this on a live alaskaair.com capture: the card's note read
+   * "Flights stay in the booking site's order" while the bar directly above it
+   * read "Sorted by historical next-gen odds". Both were on screen at once and
+   * one of them was false. The note was written when nothing sorted without an
+   * explicit press; single-carrier auto-sort now defaults ON, so the sentence
+   * became a lie the moment the default changed and nothing caught it, because
+   * no gate case combined a refusal state with sorting active.
+   *
+   * Declining to pick a winner and leaving the page order alone are DIFFERENT
+   * claims. The card may only speak about order it actually controls. */
+  function orderNote(kind) {
+    const moved = didAutoSort || prioritizeActive;
+    if (kind === "single") {
+      return moved
+        ? "The scored flight is first. The rest keep their order."
+        : "Other flights stay unscored and in place.";
+    }
+    return moved
+      ? "Sorted by odds, but neither is a clear pick."
+      : "Flights stay in the booking site's order.";
+  }
+
   /* Announce-once (spec §7): the strip is a role=status live region, but it
    * must announce only when its SEMANTIC state key changes, never on a
    * same-state re-render — so an unchanged state renders with aria-live="off"
@@ -1607,7 +1631,7 @@
         `<p class="usl-decision__kicker">Not enough to compare</p>` +
         `<p class="usl-decision__comparison">Only ${esc(only.fn)} has a score</p>` +
         `<p class="usl-decision__evidence">${esc(ev)} · Historical tracker odds</p>` +
-        `<p class="usl-decision__note">Other flights stay unscored and in place.</p>` +
+        `<p class="usl-decision__note">${orderNote("single")}</p>` +
         `</section>`;
     }
 
@@ -1644,7 +1668,7 @@
         `<p class="usl-decision__kicker">No clear winner</p>` +
         `<p class="usl-decision__comparison">${esc(reason)}</p>` +
         `<p class="usl-decision__evidence">${detail}</p>` +
-        `<p class="usl-decision__note">Flights stay in the booking site's order.</p>` +
+        `<p class="usl-decision__note">${orderNote("close")}</p>` +
         `</section>`;
     }
 
