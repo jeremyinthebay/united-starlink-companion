@@ -36,8 +36,9 @@ WiFi Odds v${VER} — Chrome Web Store upload set (exact)
                 store-screenshots/store-2-googleflights-1280x800.png   (2nd)
                 store-screenshots/store-3-alaska-1280x800.png          (3rd)
                 store-screenshots/store-4-navan-1280x800.png           (4th)
-  Screenshot provenance: real-site captures of extension 3.0.0, taken 1 Aug
-    2026 and retained unchanged across the later model refresh. Never mocked up.
+EOF
+cat "store-assets/${ADIR}/UPLOAD-CHECKLIST-PROVENANCE.txt" >> "$STAGE/UPLOAD-CHECKLIST.txt"
+cat >> "$STAGE/UPLOAD-CHECKLIST.txt" <<EOF
   Promo tile:   promo-tiles/promo-marquee-1400x560.png
   Small tile:   promo-tiles/promo-small-440x280.png
   Icon:         promo-tiles/store-icon-128.png

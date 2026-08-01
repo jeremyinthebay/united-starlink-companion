@@ -83,9 +83,10 @@ else
   echo "FAIL: committed bundle must contain exactly one wifiodds-v${VER}.files.sha256 (found $BMAN_COUNT)"; FAIL=1
 fi
 
-# The owner-cleared screenshots must be reused byte-for-byte, and the bundled
-# checklist must state their actual capture date without tying them to this
-# later model refresh.
+# The owner-cleared screenshots must be reused byte-for-byte. The provenance
+# copy is not a phrase denylist: the complete block is a committed literal and
+# the bundle must carry it byte-for-byte. This makes differently-worded
+# overclaims fail closed instead of relying on guesses about future wording.
 for shot in store-1-united-1280x800.png store-2-googleflights-1280x800.png store-3-alaska-1280x800.png store-4-navan-1280x800.png; do
   BSHOT=$(find "$TMP/b" -path "*/store-screenshots/$shot" -type f | head -1)
   git show "HEAD:store-assets/${ADIR}/real/$shot" > "$TMP/$shot.head"
@@ -93,12 +94,16 @@ for shot in store-1-united-1280x800.png store-2-googleflights-1280x800.png store
 done
 BCHECK=$(find "$TMP/b" -name "UPLOAD-CHECKLIST.txt" -type f | head -1)
 if [ -n "$BCHECK" ]; then
-  grep -qF "real-site captures of extension 3.0.0, taken 1 Aug" "$BCHECK" &&
-    grep -qF "2026 and retained unchanged across the later model refresh" "$BCHECK" ||
-    { echo "FAIL: bundled screenshot provenance omits the 1 Aug 2026 capture date or unchanged-reuse disclosure"; FAIL=1; }
-  if grep -qiE "shipped build loaded|captured under (the )?(new|later|rebuilt)" "$BCHECK"; then
-    echo "FAIL: bundled screenshot provenance overclaims capture under the rebuilt package"; FAIL=1
-  fi
+  git show "HEAD:store-assets/${ADIR}/UPLOAD-CHECKLIST-PROVENANCE.txt" > "$TMP/provenance.expected"
+  awk '
+    /^  Screenshot provenance:/ { in_provenance=1 }
+    in_provenance && /^  Promo tile:/ { exit }
+    in_provenance { print }
+  ' "$BCHECK" > "$TMP/provenance.bundled"
+  cmp -s "$TMP/provenance.bundled" "$TMP/provenance.expected" || {
+    echo "FAIL: bundled screenshot provenance block differs byte-for-byte from committed literal"
+    FAIL=1
+  }
 else
   echo "FAIL: committed bundle has no UPLOAD-CHECKLIST.txt"; FAIL=1
 fi
