@@ -92,6 +92,24 @@ async function loop() {
   }
 }
 
+/* A HEARTBEAT, because the long poll alone is not enough.
+ *
+ * The long poll keeps the worker alive while a fetch is pending, but it cannot
+ * RESURRECT one. If Chrome tears the worker down at an awkward moment, and the
+ * clearest example is while the user is enabling, disabling or removing another
+ * extension, the loop dies and nothing restarts it. The server then reports
+ * reloaderConnected false forever and the next reload request times out.
+ *
+ * That is precisely the silent-death failure this file's header warns about, so
+ * it deserved a guard rather than a comment. An alarm is the only thing that
+ * reliably wakes an MV3 worker from nothing. `running` makes a duplicate call
+ * harmless: if the loop is already alive the wake is a no-op. */
+const HEARTBEAT = "usl-reloader-heartbeat";
+try {
+  chrome.alarms.create(HEARTBEAT, { periodInMinutes: 1 });
+  chrome.alarms.onAlarm.addListener((a) => { if (a.name === HEARTBEAT) loop(); });
+} catch (e) { /* alarms unavailable: the long poll still covers the common case */ }
+
 chrome.runtime.onInstalled.addListener(() => loop());
 chrome.runtime.onStartup.addListener(() => loop());
 loop();
