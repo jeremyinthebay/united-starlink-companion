@@ -1,0 +1,21 @@
+# release-model.pin — the site commit this release's airline model came from.
+#
+# Owner ruling, 1 Aug 2026 (OWNER-RULING-RELEASE-MODEL-PIN-2026-08-01.md), option (b):
+# the bundle records the site commit its airline model came from, and the parity
+# gate checks THAT GIT OBJECT — never the mutable site working tree.
+#
+# Why: the site's airline model refreshes daily; the Chrome Web Store upload is a
+# manual step Jeremy performs by hand. A bundle verified against "the current file"
+# can therefore be stale by the time it is uploaded, and the gate would still pass,
+# because the thing it compares against moved too. A named object cannot move.
+#
+# To repin deliberately: update both lines, run `sh build-airlines-parity.sh --write`,
+# rebuild the ZIPs, and say in the commit message why the model advanced.
+#
+# SITE_SHA  — commit in ~/Projects/wifiodds that owns the model.
+# MODEL_BLOB — git blob id of assets/airlines.js at that commit. Redundant with
+#              SITE_SHA on purpose: it is a second, independent name for the exact
+#              bytes, so a rewritten/forced commit cannot silently redefine them.
+
+SITE_SHA=18b22ae2adfde3b8de66b60d9fa761f0089f9597
+MODEL_BLOB=238e587495f0ec580977d1b3b19747e36fcaa08b
