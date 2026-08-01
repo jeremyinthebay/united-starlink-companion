@@ -888,13 +888,15 @@
       `<div class="usl-body">` +
       `<p class="usl-sect">Next-gen odds · Starlink and Amazon Leo</p>` +
       byNextGen.map((a) => {
-        const raw = typeof a.nextGenScore === "number" ? a.nextGenScore : null;
-        const ng = raw === null ? null : Math.round(raw);
-        // A real but tiny share must not print as a bare "0%": Southwest has 1
-        // next-gen aircraft in 803, which rounds to zero and would read as
-        // "none in the fleet" — a different and false fact. Show "<1%" instead.
-        // A genuine zero (no next-gen aircraft at all) still shows 0%.
-        const txt = raw === null ? "n/a" : (raw > 0 && ng === 0 ? "<1%" : ng + "%");
+        const ng = typeof a.nextGenScore === "number" ? Math.round(a.nextGenScore) : null;
+        // A real but tiny share must not print a bare "0%": Southwest has 1
+        // next-gen aircraft in 803, which reads as "none in the fleet", a
+        // different and false fact. Test the UNROUNDED share, because
+        // nextGenScore is already rounded by the model and is itself 0 here —
+        // testing it would make this branch permanently dead, which is exactly
+        // what shipped in the first attempt at this fix.
+        const share = typeof a.nextGenShare === "number" ? a.nextGenShare : null;
+        const txt = ng === null ? "n/a" : (share > 0 && ng === 0 ? "<1%" : ng + "%");
         return `<div class="usl-row" title="${esc(a.note || "")}">` +
           `<span>${esc(a.name)}<span class="usl-time"> · ${esc(a.nextGenLabel || "no next-gen fleet announced")}</span></span>` +
           `<span class="usl-badge ${ng === null ? "usl-na" : cls(ng)}">${txt}</span></div>`;
@@ -975,7 +977,9 @@
     if (share === null) return { k: "nofleet" };
     // Same fence as the panel: a real but sub-1% share reads "<1%", never a
     // bare 0% that would claim the airline has no next-gen aircraft at all.
-    if (entry.nextGenScore > 0) return { k: "fleet", value: share === 0 ? "<1%" : share + "%" };
+    // Tested on the UNROUNDED nextGenShare — nextGenScore is pre-rounded and is
+    // itself 0 for a sub-1% fleet, so testing it would never fire.
+    if (entry.nextGenShare > 0) return { k: "fleet", value: share === 0 ? "<1%" : share + "%" };
     if (entry.future) return { k: "announced" };
     return { k: "notinfleet" };
   }
