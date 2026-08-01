@@ -9,17 +9,19 @@ VER=$(node -e "console.log(require('./extension/manifest.json').version)")
 ADIR=v$(printf '%s' "$VER" | cut -d. -f1,2)   # asset folder is major.minor, e.g. v2.2
 STAGE=$(mktemp -d)/wifiodds-v${VER}-store-bundle
 OUT="dist/wifiodds-v${VER}-store-bundle.zip"
-mkdir -p "$STAGE/store-screenshots" "$STAGE/promo-tiles" dist
 
-# The extension package must be built first.
-[ -f "dist/wifiodds-v${VER}.zip" ] || { echo "FAIL: run build-store-zip.sh first"; exit 1; }
+# Always rebuild the upload package first. The bundle must never wrap whichever
+# package happened to be left in dist/ by an earlier build.
+sh ./build-store-zip.sh
+
+mkdir -p "$STAGE/store-screenshots" "$STAGE/promo-tiles" dist
 cp "dist/wifiodds-v${VER}.zip" "$STAGE/wifi-odds-extension-${VER}.zip"
 cp "dist/wifiodds-v${VER}.files.sha256" "$STAGE/"
 cp "store-assets/${ADIR}/SUBMIT-${VER}.md" "$STAGE/"
 
-# EXACTLY the four real store screenshots (shot on LIVE sites in Jeremy's
-# browser with the shipped build loaded — never a mocked-up backdrop; Jeremy's
-# rule, 31 Jul), in upload order.
+# EXACTLY the four cleared real-site screenshots, captured 1 Aug 2026 and
+# retained unchanged across the later model refresh. Never a mocked-up backdrop.
+# Owner ruling 1 Aug 2026: reuse these files; do not recapture them.
 cp "store-assets/${ADIR}/real/store-1-united-1280x800.png"        "$STAGE/store-screenshots/"
 cp "store-assets/${ADIR}/real/store-2-googleflights-1280x800.png" "$STAGE/store-screenshots/"
 cp "store-assets/${ADIR}/real/store-3-alaska-1280x800.png"        "$STAGE/store-screenshots/"
@@ -34,8 +36,8 @@ WiFi Odds v${VER} — Chrome Web Store upload set (exact)
                 store-screenshots/store-2-googleflights-1280x800.png   (2nd)
                 store-screenshots/store-3-alaska-1280x800.png          (3rd)
                 store-screenshots/store-4-navan-1280x800.png           (4th)
-  Screenshot provenance: live sites, real odds, shipped build loaded in a real
-    browser. Never a mocked-up page.
+  Screenshot provenance: real-site captures of extension 3.0.0, taken 1 Aug
+    2026 and retained unchanged across the later model refresh. Never mocked up.
   Promo tile:   promo-tiles/promo-marquee-1400x560.png
   Small tile:   promo-tiles/promo-small-440x280.png
   Icon:         promo-tiles/store-icon-128.png
