@@ -21,10 +21,29 @@ const TARGET = "WiFi Odds for Flights";
  * and because silently disabling a real user's extension would be rude. */
 async function reloadTarget() {
   const all = await chrome.management.getAll();
+  /* THREE filters, and the third one was learned the hard way.
+   *
+   * installType: only a development-installed copy can have changed on disk, so
+   * toggling a store copy proves nothing.
+   *
+   * id: never toggle ourselves.
+   *
+   * enabled: NEVER touch a copy the user has deliberately disabled. The first
+   * version of this omitted that check, and its very first real run re-enabled
+   * a disabled 2.2.0 copy sitting alongside the 3.0.0 one. That put two copies
+   * of the extension into every page at once, which corrupts exactly the
+   * captures this tool exists to take, and silently undid a choice the user had
+   * made. A dev tool that changes state the user set is not a dev tool. */
   const targets = all.filter(
-    (e) => e.name === TARGET && e.installType === "development" && e.id !== chrome.runtime.id
+    (e) => e.name === TARGET && e.installType === "development" &&
+           e.id !== chrome.runtime.id && e.enabled === true
   );
-  if (!targets.length) return { ok: false, reason: "no development-installed '" + TARGET + "' found" };
+  const skipped = all.filter(
+    (e) => e.name === TARGET && e.id !== chrome.runtime.id && e.enabled !== true
+  ).map((e) => e.id + " (left disabled)");
+  if (!targets.length) {
+    return { ok: false, reason: "no ENABLED development-installed '" + TARGET + "' found", skipped };
+  }
 
   const done = [];
   for (const t of targets) {
@@ -37,7 +56,7 @@ async function reloadTarget() {
       return { ok: false, reason: "toggle failed for " + t.id + ": " + String(e && e.message || e) };
     }
   }
-  return { ok: true, reloaded: done };
+  return { ok: true, reloaded: done, skipped };
 }
 
 async function report(body) {
