@@ -84,10 +84,9 @@ Specifics:
   mixed-carrier mode, and which metrics each row displays.
 - The manifest description (under Chrome's 132-char limit) reads exactly:
   "Per-flight odds your plane has next-gen WiFi, as you search. Auto-sorts single-airline results by odds. Unofficial."
-  It was changed for 3.0: the v2.2 text said "Tap to prioritize United flights by odds", which
-  described a manual action and was still true then. Since single-carrier pages now sort
-  automatically by default, that wording would under-disclose the behaviour a reviewer will observe
-  within seconds of installing.
+  It was changed for this release. The previous listing described a manual action, which was
+  accurate at the time. Since single-carrier pages now sort automatically by default, that wording
+  would under-disclose the behaviour a reviewer sees within seconds of installing.
 - **Whether automatic or explicit, it only reorders validated flight-result rows.** Scored flights float up by
   odds; every unscored flight row keeps its relative order; headings, filters, banners, tools,
   pagination and loading elements never move. It never edits fares, prices, selection state, or any
