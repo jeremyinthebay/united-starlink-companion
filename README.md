@@ -60,3 +60,12 @@ tracker team's own [Google Flights extension](https://chromewebstore.google.com/
 **Install (unpacked):** chrome://extensions → enable *Developer mode* → *Load unpacked* → select the `extension/`
 folder. Then search a flight on united.com.
 
+## Browser testing
+
+Routine browser tests must not open a visible Chrome window. `node test/phase2-e2e.mjs` uses
+Playwright's full Chromium channel in native headless mode because its default headless shell does
+not register this MV3 extension's service worker. Keep `headless: true` and `channel: "chromium"`
+together; a missing service worker is a hard gate failure, never a reason to fall back to headed.
+
+`test/store-screenshots.mjs` is not a routine test: it is the explicit headed exception that captures
+real-site Chrome Web Store artwork. Do not run that artifact generator as part of automated testing.
