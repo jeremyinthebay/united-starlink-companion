@@ -1101,6 +1101,14 @@
     // Google Flights has its own scanner and must never reach the united.com
     // pass below (that one would badge "United 1812" prose with UA route odds
     // it has no route for, and would try to reorder a virtualized list).
+    // GOOGLE FLIGHTS NEVER REORDERS, whatever the mixed-carrier setting says.
+    // This early return is deliberate and load-bearing: GF virtualises its list
+    // and owns its own ordering, so moving its rows would fight the host. Codex
+    // (relay round 5) correctly flagged that the popup named Google Flights as a
+    // host the mixed-carrier control governed, while the control could not reach
+    // it — a setting claiming something it cannot do. The fix is the COPY, not
+    // this branch: the popup now scopes that control to Navan and says outright
+    // that Google Flights is never reordered.
     if (GFLIGHTS) { try { gfScan(); } catch (e) {} return; }
     // united.com fallback must run even when the route call returned nothing
     // (data === null): that is the transcon case where per-flight odds are the

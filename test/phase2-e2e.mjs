@@ -153,6 +153,13 @@ const MUTATIONS = {
     expect: "row-metrics-no-history",
     note: "an absence of history renders as a 0% probability",
   },
+  "gf-setting-claims-reorder": {
+    file: "popup.html",
+    from: "Google Flights is never reordered by this extension at all",
+    to: "Google Flights is reordered whenever you pick the second option",
+    expect: "popup-settings-truthful",
+    note: "the settings copy claims a reorder Google Flights can never perform",
+  },
   "resolved-only-denominator": {
     file: "airlines.js",
     from: "const known = knownAircraft(entry);",
@@ -1608,6 +1615,55 @@ const CASES = [
           airBalticScoreMatches: out.abScore === 51,
           deltaHasNoCurrentNextGen: out.deltaNextGen === 0,
           deltaHasAnnouncedFuture: out.deltaFuture === true,
+        },
+      };
+    },
+  },
+  {
+    // Codex relay round 5 — the settings copy must not promise behaviour a host
+    // cannot perform. scan() returns at the GFLIGHTS branch BEFORE the capture/
+    // sort path, so the mixed-carrier control genuinely cannot reorder Google
+    // Flights; the popup previously named GF as one of the two hosts it
+    // governed. This asserts the control is scoped to the host that can honour
+    // it AND that the exemption is stated in words the reader will see.
+    name: "popup-settings-truthful",
+    o: "SFO", d: "DEN", rows: [], mock: {},
+    driver: async ({ page, extId }) => {
+      if (!extId) return { appeared: false, panelText: "(no extension id)", badges: [], checks: { extIdPresent: false } };
+      await page.goto("chrome-extension://" + extId + "/popup.html", { waitUntil: "domcontentloaded" });
+      // The settings live inside a collapsed <details>, so they are HIDDEN on
+      // load and innerText would read empty. Open it the way a user would, then
+      // wait for real visibility — reading a hidden node would let this assert
+      // pass on copy nobody can see, which is the same false-pass shape the
+      // whole gate exists to prevent.
+      await page.waitForSelector("#usl-settings", { timeout: 15000 });
+      await page.evaluate(() => { document.getElementById("usl-settings").open = true; });
+      await page.waitForSelector("#usl-set-mixed-lbl", { state: "visible", timeout: 15000 });
+      const t = await page.evaluate(() => {
+        const g = document.getElementById("usl-set-mixed-lbl").closest(".usl-set-group");
+        return {
+          // The heading's OWN text only. Its nested help span deliberately
+          // mentions Google Flights (that is where the exemption is stated), so
+          // reading the whole subtree would conflate "the control is scoped to
+          // Navan" with "the help text explains the GF exemption".
+          label: [...document.getElementById("usl-set-mixed-lbl").childNodes]
+            .filter((n) => n.nodeType === 3).map((n) => n.nodeValue).join(" ").replace(/\s+/g, " ").trim(),
+          group: (g.innerText || "").replace(/\s+/g, " "),
+          single: (document.getElementById("usl-set-single").closest(".usl-set-row").innerText || "").replace(/\s+/g, " "),
+          metrics: (document.getElementById("usl-set-metrics-lbl").closest(".usl-set-group").innerText || "").replace(/\s+/g, " "),
+        };
+      });
+      return {
+        appeared: true, panelText: JSON.stringify(t, null, 1), badges: [], probe: t,
+        checks: {
+          // The reorder control names only the host that can actually honour it.
+          mixedControlScopedToNavan: /Navan/.test(t.label) && !/Google Flights/.test(t.label),
+          // And the exemption is stated, not merely implied by omission.
+          gfExemptionStated: /Google Flights is never reordered/.test(t.group),
+          // The single-carrier control names its real hosts.
+          singleNamesItsHosts: /united\.com/.test(t.single) && /alaskaair\.com/.test(t.single),
+          // Display mode must still disclaim any effect on sorting.
+          metricsDisclaimSorting: /Never changes sorting/.test(t.metrics),
         },
       };
     },
