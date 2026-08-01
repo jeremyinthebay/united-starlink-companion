@@ -783,31 +783,80 @@ const CASES = [
         null, { timeout: 30000 }).catch(() => {});
       await page.waitForTimeout(400);
       await page.click(".usl-prioritize");
-      let floated = false;
+      /* ROUND 8 FLAKE, FIXED 1 Aug 2026. This case used to race two unrelated
+         waits against ONE 35 000 ms budget and then report the expiry as a
+         product failure.
+         The signature was self-contradicting, which is what gave it away: a
+         failing run recorded `highScoreFloatedTopAfterLateBatch:false` and then,
+         on the very next line, `firstFlightIsUA6026:true` from orderProbe. The
+         reranking had worked. The OBSERVATION had expired. Pass and fail on the
+         same committed bytes is what the auditor measured, and this is the why.
+         The pre-click precondition above only requires >= 2 scored badges, which
+         batch one alone satisfies. So the click can land while batch two, the
+         batch that carries UA6026, is still outstanding, and batch two's whole
+         worker round-trip then has to fit inside the budget that was meant to
+         measure the rerank. On a loaded machine it does not.
+         The wait is therefore split, and each half now measures exactly one
+         thing:
+           A. the late batch ARRIVED. UA6026 is the only row predicted 0.90, so
+              a badge reading 90% is that arrival and nothing else.
+           B. the panel then RERANKED, on a budget that starts only once A has
+              been observed.
+         A slow worker can no longer eat the rerank budget, and a product that
+         genuinely fails to rerank still fails B. Both are asserted, so a failure
+         NAMES which half broke instead of collapsing into one boolean.
+         Deliberately NOT fixed by raising 35000: a bigger number hides the race
+         instead of removing it, and leaves the two waits sharing one budget. */
+      let lateArrived = false, floated = false;
       try {
-        await page.waitForFunction(() => {
-          const FN_RE = /\b(?:UA|United)\s?(\d{2,4})\b/;
-          let best = null, bestScore = 0, e = document.querySelector(".usl-badge");
-          e = e ? e.parentElement : null;
-          for (let i = 0; i < 20 && e && e !== document.body; i++, e = e.parentElement) {
-            const f = [...e.children].map((k) => ((k.textContent || "").match(FN_RE) || [])[1]).filter(Boolean);
-            const d = new Set(f).size;
-            if (d > bestScore) { bestScore = d; best = e; }
-          }
-          if (!best) return false;
-          const first = [...best.children].find((k) =>
-            /\d{1,2}:\d{2}\s?[ap]\.?m\.?/i.test(k.textContent || "") && FN_RE.test(k.textContent || ""));
-          return !!first && /\b(?:UA|United)\s?6026\b/.test(first.textContent || "");
-        }, null, { timeout: 35000 });
-        floated = true;
+        await page.waitForFunction(
+          () => [...document.querySelectorAll(".usl-badge")]
+            .some((b) => /\b90\s*%/.test(b.textContent || "")),
+          null, { timeout: 45000 });
+        lateArrived = true;
       } catch (e) {}
+      /* PHASE B, and the reason it no longer carries its own inline copy of the
+         container walk.
+         The first repeat-proof run after the phase split (1 Aug 2026, 15:58 UTC)
+         failed with `lateBatchArrived:true`, `highScoreFloatedTopAfterLateBatch:
+         false` and `firstFlightIsUA6026:true`. That disconfirmed the arrival
+         hypothesis outright — the batch HAD landed — and isolated the real
+         fault: the two probes disagreed about the same DOM at the same instant.
+         They disagreed because they were never the same probe. `orderProbe`
+         anchors on `.usl-badge, .usl-metrics` and reads HOST text only,
+         deliberately stripping every `usl-*` element. The inline waiter anchored
+         on `.usl-badge` alone and read raw `textContent`. When the decision
+         strip's own badge precedes the first row badge in document order, the
+         inline walk climbs the PANEL, never reaches the row-list container —
+         which is a sibling, not an ancestor — and so returns false forever while
+         the list underneath is correctly reranked. Whether the strip renders
+         first is a race, which is precisely how one committed set of bytes
+         produced both a pass and a fail.
+         The wait therefore polls `orderProbe`, the same function the assertion
+         below uses. The waiter and the assertion can no longer disagree, because
+         they are now the same code. If they ever report differently again, that
+         is the product, not the instrument. */
+      if (lateArrived) {
+        const deadline = Date.now() + 20000;
+        while (Date.now() < deadline) {
+          const p = await page.evaluate(orderProbe);
+          if (((p.order || []).filter((x) => x !== "STRUCT")[0]) === "UA6026") { floated = true; break; }
+          await page.waitForTimeout(250);
+        }
+      }
       const probe = await page.evaluate(orderProbe);
       const firstFlight = (probe.order || []).filter((x) => x !== "STRUCT")[0];
       const panelText = await page.$eval(".usl-panel", (e) => e.innerText).catch(() => "");
       const badges = await page.$$eval(".usl-badge", (els) => els.map((e) => e.textContent.trim()));
       return {
         appeared: true, panelText, badges, probe,
-        checks: { highScoreFloatedTopAfterLateBatch: floated, firstFlightIsUA6026: firstFlight === "UA6026" },
+        checks: {
+          /* Asserted, not merely logged: if the late batch never lands this case
+             must fail on THAT, and say so, instead of blaming the rerank. */
+          lateBatchArrived: lateArrived,
+          highScoreFloatedTopAfterLateBatch: floated,
+          firstFlightIsUA6026: firstFlight === "UA6026",
+        },
       };
     },
   },
