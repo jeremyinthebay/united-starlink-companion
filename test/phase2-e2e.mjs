@@ -2097,8 +2097,10 @@ async function run() {
       if (c.frameProbe && !c.expectNoPanel) {
         const fr = await frameContrast(page, c.frameProbe);
         if (probe) probe.frameContrast = fr;
-        process.stderr.write(`  frameContrast(${c.frameProbe}) = ${fr.outcome}` +
-          (fr.outcome === "measured" ? ` ratio=${fr.ratio}` : ` ratio=null reason=${fr.reason}`) + "\n");
+        process.stderr.write(fr.outcome === "measured"
+          ? `  frameContrast(${c.frameProbe}) = measured ratio=${fr.ratio}\n`
+          : `  frameContrast(${c.frameProbe}) = could not measure ` +
+            `outcome=unmeasurable ratio=null reason=${fr.reason}\n`);
         checks.meaningfulBorderContrast = fr.outcome === "measured" && fr.ratio >= 3.0;
       }
       results.push({ name: c.name, route: `${c.o}→${c.d}`, appeared, expectNoPanel: !!c.expectNoPanel, panelText, badges, probe, checks, shot });
@@ -2118,7 +2120,7 @@ async function run() {
         if (k !== "meaningfulBorderContrast" || !r.probe?.frameContrast) return k;
         const fr = r.probe.frameContrast;
         return fr.outcome === "unmeasurable"
-          ? `${k} (unmeasurable: ${fr.reason})`
+          ? `${k} (could not measure: ${fr.reason})`
           : `${k} (measured ratio ${fr.ratio})`;
       });
       reasons.push(`${r.name} ${r.appeared ? "FAILED: " + bad.join(",") : "panel MISSING"}`);
