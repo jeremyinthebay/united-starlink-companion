@@ -252,6 +252,25 @@
   .usl-airline:focus{border-color:var(--sky)}
   .usl-enable{width:100%;margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--sky);background:var(--card-bg);border:1px solid var(--card-edge);border-radius:8px;padding:7px 8px;cursor:pointer;text-align:center}
   .usl-enable:hover{background:rgba(148,178,255,.09)}
+  /* Launchpad (approved 1 Aug 2026, from /extension-launchpad/). One coverage
+     board instead of two loose "Enable on ..." buttons, so the answer to "where
+     does this actually work?" is on screen instead of inferred from which
+     buttons happen to be visible. Every state below is READ from
+     chrome.permissions at render time, never assumed: a board that claimed
+     coverage it did not have would be worse than the buttons it replaces. */
+  .usl-launch{margin-top:10px}
+  .usl-setup{margin-bottom:8px;padding:9px 10px;border:1px solid var(--card-edge);border-radius:9px;background:linear-gradient(100deg,rgba(148,178,255,.10),rgba(148,178,255,.03))}
+  .usl-setup-t{margin:0;font-size:12px;font-weight:700}
+  .usl-setup-h{margin:3px 0 0;font-size:11px;line-height:1.4;color:var(--dim)}
+  .usl-hosts{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .usl-host{display:flex;flex-direction:column;gap:4px;padding:8px 9px;border:1px solid var(--card-edge);border-radius:9px;background:var(--card-bg)}
+  .usl-host-n{font-family:var(--mono);font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .usl-host-s{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+  .usl-host--on .usl-host-s{color:#4ade80}
+  .usl-host--off{border-color:rgba(148,178,255,.4)}
+  .usl-host-b{width:100%;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--sky);background:transparent;border:0;border-radius:6px;padding:0;cursor:pointer;text-align:left}
+  .usl-host-b:hover{text-decoration:underline}
+  .usl-host-b:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
 
   /* ── ConnectScore by airline (v2.0) — static, collapsed by default ── */
   .usl-cs{margin-top:14px;border-top:1px solid var(--card-edge);padding-top:10px}
@@ -295,8 +314,13 @@
 
     <div id="usl-status" class="usl-status"></div>
     <div id="usl-results" class="usl-results"></div>
-    <button id="usl-enable-alaska" class="usl-enable" type="button" hidden>Enable on alaskaair.com</button>
-    <button id="usl-enable-gflights" class="usl-enable" type="button" hidden>Enable on Google Flights</button>
+    <section id="usl-launch" class="usl-launch" aria-label="Where WiFi Odds works">
+      <div id="usl-setup" class="usl-setup" hidden>
+        <p class="usl-setup-t">Finish setup</p>
+        <p class="usl-setup-h">Open a flight search on any site below and WiFi Odds draws next-gen odds onto the results.</p>
+      </div>
+      <div id="usl-hosts" class="usl-hosts"></div>
+    </section>
 
     <details id="usl-cs" class="usl-cs">
       <summary id="usl-cs-sum" class="usl-cs-sum">✈ WiFi odds by airline (ConnectScore)</summary>

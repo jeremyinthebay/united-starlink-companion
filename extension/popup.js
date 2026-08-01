@@ -300,78 +300,109 @@ function init() {
  * chrome.permissions.request() only works from a user gesture, so it lives on
  * a popup button. Granting fires permissions.onAdded in the service worker,
  * which registers content.js on alaskaair.com (syncDynamicScripts). */
-var enableBtn = document.getElementById("usl-enable-alaska");
+/* THE COVERAGE BOARD. Four hosts, each showing whether the extension can
+ * actually run there right now.
+ *
+ * united.com and app.navan.com are `always: true` because they are static
+ * `content_scripts.matches` entries in manifest.json — granted at install and
+ * not revocable from here. That is a fact about the manifest, not an optimism:
+ * if either is ever moved to an optional permission this flag has to move with
+ * it, or the board starts publishing a "ready" nobody granted.
+ *
+ * Alaska and Google Flights are optional origins, so their state is READ from
+ * chrome.permissions.contains on every render. Nothing here caches a grant. */
+var HOSTS = [
+  { key: "united", label: "united.com", always: true },
+  { key: "navan", label: "app.navan.com", always: true },
+  { key: "alaska", label: "alaskaair.com", origins: ALASKA_ORIGINS,
+    granted: "Enabled on alaskaair.com — reload the tab to see badges.",
+    denied: "alaskaair.com access not granted.",
+    title: "Chrome asks for alaskaair.com. Reload the tab after granting." },
+  { key: "gflights", label: "Google Flights", origins: GFLIGHTS_ORIGINS,
+    granted: "Enabled on Google Flights — reload the tab to see ConnectScore chips.",
+    denied: "Google Flights access not granted.",
+    title: "Chrome asks for all of www.google.com because permissions are " +
+      "per-site. The extension only ever runs on google.com/travel/flights " +
+      "search results — never on Search, Gmail, or any checkout page." },
+];
 
-function syncEnableButton(tab) {
-  if (!enableBtn || !chrome.permissions) return;
-  var onAlaska = !!(tab && tab.url && /^https:\/\/(www\.)?alaskaair\.com\//.test(tab.url));
-  chrome.permissions.contains({ origins: ALASKA_ORIGINS }, function (granted) {
-    void chrome.runtime.lastError;
-    // Offer it on an Alaska tab, or any time it simply isn't enabled yet.
-    enableBtn.hidden = !!granted;
-    enableBtn.textContent = onAlaska
-      ? "Enable Starlink odds on this alaskaair.com page"
-      : "Enable on alaskaair.com";
-  });
-}
+var hostsEl = document.getElementById("usl-hosts");
+var setupEl = document.getElementById("usl-setup");
 
-if (enableBtn) {
-  enableBtn.addEventListener("click", function () {
-    try {
-      chrome.permissions.request({ origins: ALASKA_ORIGINS }, function (granted) {
-        void chrome.runtime.lastError;
-        if (granted) {
-          enableBtn.hidden = true;
-          setStatus("Enabled on alaskaair.com — reload the tab to see badges.");
-          setAirline("AS");
-        } else {
-          setStatus("alaskaair.com access not granted.");
-        }
-      });
-    } catch (e) {
-      setStatus("Could not request permission.");
+function drawHosts(state) {
+  if (!hostsEl) return;
+  hostsEl.textContent = "";
+  var pending = 0;
+  HOSTS.forEach(function (h) {
+    var on = h.always || state[h.key] === true;
+    if (!on) pending++;
+    var cell = document.createElement("div");
+    cell.className = "usl-host " + (on ? "usl-host--on" : "usl-host--off");
+    var name = document.createElement("div");
+    name.className = "usl-host-n";
+    name.textContent = h.label;
+    cell.appendChild(name);
+    if (on) {
+      var s = document.createElement("div");
+      s.className = "usl-host-s";
+      s.textContent = "ready";
+      cell.appendChild(s);
+    } else {
+      // A real <button>, because chrome.permissions.request() needs a user
+      // gesture and only a focusable control gives keyboard users one.
+      var b = document.createElement("button");
+      b.className = "usl-host-b";
+      b.type = "button";
+      b.textContent = "grant access";
+      if (h.title) b.title = h.title;
+      b.addEventListener("click", function () { askFor(h); });
+      cell.appendChild(b);
     }
+    hostsEl.appendChild(cell);
+  });
+  // "Finish setup" is onboarding, so it retires itself once there is nothing
+  // left to finish rather than nagging about a done job.
+  if (setupEl) setupEl.hidden = pending === 0;
+}
+
+function askFor(h) {
+  try {
+    chrome.permissions.request({ origins: h.origins }, function (granted) {
+      void chrome.runtime.lastError;
+      setStatus(granted ? h.granted : h.denied);
+      if (granted && h.key === "alaska") setAirline("AS");
+      syncHosts();
+    });
+  } catch (e) {
+    setStatus("Could not request permission.");
+  }
+}
+
+function syncHosts() {
+  if (!hostsEl) return;
+  if (!chrome.permissions) { drawHosts({}); return; }
+  var state = {};
+  var left = 0;
+  HOSTS.forEach(function (h) { if (!h.always) left++; });
+  if (!left) { drawHosts(state); return; }
+  HOSTS.forEach(function (h) {
+    if (h.always) return;
+    chrome.permissions.contains({ origins: h.origins }, function (granted) {
+      void chrome.runtime.lastError;
+      state[h.key] = !!granted;
+      if (--left === 0) drawHosts(state);
+    });
   });
 }
 
-/* ── optional Google Flights permission (v2.0) ─────────────────────────────
- * Same gesture-bound pattern as Alaska above. Granting fires
- * permissions.onAdded, and syncDynamicScripts() registers airlines.js +
- * content.js on https://www.google.com/travel/* only. */
-var gfBtn = document.getElementById("usl-enable-gflights");
+function syncEnableButton(tab) { void tab; syncHosts(); }
 
-function syncGFlightsButton(tab) {
-  if (!gfBtn || !chrome.permissions) return;
-  var onGF = !!(tab && tab.url && /^https:\/\/www\.google\.com\/travel\/flights/.test(tab.url));
-  chrome.permissions.contains({ origins: GFLIGHTS_ORIGINS }, function (granted) {
-    void chrome.runtime.lastError;
-    gfBtn.hidden = !!granted;
-    gfBtn.textContent = onGF
-      ? "Enable ConnectScore on this Google Flights page"
-      : "Enable on Google Flights";
-    gfBtn.title = "Chrome asks for all of www.google.com because permissions are " +
-      "per-site. The extension only ever runs on google.com/travel/flights search " +
-      "results — never on Search, Gmail, or any checkout page.";
-  });
-}
-
-if (gfBtn) {
-  gfBtn.addEventListener("click", function () {
-    try {
-      chrome.permissions.request({ origins: GFLIGHTS_ORIGINS }, function (granted) {
-        void chrome.runtime.lastError;
-        if (granted) {
-          gfBtn.hidden = true;
-          setStatus("Enabled on Google Flights — reload the tab to see ConnectScore chips.");
-        } else {
-          setStatus("Google Flights access not granted.");
-        }
-      });
-    } catch (e) {
-      setStatus("Could not request permission.");
-    }
-  });
-}
+/* Google Flights used to have its own button and its own sync function, with
+ * the same gesture-bound request shape as Alaska. Both hosts now render through
+ * the coverage board above, so this is the board's callers keeping their old
+ * names rather than a second implementation. */
+function syncGFlightsButton(tab) { void tab; syncHosts(); }
+syncHosts();
 
 if (airlineEl) airlineEl.addEventListener("change", function () {
   updateCredit();
