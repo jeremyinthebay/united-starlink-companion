@@ -1944,9 +1944,11 @@ async function run() {
   let context;
   try {
     context = await chromium.launchPersistentContext(userDataDir, {
-      // MV3 service workers load reliably in headed Chromium for Testing here;
-      // the harness never shows a window long (each page is driven and closed).
-      headless: false,
+      // Playwright's full Chromium channel uses the extension-capable new
+      // headless engine. The default headless shell does not register this MV3
+      // service worker, so keep both options together and gate SW presence.
+      headless: true,
+      channel: "chromium",
       args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`],
     });
 
