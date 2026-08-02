@@ -1,0 +1,2 @@
+  Screenshot provenance: real-site captures of extension 3.0.0, taken 1 Aug
+    2026 and retained unchanged across the later model refresh. Never mocked up.

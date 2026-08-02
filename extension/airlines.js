@@ -1,15 +1,21 @@
 /* airlines.js — THE EXTENSION COPY. Generated; do not hand-edit.
  * ═══════════════════════════════════════════════════════════════════════════
  * Everything below this header is the VERBATIM bytes of the site repository's
- * `assets/airlines.js`, which owns the model. Regenerate and verify with
+ * `assets/airlines.js` AS OF THE PINNED COMMIT NAMED BELOW — not whatever
+ * happened to sit in a working tree at build time. Regenerate and verify with
  * `sh build-airlines-parity.sh [--write]`; the release gate runs the same
  * comparison, so drift fails a build instead of surviving in a comment.
  *
- * This replaces a header that CLAIMED byte-identity while the file was 618
- * lines stale and still divided segmented fleets by resolved aircraft only.
- * That made airBaltic read 100 where the site published its 51 whole-fleet
- * floor, against 27 unresolved tails. Unknown is not zero, and a promise of
- * parity that nothing executes is not parity (Codex round 26, P1).
+ * PINNED SITE COMMIT: 18b22ae2adfde3b8de66b60d9fa761f0089f9597
+ * PINNED MODEL BLOB:  238e587495f0ec580977d1b3b19747e36fcaa08b
+ *
+ * The site model refreshes daily while the Web Store upload is Jeremy's manual
+ * step, so a bundle checked against "the current file" can age between build
+ * and upload with the gate still green — the thing it compared against moved
+ * too. Owner ruling 1 Aug 2026, option (b): the release names its commit and
+ * the gate checks that git object. A promise of parity that nothing executes
+ * is not parity; a parity check against a file that can change underneath it
+ * is not a pin.
  * ═══════════════════════════════════════════════════════════════════════════
  */
 /* airlines.js — static WiFi ConnectScore map (v3.0, the segmented model)
@@ -163,13 +169,13 @@ const WIFI_AIRLINES = {
   /* ── instrumented: the extension can show real per-flight odds for these ── */
   united: {
     name: "United", code: "UA", asOf: "2026-07",
-    nextGenSplit: { mainline: { n: 145, of: 1144 }, regional: { n: 341, of: 669 } },
+    nextGenSplit: { mainline: { n: 147, of: 1144 }, regional: { n: 341, of: 671 } },
     /* equipped/fleet MUST equal united/data.json fleet.equipped / fleet.total.
        They had drifted to 481/1807 while data.json said 481/1808, so the same
        homepage printed "481 of 1,807 (27%)" on the US card and "of 1,808
        aircraft" in the United section. build/prerender.js reconciles them from
        data.json on every build, and fails if it cannot find them. */
-    system: "starlink", equipped: 486, fleet: 1813, free: "loyalty-free",
+    system: "starlink", equipped: 488, fleet: 1815, free: "loyalty-free",
     instrumented: true, tracker: "unitedstarlinktracker.com",
     resolution: "tail",
     serviceTier: "mixed", restTier: "unknown",
@@ -186,7 +192,7 @@ const WIFI_AIRLINES = {
        creep stale by a handful of aircraft between joins. Re-run the join, do
        not nudge the numbers. */
     segments: [
-      { system: "starlink", n: 486, free: "loyalty-free", as: "2026-07-31",
+      { system: "starlink", n: 488, free: "loyalty-free", as: "2026-08-01",
         src: "united/data.json, the daily pull from unitedstarlinktracker.com",
         note: "Free for MileagePlus members, and joining is free." },
       { system: "viasat", n: 525, free: "paid", as: "2026-07-25",
@@ -207,7 +213,7 @@ const WIFI_AIRLINES = {
           "aircraft retire rather than when installs proceed." },
     ],
     unresolved: { n: 229, why: "the tracker publishes no system for these tails" },
-    note: "486 of 1,813 aircraft, free for MileagePlus members. Odds swing a lot by route and aircraft type.",
+    note: "488 of 1,815 aircraft, free for MileagePlus members. Odds swing a lot by route and aircraft type.",
   },
   alaska: {
     name: "Alaska", code: "AS", asOf: "2026-07",

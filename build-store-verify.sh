@@ -39,16 +39,73 @@ ZGOT=$(cd "$TMP/x" && find . -type f | sed 's#^\./##' | while read -r f; do
 done | sort -k2)
 [ "$EXPECT" = "$ZGOT" ] || { echo "FAIL: committed dist/wifiodds-v${VER}.zip is not the HEAD:extension tree (stale zip)"; FAIL=1; }
 
-# 3. the committed store bundle must embed that exact committed upload ZIP.
+# 3. the committed store bundle must embed the exact CONTENT of the committed
+# upload ZIP. ZIP container bytes carry timestamps and are not reproducible, so
+# raw archive equality is diagnostic only; the emitted per-file manifest is the
+# release identity contract.
 git show "HEAD:dist/wifiodds-v${VER}-store-bundle.zip" > "$TMP/bundle.zip"
 unzip -q "$TMP/bundle.zip" -d "$TMP/b"
-BZIP=$(find "$TMP/b" -name "wifi-odds-extension-${VER}.zip" | head -1)
-if [ -n "$BZIP" ]; then
+BZIP_COUNT=$(find "$TMP/b" -name "wifi-odds-extension-${VER}.zip" -type f | wc -l | tr -d ' ')
+BZIP=$(find "$TMP/b" -name "wifi-odds-extension-${VER}.zip" -type f | head -1)
+if [ "$BZIP_COUNT" = 1 ]; then
+  mkdir "$TMP/bzip"
+  unzip -q "$BZIP" -d "$TMP/bzip"
+  BZGOT=$(cd "$TMP/bzip" && find . -type f | sed 's#^\./##' | while read -r f; do
+    printf '%s  %s\n' "$(shasum -a 256 "$f" | cut -d' ' -f1)" "$f"
+  done | sort -k2)
   BEMBED=$(shasum -a 256 "$BZIP" | cut -d' ' -f1)
   COMMITTED=$(git show "HEAD:dist/wifiodds-v${VER}.zip" | shasum -a 256 | cut -d' ' -f1)
-  [ "$BEMBED" = "$COMMITTED" ] || { echo "FAIL: committed bundle embeds a different ZIP than the committed upload ZIP"; FAIL=1; }
+  if [ "$GOT" != "$BZGOT" ]; then
+    printf '%s\n' "$GOT" > "$TMP/upload.files"
+    printf '%s\n' "$BZGOT" > "$TMP/embedded.files"
+    FIRST_DIFF=$(awk '
+      FNR == NR { expected[$2]=$1; paths[$2]=1; next }
+      { actual[$2]=$1; paths[$2]=1 }
+      END { for (p in paths) if (expected[p] != actual[p]) print p }
+    ' "$TMP/upload.files" "$TMP/embedded.files" | sort | head -1)
+    echo "FAIL: committed bundle embeds different package content"
+    echo "  committed upload ZIP sha256: $COMMITTED"
+    echo "  embedded bundle ZIP sha256:  $BEMBED"
+    echo "  first differing path:        $FIRST_DIFF"
+    FAIL=1
+  fi
 else
-  echo "FAIL: committed bundle has no wifi-odds-extension-${VER}.zip"; FAIL=1
+  echo "FAIL: committed bundle must contain exactly one wifi-odds-extension-${VER}.zip (found $BZIP_COUNT)"; FAIL=1
+fi
+
+# The manifest alongside the embedded package must describe the same content.
+BMAN_COUNT=$(find "$TMP/b" -name "wifiodds-v${VER}.files.sha256" -type f | wc -l | tr -d ' ')
+BMAN=$(find "$TMP/b" -name "wifiodds-v${VER}.files.sha256" -type f | head -1)
+if [ "$BMAN_COUNT" = 1 ]; then
+  BMANGOT=$(sort -k2 "$BMAN")
+  [ "$GOT" = "$BMANGOT" ] || { echo "FAIL: bundle file manifest differs from the committed upload manifest"; FAIL=1; }
+else
+  echo "FAIL: committed bundle must contain exactly one wifiodds-v${VER}.files.sha256 (found $BMAN_COUNT)"; FAIL=1
+fi
+
+# The owner-cleared screenshots must be reused byte-for-byte. The provenance
+# copy is not a phrase denylist: the complete block is a committed literal and
+# the bundle must carry it byte-for-byte. This makes differently-worded
+# overclaims fail closed instead of relying on guesses about future wording.
+for shot in store-1-united-1280x800.png store-2-googleflights-1280x800.png store-3-alaska-1280x800.png store-4-navan-1280x800.png; do
+  BSHOT=$(find "$TMP/b" -path "*/store-screenshots/$shot" -type f | head -1)
+  git show "HEAD:store-assets/${ADIR}/real/$shot" > "$TMP/$shot.head"
+  [ -n "$BSHOT" ] && cmp -s "$BSHOT" "$TMP/$shot.head" || { echo "FAIL: bundled screenshot $shot is not the cleared committed asset"; FAIL=1; }
+done
+BCHECK=$(find "$TMP/b" -name "UPLOAD-CHECKLIST.txt" -type f | head -1)
+if [ -n "$BCHECK" ]; then
+  git show "HEAD:store-assets/${ADIR}/UPLOAD-CHECKLIST-PROVENANCE.txt" > "$TMP/provenance.expected"
+  awk '
+    /^  Screenshot provenance:/ { in_provenance=1 }
+    in_provenance && /^  Promo tile:/ { exit }
+    in_provenance { print }
+  ' "$BCHECK" > "$TMP/provenance.bundled"
+  cmp -s "$TMP/provenance.bundled" "$TMP/provenance.expected" || {
+    echo "FAIL: bundled screenshot provenance block differs byte-for-byte from committed literal"
+    FAIL=1
+  }
+else
+  echo "FAIL: committed bundle has no UPLOAD-CHECKLIST.txt"; FAIL=1
 fi
 
 # 3b. the SUBMIT copy INSIDE the committed bundle (what the operator actually uploads) must be the
