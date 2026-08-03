@@ -9,10 +9,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-08-03
+
+Chrome Web Store: not uploaded.
+
 ### Added
 
 - Local post-flight outcome capture: a traveller can record whether WiFi worked, and the answer
   remains on that device as personal history. Recording an outcome makes no network request.
+- A native keyboard-operable Guard button with a 44-pixel target, first-use guidance, and a visible
+  error that rolls optimistic state back when a trip cannot be guarded.
+
+### Fixed
+
+- Removed the popup's unconditional first-row crown; ranked history is no longer presented as a
+  recommendation without the injected decision card's full evidence gate.
+- Gave per-flight next-gen odds and ConnectScore separate tier, source, and source-date metadata.
+- Removed the United-labelled prioritisation action from Alaska's single-carrier results.
+- Removed an unsourced same-day-switch policy claim and limited rescue copy to sourced confirmed
+  alternatives or an explicit no-confirmed-option result.
+- Kept the four future row-degradation states while making their currently untestable status
+  explicit and machine-checked in the mutation gate.
 
 ## [3.0.0] - 2026-08-02
 
@@ -77,7 +94,8 @@ Chrome Web Store: published 2026-07-28.
 - Renamed the extension to WiFi Odds for Flights and expanded it from a United-only companion into
   a multi-airline WiFi decision tool.
 
-[Unreleased]: https://github.com/jeremyinthebay/wifiodds-extension/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/jeremyinthebay/wifiodds-extension/compare/v3.0.1...HEAD
+[3.0.1]: https://github.com/jeremyinthebay/wifiodds-extension/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/jeremyinthebay/wifiodds-extension/compare/v2.2.0...v3.0.0
 [2.2.0]: https://github.com/jeremyinthebay/wifiodds-extension/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/jeremyinthebay/wifiodds-extension/compare/v2.0.0...v2.1.0

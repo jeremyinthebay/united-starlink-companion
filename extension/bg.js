@@ -769,12 +769,13 @@ function priorTail(trip) {
   return null;
 }
 
-/* Rebooking suggestion, in the spec's preference order:
- *   1. a same-day CONFIRMED ✓ departure on the same route (cache-first, so
- *      usually free), 2. the parsed alts table, 3. generic advice. */
+/* Rebooking suggestion: only a same-day CONFIRMED ✓ departure is grounded
+ * enough to recommend. Parsed percentages carry neither a confirmed tail nor
+ * a source date, so they never become notification advice. */
 async function suggestAlt(trip, res) {
   const routeStr = trip.routeSeen || trip.route || "";
   const rm = String(routeStr).toUpperCase().match(/([A-Z]{3})[^A-Z]?([A-Z]{3})/);
+  const tracker = airlineOf(trip.fn) === "AS" ? "alaskastarlinktracker.com" : "unitedstarlinktracker.com";
   if (rm) {
     try {
       if (await budgetTake(1)) {
@@ -787,21 +788,20 @@ async function suggestAlt(trip, res) {
             const theirs = Date.parse(dep.date + "T" + dep.time + ":00Z");
             if (!isNaN(mine) && !isNaN(theirs)) {
               const dm = Math.round((theirs - mine) / 60000);
-              return dep.fn + " " + (dm >= 0 ? "+" : "-") + Math.abs(dm) +
-                "min has a ✓ tail (" + dep.tail + ").";
+              return "Better option: " + dep.fn + " " + (dm >= 0 ? "+" : "-") + Math.abs(dm) +
+                "min has confirmed Starlink tail " + dep.tail + " for " + dep.date +
+                " (REPORTED · " + tracker + " · " + dep.date + ").";
             }
           }
-          return dep.fn + " dep " + dep.time + "Z has a ✓ tail (" + dep.tail + ").";
+          return "Better option: " + dep.fn + " departs " + dep.time + "Z with confirmed Starlink tail " +
+            dep.tail + " for " + dep.date + " (REPORTED · " + tracker + " · " + dep.date + ").";
         }
       }
     } catch (e) {}
   }
-  const alt = res && res.alts && res.alts[0];
-  if (alt && alt.flights) {
-    const first = String(alt.flights).trim().split(/[\s,/]+/)[0];
-    return "Best alternative: " + first + " (" + alt.pct + "%). Same-day switch is free with Gold+.";
-  }
-  return "Consider a same-day switch.";
+  const where = rm ? rm[1] + "→" + rm[2] : "this trip";
+  return "No confirmed better option found for " + where + " on " + trip.date +
+    " (REPORTED · " + tracker + " · " + trip.date + " lookup).";
 }
 
 // "2026-07-25" → "Jul 25" for the terse notification head. Falls back to the
@@ -826,7 +826,7 @@ function buildGuardNotification(trip, transition, res, altText) {
   const tail = (res && res.tail) || trip.tail || "?";
   const equip = (res && res.equip) || "Viasat";
   const back = " Open booking ↗";
-  const rescue = altText ? " Better option you saw: " + altText : "";
+  const rescue = altText ? " " + altText : "";
 
   if (state === "A") {
     // Reassuring same-✓ swap reads differently from a first confirmation.
@@ -855,13 +855,12 @@ async function notifyTrip(t, transition, res) {
   try {
     // Rescue is sourced live only on a worsened transition (state B, or an A→C
     // withdrawal per R23 P1-02); shortlist is empty in 3.0 so this is
-    // suggestAlt()'s live fallback. The generic "Consider a same-day switch"
-    // is NOT grounded, so it is filtered out — a worsened state never invents an
-    // alternative. Trim the trailing period so it reads inline.
+    // suggestAlt()'s live fallback. It returns either a fully sourced confirmed
+    // option or an explicit no-option result; neither invents policy advice.
     let altText = "";
     if (worsened(transition, t)) {
       const s = await suggestAlt(t, res);
-      if (s && !/^Consider a same-day switch/.test(s)) altText = String(s).replace(/\.$/, "");
+      if (s) altText = String(s).replace(/\.$/, "");
     }
     const n = buildGuardNotification(t, transition, res, altText);
     if (!n) return;

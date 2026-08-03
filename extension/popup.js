@@ -84,7 +84,9 @@ function renderFlights(flights, o, d) {
   top.forEach(function (f, i) {
     var row = el("div", "usl-flight-row");
     var left = el("div", "usl-flight-left");
-    if (i === 0) left.appendChild(el("span", "usl-star", "⭐"));
+    // Ranked history is not a recommendation. The popup has no reliable
+    // exact-date Guard fact, so it deliberately never crowns row zero; the
+    // injected decision card is the only surface allowed to name a winner.
     left.appendChild(el("span", null, f.fn));
     var times = pageFlights[f.fn];
     if (times) left.appendChild(el("span", "usl-time", times));

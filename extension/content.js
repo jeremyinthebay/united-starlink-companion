@@ -983,6 +983,23 @@
     if (entry.future) return { k: "announced" };
     return { k: "notinfleet" };
   }
+  function metricEvidence(kind, entry) {
+    if (kind === "tracker") {
+      return { tier: "REPORTED", source: TRACKER, date: "source date not provided" };
+    }
+    return {
+      tier: "MODELLED",
+      source: "wifiodds.com frozen fleet-source ledger",
+      date: entry && entry.asOf ? entry.asOf : "source date not provided",
+    };
+  }
+  function evidenceText(e) { return `${e.tier} · ${e.source} · ${e.date}`; }
+  function attachEvidence(el, evidence) {
+    el.dataset.evidenceTier = evidence.tier;
+    el.dataset.evidenceSource = evidence.source;
+    el.dataset.evidenceDate = evidence.date;
+    el.title = evidenceText(evidence);
+  }
   /* Build the group. Returns an element, or null when there is nothing honest
    * to say yet. `fn` may be null for a carrier-only row (Google Flights). */
   function metricsGroup(fn, hit, key, opts) {
@@ -998,6 +1015,11 @@
 
     const showNg = metricsMode !== "streaming";
     const showStream = metricsMode !== "nextgen";
+    const ngEvidence = metricEvidence(
+      st.k === "prob" || st.k === "nohistory" || st.k === "unavail" ? "tracker" : "model",
+      entry
+    );
+    const streamEvidence = metricEvidence("model", entry);
 
     const typed = !!(hit && hit.conf === "type");
     const obsN = obsCount(hit);
@@ -1005,6 +1027,7 @@
     if (showNg) {
       const line = document.createElement("span");
       line.className = "usl-ng " + def.cls;
+      attachEvidence(line, ngEvidence);
       const lab = document.createElement("span");
       lab.className = "usl-ng__label";
       lab.textContent = def.label;
@@ -1036,6 +1059,7 @@
     if (showStream) {
       const line = document.createElement("span");
       line.className = "usl-stream-line";
+      attachEvidence(line, streamEvidence);
       const lab = document.createElement("span");
       lab.className = "usl-stream__label";
       lab.textContent = "STREAMING";
@@ -1089,10 +1113,11 @@
         : st.k === "notinfleet" ? "no next-gen aircraft in this airline's current fleet"
         : "no fleet data for this airline";
     const sentence = (fn ? fn + ": " : "") +
-      (showNg ? ngSentence : "") + (showNg && showStream ? ". " : "") +
-      (showStream ? streamText : "") +
+      (showNg ? ngSentence + `. Evidence: ${evidenceText(ngEvidence)}` : "") +
+      (showNg && showStream ? ". " : "") +
+      (showStream ? streamText + `. Evidence: ${evidenceText(streamEvidence)}` : "") +
       (hit && hit.dep && fn && !guardContradicts(fn) ? `. Confirmed Starlink tail ${hit.dep.tail} for ${hit.dep.date}` : "") +
-      `. Data from ${TRACKER}`;
+      ".";
     grp.setAttribute("role", "img");
     grp.setAttribute("aria-label", sentence);
     grp.title = sentence;
@@ -1208,7 +1233,8 @@
 
   function addWatchStar(el, fn) {
     if (!ctx || !ctx.date || el.querySelector(".usl-watch")) return;
-    const w = document.createElement("span");
+    const w = document.createElement("button");
+    w.type = "button";
     // The base class is NOT optional and is NOT set by paint(): it carries the
     // margin, the size and the dark-with-halo unfilled look, and the dedupe
     // guard above queries for it. Dropping it (as 24af7c2 did) leaves a bare
@@ -1221,25 +1247,73 @@
     // Two titles, one per state — the star is a toggle, so both are needed on
     // every flip (the popup is not the only way to stop guarding a flight).
     const OFF_TITLE = "Guard " + fn + " on " + date + " — alerts from booking to boarding if its Starlink tail changes.";
-    const ON_TITLE = "Guarding — click to unguard (or manage in the popup)";
+    const ON_TITLE = "Guarding " + fn + " on " + date + " — activate to unguard, or manage it in the popup.";
     const paint = (on) => {
       w.textContent = on ? "★" : "☆";
       w.classList.toggle("usl-watching", on);
       w.title = on ? ON_TITLE : OFF_TITLE;
+      w.setAttribute("aria-label", w.title);
+      w.setAttribute("aria-pressed", String(on));
+    };
+    const pending = (on) => {
+      w.disabled = on;
+      w.setAttribute("aria-busy", String(on));
+    };
+    const coach = (text, error) => {
+      if (!panelEl) return;
+      let note = panelEl.querySelector(".usl-guard-coach");
+      if (!note) {
+        note = document.createElement("p");
+        note.className = "usl-guard-coach";
+        note.setAttribute("role", "status");
+        note.setAttribute("aria-live", "polite");
+        const body = panelEl.querySelector(".usl-body");
+        if (body) body.insertBefore(note, body.firstChild);
+      }
+      note.classList.toggle("usl-guard-coach--error", !!error);
+      note.textContent = text;
+    };
+    const defaultCoach = () => {
+      const note = panelEl && panelEl.querySelector(".usl-guard-coach");
+      if (watched.size) { if (note) note.remove(); }
+      else coach("Tip: use the ☆ button beside a flight to Guard its Starlink tail through boarding.", false);
+    };
+    const rollback = (wasOn, message) => {
+      if (wasOn) watched.add(key); else watched.delete(key);
+      paint(wasOn);
+      pending(false);
+      w.classList.add("usl-watch-error");
+      const detail = message ? ": " + message : ".";
+      const label = (wasOn ? "Could not stop guarding " : "Could not guard ") + fn + detail;
+      w.title = label;
+      w.setAttribute("aria-label", label);
+      refreshPanelGuards();
+      coach(label, true);
     };
     paint(watched.has(key));
     w.addEventListener("click", (ev) => {
       ev.stopPropagation(); ev.preventDefault();
       const on = watched.has(key);
-      // Optimistic: flip the UI first, then tell bg.js. Both handlers are
-      // idempotent, so a dropped message just leaves the popup as the truth.
+      w.classList.remove("usl-watch-error");
+      pending(true);
+      // Optimistic, but fail-closed: a rejected/dropped message restores the
+      // exact previous state and leaves a visible + announced error.
       if (on) {
         watched.delete(key);
         paint(false);
-        try { chrome.runtime.sendMessage({ type: "tripRemove", fn, date }, () => { void chrome.runtime.lastError; }); } catch {}
+        refreshPanelGuards();
+        try {
+          chrome.runtime.sendMessage({ type: "tripRemove", fn, date }, (res) => {
+            const err = chrome.runtime.lastError;
+            if (err || !res || res.ok === false) return rollback(true, (res && res.error) || (err && err.message));
+            pending(false);
+            defaultCoach();
+          });
+        } catch (e) { rollback(true, e && e.message); }
       } else {
         watched.add(key);
         paint(true);
+        refreshPanelGuards();
         const hit = probMap.get(fn);
         const guardPrediction = hit ? {
           status: hit.dep ? "yes" : "unknown",
@@ -1248,10 +1322,15 @@
           source: TRACKER,
           sourceDate: hit.dep && hit.dep.date ? hit.dep.date : null,
         } : null;
-        try { chrome.runtime.sendMessage({ type: "tripAdd", fn, date, route, guardPrediction }, () => { void chrome.runtime.lastError; }); } catch {}
+        try {
+          chrome.runtime.sendMessage({ type: "tripAdd", fn, date, route, guardPrediction }, (res) => {
+            const err = chrome.runtime.lastError;
+            if (err || !res || res.ok === false) return rollback(false, (res && res.error) || (err && err.message));
+            pending(false);
+            defaultCoach();
+          });
+        } catch (e) { rollback(false, e && e.message); }
       }
-      // Keep the panel's ranked list in step with the row that was just clicked.
-      refreshPanelGuards();
     });
     el.appendChild(w);
   }
@@ -1828,6 +1907,7 @@
       `<button type="button" class="usl-x" aria-expanded="true" aria-label="Collapse panel" title="Collapse">▾</button></span></header>
       <div class="usl-body">` +
       decisionStrip(flights, sys) +
+      (!watched.size ? `<p class="usl-guard-coach" role="status" aria-live="polite">Tip: use the ☆ button beside a flight to Guard its Starlink tail through boarding.</p>` : "") +
       // Mixed-carrier coverage boundary (spec §5): Navan lists several carriers
       // and only United is scored there, so the boundary states the coverage
       // honestly and persists across winner, refusal and system states. It
@@ -1862,7 +1942,7 @@
       // united.com every flight is United, so "Prioritize United flights" is a
       // meaningless promise there (Jeremy, 31 Jul) — the winner CTA carries the
       // flight-specific action instead.
-      (flights.length && (NAVAN || ALASKA) ? `<button type="button" class="usl-sortbtn usl-prioritize" aria-pressed="${prioritizeActive ? "true" : "false"}" style="display:none">Prioritize United flights with available WiFi odds; unscored flights follow</button>` : "") +
+      (flights.length && NAVAN ? `<button type="button" class="usl-sortbtn usl-prioritize" aria-pressed="${prioritizeActive ? "true" : "false"}" style="display:none">Prioritize United flights with available WiFi odds; unscored flights follow</button>` : "") +
       (itin ? `<div class="usl-row" style="border-top:1px solid rgba(148,178,255,.14);margin-top:6px;padding-top:8px">` +
         `<span>via ${esc(itin.via.join("+"))} · all-legs estimate</span><span class="usl-badge ${cls(Math.round(itin.joint))}">${Math.round(itin.joint)}%</span></div>` : "") +
       (deps.length ? `<div style="margin-top:8px;font-size:11px;opacity:.75">Confirmed tails (next ~72h): ` +

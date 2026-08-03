@@ -11,6 +11,7 @@
 // The CLEAN full run is phase2-e2e.mjs with no env. Release shape:
 //     node test/phase2-e2e.mjs && node test/mutation-matrix.mjs
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -32,6 +33,12 @@ const MATRIX = {
   "mixed-auto-sort":        { only: "navan-preserves-host-order", expect: "navan-preserves-host-order" },
   "settings-off-still-sorts": { only: "united-autosort-off-respected", expect: "united-autosort-off-respected" },
   "unlabelled-badge":       { only: "row-metrics-labelled", expect: "row-metrics-labelled" },
+  "popup-first-row-crown":  { only: "popup-ranked-history-no-crown", expect: "popup-ranked-history-no-crown" },
+  "merged-metric-provenance": { only: "row-metrics-labelled", expect: "row-metrics-labelled" },
+  "alaska-united-action":   { only: "alaska-no-united-action", expect: "alaska-no-united-action" },
+  "guard-span-control":     { only: "guard-keyboard-roundtrip", expect: "guard-keyboard-roundtrip" },
+  "guard-add-no-rollback":  { only: "guard-add-failure-rolls-back", expect: "guard-add-failure-rolls-back" },
+  "gold-policy-claim":      { only: "guard-alternative-evidence", expect: "guard-alternative-evidence" },
   // "fleet-as-probability" is intentionally ABSENT. Its target state cannot
   // render on any currently supported host (see the note in phase2-e2e.mjs),
   // so no assertion could catch it. Listing it here would manufacture a green
@@ -41,10 +48,41 @@ const MATRIX = {
   "gf-setting-claims-reorder": { only: "popup-settings-truthful", expect: "popup-settings-truthful" },
   "resolved-only-denominator": { only: "airline-data-parity", expect: "airline-data-parity" },
 };
-const CONTROLS_EXPECTED = 16;
+const CONTROLS_EXPECTED = 22;
+
+// Owner ruling, 3 Aug 2026: keep these honest-degradation states, but never
+// manufacture a green mutation result for branches no supported host can
+// render. The gate names the states, validates their production definitions and
+// validates the excluded mutation's live anchor on every run.
+const UNTESTABLE = {
+  "fleet-as-probability": {
+    states: ["fleet", "announced", "notinfleet", "nofleet"],
+    anchor: 'if (entry.nextGenShare > 0) return { k: "fleet", value: share === 0 ? "<1%" : share + "%" };',
+    reason: "no currently supported host reaches metricsGroup's non-instrumented row path",
+  },
+};
+const UNTESTABLE_MUTATIONS_EXPECTED = 1;
+const UNTESTABLE_STATES_EXPECTED = 4;
 
 let broken = 0;
 const rows = [];
+const contentSource = readFileSync(join(HERE, "..", "extension", "content.js"), "utf8");
+const untestableEntries = Object.entries(UNTESTABLE);
+const untestableStates = [...new Set(untestableEntries.flatMap(([, v]) => v.states))];
+if (untestableEntries.length !== UNTESTABLE_MUTATIONS_EXPECTED ||
+    untestableStates.length !== UNTESTABLE_STATES_EXPECTED ||
+    Object.keys(MATRIX).some((name) => Object.prototype.hasOwnProperty.call(UNTESTABLE, name))) {
+  broken++;
+  process.stderr.write("UNTESTABLE REGISTRY BROKEN: count/state overlap mismatch\n");
+}
+for (const [name, item] of untestableEntries) {
+  const statesDefined = item.states.every((state) =>
+    new RegExp("^\\s*" + state + "\\s*:", "m").test(contentSource));
+  const anchorLive = contentSource.includes(item.anchor);
+  if (!statesDefined || !anchorLive) broken++;
+  process.stderr.write(`UNTESTABLE ${name} · states=${item.states.join(",")} · ` +
+    `definitions=${statesDefined ? "live" : "MISSING"} anchor=${anchorLive ? "live" : "MISSING"} · ${item.reason}\n`);
+}
 for (const [name, m] of Object.entries(MATRIX)) {
   process.stderr.write(`\n══ mutation ${name} ══\n`);
   const r = spawnSync(process.execPath, [GATE], {

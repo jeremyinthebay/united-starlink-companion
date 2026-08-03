@@ -17,6 +17,7 @@ $VERSION
 EOF
 NEXT_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
 ORDER_VERSION="$MAJOR.$((MINOR + 1)).0"
+PREVIOUS_VERSION=$(awk '/^## \[[0-9]+\.[0-9]+\.[0-9]+\] - /{n++; if (n == 2) {gsub(/^## \[|\] - .*/, ""); print; exit}}' "$BASE_CHANGELOG")
 
 PASS=0
 FAILED=0
@@ -60,7 +61,7 @@ printf '\n## [%s] - 2026-01-01\n' "$VERSION" >> "$TMP/changelog-duplicate.md"
 run_control duplicate-release 1 "duplicate release heading $VERSION" \
   "$TMP/manifest-clean.json" "$TMP/changelog-duplicate.md"
 
-sed "s/## \[2\.2\.0\] - 2026-07-31/## [$ORDER_VERSION] - 2026-07-31/" \
+sed "s/## \[$PREVIOUS_VERSION\] - /## [$ORDER_VERSION] - /" \
   "$BASE_CHANGELOG" > "$TMP/changelog-order.md"
 run_control release-order 1 \
   "release headings are not newest-first: $VERSION must be newer than $ORDER_VERSION" \

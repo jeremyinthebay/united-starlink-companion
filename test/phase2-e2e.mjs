@@ -22,7 +22,7 @@
 import { createRequire } from "node:module";
 import { mkdirSync, writeFileSync, rmSync, cpSync, readFileSync, existsSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 
 const require = createRequire("/Users/jeremysmith/.wo-respo/");
@@ -30,7 +30,7 @@ const { chromium } = require("playwright");
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const EXT_SRC = join(HERE, "..", "extension");
-const OUT = join(HERE, "out");
+const OUT = process.env.E2E_OUT_DIR ? resolve(process.env.E2E_OUT_DIR) : join(HERE, "out");
 const SHOTS = join(OUT, "shots");
 
 // Load the extension from a temp COPY so the negative-control mutation can
@@ -129,6 +129,48 @@ const MUTATIONS = {
     expect: "row-metrics-labelled",
     note: "the NEXT-GEN label is emptied — a bare percentage returns",
   },
+  "popup-first-row-crown": {
+    file: "popup.js",
+    from: 'left.appendChild(el("span", null, f.fn));',
+    to: 'left.appendChild(el("span", "usl-star", "⭐"));\n    left.appendChild(el("span", null, f.fn));',
+    expect: "popup-ranked-history-no-crown",
+    note: "the popup crowns row zero without the injected card's full evidence gate",
+  },
+  "merged-metric-provenance": {
+    file: "content.js",
+    from: "attachEvidence(line, streamEvidence);",
+    to: "attachEvidence(line, ngEvidence);",
+    expect: "row-metrics-labelled",
+    note: "ConnectScore inherits the live tracker's provenance instead of its frozen model ledger",
+  },
+  "alaska-united-action": {
+    file: "content.js",
+    from: "(flights.length && NAVAN ? `<button",
+    to: "(flights.length && (NAVAN || ALASKA) ? `<button",
+    expect: "alaska-no-united-action",
+    note: "the Alaska-only page offers a United-labelled carrier action",
+  },
+  "guard-span-control": {
+    file: "content.js",
+    from: 'const w = document.createElement("button");',
+    to: 'const w = document.createElement("span");',
+    expect: "guard-keyboard-roundtrip",
+    note: "the Guard toggle regresses from a native keyboard-operable button to a span",
+  },
+  "guard-add-no-rollback": {
+    file: "content.js",
+    from: "if (err || !res || res.ok === false) return rollback(false, (res && res.error) || (err && err.message));",
+    to: "if (err || !res || res.ok === false) { pending(false); return; }",
+    expect: "guard-add-failure-rolls-back",
+    note: "a rejected tripAdd leaves the optimistic watched state on screen",
+  },
+  "gold-policy-claim": {
+    file: "bg.js",
+    from: 'const where = rm ? rm[1] + "→" + rm[2] : "this trip";',
+    to: 'return "Best alternative: UA999 (75%). Same-day switch is free with Gold+.";\n  const where = rm ? rm[1] + "→" + rm[2] : "this trip";',
+    expect: "guard-alternative-evidence",
+    note: "an unsourced same-day-switch policy and percentage return to a notification",
+  },
   /* NOT IN THE MATRIX RUN, deliberately, and this is a COVERAGE GAP worth
    * stating rather than hiding. `fleet` / `announced` / `notinfleet` /
    * `nofleet` are four of the seven row states, and none of them can render on
@@ -137,11 +179,11 @@ const MUTATIONS = {
    * and both carriers are instrumented — so every row that gets a group takes
    * the per-flight path. Google Flights uses its own compact chip, not this
    * group. The states exist because Codex round 26 specified them and because a
-   * third instrumented carrier would need them, but they are UNEXERCISED, and a
+   * future carrier-level host would need them, but they are UNEXERCISED, and a
    * mutation that cannot be caught is a broken instrument, not a passing one. */
   "fleet-as-probability": {
     file: "content.js",
-    from: 'if (entry.nextGenScore > 0) return { k: "fleet", value: share === 0 ? "<1%" : share + "%" };',
+    from: 'if (entry.nextGenShare > 0) return { k: "fleet", value: share === 0 ? "<1%" : share + "%" };',
     to: 'if (entry.nextGenScore > 0) return { k: "prob", value: share + "%", hit: { prob: share } };',
     expect: "row-metrics-fleet-context",
     note: "airline fleet share impersonates a per-flight probability (UNREACHABLE state — see comment)",
@@ -200,6 +242,20 @@ if (MUT) {
   writeFileSync(cf, src);
   process.stderr.write("MUTATION LANDED " + MUT + " (" + m.note + ")\n");
 }
+// The production permission remains optional. The deterministic harness grants
+// Alaska in its TEMPORARY extension copy so the real dynamic registration and
+// Alaska-only product path can be exercised without a browser permission UI.
+{
+  const mf = join(EXT, "manifest.json");
+  const manifest = JSON.parse(readFileSync(mf, "utf8"));
+  manifest.host_permissions = [...new Set([
+    ...(manifest.host_permissions || []),
+    "https://www.alaskaair.com/*", "https://alaskaair.com/*", "https://alaskastarlinktracker.com/*",
+  ])];
+  manifest.optional_host_permissions = (manifest.optional_host_permissions || [])
+    .filter((p) => !/alaskaair\.com/.test(p));
+  writeFileSync(mf, JSON.stringify(manifest, null, 2) + "\n");
+}
 // Optional case filter (used by mutation-matrix.mjs to keep each mutation run
 // focused on the checks that must catch it; the clean run always runs ALL).
 const ONLY = process.env.E2E_ONLY ? new RegExp(process.env.E2E_ONLY) : null;
@@ -248,6 +304,19 @@ function navanFixture({ o, d, rows = [], topHtml = "" }) {
     <div class="flight-header__route">${o} → ${d}</div>
     <p>Depart from ${o}</p>
     <div id="results">${topHtml}${rowHtml || "<p>No flights</p>"}</div>
+    </body></html>`;
+}
+
+function alaskaFixture({ o, d, rows = [] }) {
+  const rowHtml = rows.map((r) =>
+    `<div class="res-row" style="padding:12px;border-bottom:1px solid #ccc">
+       <span class="fn">Alaska ${r.num}</span> ·
+       <span class="tm">${r.time}</span> — ${o} to ${d}
+     </div>`).join("\n");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Alaska — choose flights</title></head>
+    <body style="font-family:sans-serif;padding:24px">
+    <div class="search-summary">${o} → ${d}</div>
+    <div id="results">${rowHtml || "<p>Flight results</p>"}</div>
     </body></html>`;
 }
 
@@ -383,6 +452,14 @@ function stripProbe() {
       aria: m.getAttribute("aria-label") || "",
       confirm: !!m.querySelector(".usl-confirm"),
       rampOnValue: !!m.querySelector(".usl-ng__value.usl-badge"),
+      nextEvidence: (() => { const e = m.querySelector(".usl-ng"); return e ? {
+        tier: e.dataset.evidenceTier || "", source: e.dataset.evidenceSource || "",
+        date: e.dataset.evidenceDate || "", title: e.title || "",
+      } : null; })(),
+      streamEvidence: (() => { const e = m.querySelector(".usl-stream-line"); return e ? {
+        tier: e.dataset.evidenceTier || "", source: e.dataset.evidenceSource || "",
+        date: e.dataset.evidenceDate || "", title: e.title || "",
+      } : null; })(),
     })),
   };
 }
@@ -508,6 +585,32 @@ async function focusRingContrast(page, selector) {
 
 const CASES = [
   {
+    name: "popup-ranked-history-no-crown",
+    o: "SFO", d: "DEN", rows: [], mock: {},
+    driver: async ({ page, extId }) => {
+      if (!extId) return { appeared: false, panelText: "(no extension id)", badges: [], checks: { extIdPresent: false } };
+      await page.goto("chrome-extension://" + extId + "/popup.html", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => typeof renderFlights === "function", null, { timeout: 15000 });
+      const out = await page.evaluate(() => {
+        const block = renderFlights([
+          { fn: "UA1596", prob: 68, obs: 51, conf: "high" },
+          { fn: "UA1214", prob: 30, obs: 40, conf: "medium" },
+        ], "SFO", "DEN");
+        document.getElementById("usl-results").replaceChildren(block);
+        return {
+          text: block.innerText,
+          stars: block.querySelectorAll(".usl-star").length,
+          rows: block.querySelectorAll(".usl-flight-row").length,
+        };
+      });
+      return { appeared: true, panelText: out.text, badges: [], probe: out, checks: {
+        rankedRowsRemain: out.rows === 2 && /UA1596/.test(out.text) && /68%/.test(out.text),
+        sortStatementRemains: /highest odds first/i.test(out.text),
+        popupNeverCrownsRowZero: out.stars === 0 && !/⭐/.test(out.text),
+      } };
+    },
+  },
+  {
     // LAX→EWR: a transcon with no DIRECT Starlink history but a real connection.
     name: "LAX-EWR-empty-with-connection",
     o: "LAX", d: "EWR", rows: [],
@@ -610,7 +713,7 @@ const CASES = [
         streamingSecondary: /STREAMING 42 ConnectScore/.test(g.text || ""),
         rampOnRealProbability: g.rampOnValue === true,
         confirmTokenSeparate: g.confirm === true,
-        fullAccessibleSentence: /68% historical per-flight next-gen odds from 51 tracked departures\. High confidence\. Streaming-class ConnectScore 42/.test(g.aria || ""),
+        fullAccessibleSentence: /68% historical per-flight next-gen odds from 51 tracked departures\. High confidence\. Evidence: REPORTED · unitedstarlinktracker\.com · source date not provided\. Streaming-class ConnectScore 42 out of 100\. Evidence: MODELLED · wifiodds\.com frozen fleet-source ledger · 2026-07/.test(g.aria || ""),
         accessibleCarriesExactDate: /Confirmed Starlink tail N127UA for \d{4}-\d{2}-\d{2}/.test(g.aria || ""),
         panelRowShowsSampleSize: /51 flights/.test(txt),
         stripConfirmSeparateFact: /✓ Confirmed for \d{4}-\d{2}-\d{2}/.test(txt),
@@ -1651,8 +1754,135 @@ const CASES = [
         connectScoreWordShown: /ConnectScore/.test(g.text || ""),
         accessibleSaysPerFlight: /historical per-flight next-gen odds/.test(g.aria || ""),
         accessibleSaysStreaming: /Streaming-class ConnectScore/.test(g.aria || ""),
+        nextGenEvidenceIsTracker: !!g.nextEvidence && g.nextEvidence.tier === "REPORTED" &&
+          g.nextEvidence.source === "unitedstarlinktracker.com" &&
+          g.nextEvidence.date === "source date not provided",
+        connectScoreEvidenceIsModel: !!g.streamEvidence && g.streamEvidence.tier === "MODELLED" &&
+          /wifiodds\.com frozen fleet-source ledger/.test(g.streamEvidence.source) &&
+          g.streamEvidence.date === "2026-07",
+        sourcesRemainSeparate: !!g.nextEvidence && !!g.streamEvidence &&
+          g.nextEvidence.source !== g.streamEvidence.source &&
+          !/unitedstarlinktracker/.test(g.streamEvidence.title),
         confirmStillSeparate: g.confirm === true,
       };
+    },
+  },
+  {
+    name: "alaska-no-united-action",
+    alaska: true, o: "SEA", d: "SFO",
+    rows: [{ num: 1, time: "8:30 a.m." }, { num: 7, time: "11:05 a.m." }],
+    mock: {
+      o: "SEA", d: "SFO", route: [
+        { fn: "AS1", prob: 68, obs: 51, conf: "high" },
+        { fn: "AS7", prob: 30, obs: 40, conf: "medium" },
+      ],
+      predict: { AS1: { p: 0.68, obs: 51, conf: "high" }, AS7: { p: 0.30, obs: 40, conf: "medium" } },
+      itins: [],
+    },
+    driver: async ({ page, url }) => {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".usl-panel", { timeout: 30000 });
+      await page.waitForFunction(() => /AS1/.test((document.querySelector(".usl-panel") || {}).innerText || ""), null, { timeout: 25000 });
+      const out = await page.evaluate(() => ({
+        text: document.querySelector(".usl-panel").innerText,
+        carrierAction: !!document.querySelector(".usl-prioritize"),
+        sorted: !!document.querySelector(".usl-sorted"),
+      }));
+      return { appeared: true, panelText: out.text, badges: [], probe: out, checks: {
+        alaskaFlightsRendered: /AS1/.test(out.text) && /AS7/.test(out.text),
+        noUnitedCarrierAction: out.carrierAction === false && !/Prioritize United flights/.test(out.text),
+        singleCarrierPathStillWorks: /NEXT-GEN ODDS/.test(out.text),
+      } };
+    },
+  },
+  {
+    name: "guard-keyboard-roundtrip",
+    o: "SFO", d: "DEN", dateOffsetDays: 30,
+    rows: [{ num: 1596, time: "8:30 a.m." }, { num: 1214, time: "11:05 a.m." }],
+    mock: { o: "SFO", d: "DEN", route: [
+      { fn: "UA1596", prob: 68, obs: 51, conf: "high" },
+      { fn: "UA1214", prob: 30, obs: 40, conf: "medium" },
+    ], predict: {}, itins: [] },
+    driver: async ({ page, url, sw }) => {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      const button = page.locator(".usl-watch").first();
+      await button.waitFor({ state: "visible", timeout: 30000 });
+      const before = await button.evaluate((e) => ({
+        tag: e.tagName, type: e.getAttribute("type"), pressed: e.getAttribute("aria-pressed"),
+        label: e.getAttribute("aria-label"), rect: { w: e.getBoundingClientRect().width, h: e.getBoundingClientRect().height },
+        coach: (document.querySelector(".usl-guard-coach") || {}).textContent || "",
+      }));
+      await button.press("Enter");
+      await page.waitForFunction(() => document.querySelector(".usl-watch")?.getAttribute("aria-pressed") === "true", null, { timeout: 15000 });
+      await page.waitForFunction(() => !document.querySelector(".usl-watch")?.disabled, null, { timeout: 15000 });
+      const added = await sw.evaluate(() => chrome.storage.local.get("uslTrips").then((v) => v.uslTrips || []));
+      const coachAfterAdd = await page.locator(".usl-guard-coach").count();
+      await button.press(" ");
+      await page.waitForFunction(() => document.querySelector(".usl-watch")?.getAttribute("aria-pressed") === "false", null, { timeout: 15000 });
+      await page.waitForFunction(() => !document.querySelector(".usl-watch")?.disabled, null, { timeout: 15000 });
+      const removed = await sw.evaluate(() => chrome.storage.local.get("uslTrips").then((v) => v.uslTrips || []));
+      return { appeared: true, panelText: JSON.stringify({ before, added, removed }), badges: [], probe: before, checks: {
+        nativeButton: before.tag === "BUTTON" && before.type === "button",
+        accessibleToggle: before.pressed === "false" && /Guard UA1596/.test(before.label),
+        targetAtLeast44: before.rect.w >= 44 && before.rect.h >= 44,
+        firstUseCoachVisible: /use the ☆ button/.test(before.coach),
+        enterAddsExactTrip: added.some((t) => t.fn === "UA1596"),
+        coachClearsAfterAdd: coachAfterAdd === 0,
+        spaceRemovesTrip: removed.every((t) => t.fn !== "UA1596"),
+      } };
+    },
+  },
+  {
+    name: "guard-add-failure-rolls-back",
+    o: "SFO", d: "DEN", dateOffsetDays: 30,
+    rows: [{ num: 1596, time: "8:30 a.m." }, { num: 1214, time: "11:05 a.m." }],
+    seedTrips: Array.from({ length: 10 }, (_, i) => ({ fn: "UA" + (100 + i), date: farDate(), lastStatus: "early", history: [] })),
+    mock: { o: "SFO", d: "DEN", route: [
+      { fn: "UA1596", prob: 68, obs: 51, conf: "high" },
+      { fn: "UA1214", prob: 30, obs: 40, conf: "medium" },
+    ], predict: {}, itins: [] },
+    driver: async ({ page, url, sw }) => {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      const button = page.locator(".usl-watch").first();
+      await button.waitFor({ state: "visible", timeout: 30000 });
+      await button.press("Enter");
+      await page.waitForSelector(".usl-watch-error", { timeout: 15000 });
+      const out = await button.evaluate((e) => ({
+        pressed: e.getAttribute("aria-pressed"), busy: e.getAttribute("aria-busy"), disabled: e.disabled,
+        label: e.getAttribute("aria-label"), coach: (document.querySelector(".usl-guard-coach") || {}).textContent || "",
+      }));
+      const trips = await sw.evaluate(() => chrome.storage.local.get("uslTrips").then((v) => v.uslTrips || []));
+      return { appeared: true, panelText: JSON.stringify(out), badges: [], probe: out, checks: {
+        optimisticStateRolledBack: out.pressed === "false" && trips.every((t) => t.fn !== "UA1596"),
+        buttonReenabled: out.busy === "false" && out.disabled === false,
+        errorExposed: /Could not guard UA1596/.test(out.label) && /Max 10 guarded trips/.test(out.coach),
+      } };
+    },
+  },
+  {
+    name: "guard-alternative-evidence",
+    o: "SFO", d: "DEN", rows: [], dateOffsetDays: 30,
+    mock: { o: "SFO", d: "DEN", route: [], itins: [], deps: [
+      { fn: "UA1214", o: "SFO", d: "DEN", date: isoDaysFromNow(30), time: "12:30", tail: "N127UA" },
+    ] },
+    driver: async ({ sw }) => {
+      if (!sw) return { appeared: false, panelText: "(no service worker)", badges: [], checks: { swPresent: false } };
+      const dates = { yes: isoDaysFromNow(30), no: isoDaysFromNow(31) };
+      const out = await sw.evaluate(async (d) => {
+        const confirmed = await suggestAlt({ fn: "UA1596", date: d.yes, route: "SFO-DEN", departs: d.yes + "T10:00:00Z" }, {});
+        const none = await suggestAlt({ fn: "UA1596", date: d.no, route: "SFO-DEN", departs: d.no + "T10:00:00Z" }, {
+          alts: [{ flights: "UA999", pct: 75 }],
+        });
+        return { confirmed, none };
+      }, dates);
+      const text = out.confirmed + "\n" + out.none;
+      return { appeared: true, panelText: text, badges: [], probe: out, checks: {
+        confirmedAlternativeGrounded: /Better option: UA1214 \+150min/.test(out.confirmed) &&
+          /confirmed Starlink tail N127UA/.test(out.confirmed) &&
+          /REPORTED · unitedstarlinktracker\.com · \d{4}-\d{2}-\d{2}/.test(out.confirmed),
+        noOptionStatedExplicitly: /No confirmed better option found for SFO→DEN/.test(out.none),
+        noUnsourcedPercentageOrPolicy: !/%|Gold\+|free with/.test(text),
+      } };
     },
   },
   {
@@ -1680,10 +1910,10 @@ const CASES = [
     },
   },
   {
-    // R26 — a NON-instrumented carrier row (Google Flights matches many
-    // airlines). Fleet share is context, never a per-flight probability: it
-    // must be labelled FLEET and must not take the odds ramp.
-    // "fleet-as-probability" lands here.
+    // R26 model prerequisite for a future non-instrumented row. This validates
+    // the whole-fleet model only; it DOES NOT render metricsGroup's `fleet`
+    // state on a supported host. `fleet-as-probability` is therefore declared
+    // explicitly UNTESTABLE by mutation-matrix.mjs, never credited to this case.
     name: "row-metrics-fleet-context",
     o: "SFO", d: "DEN", rows: [], mock: {},
     driver: async ({ page, extId }) => {
@@ -1893,7 +2123,7 @@ const CASES = [
         const tripYes = { lastStatus: "yes", history: [{ ts: now, status: "yes", tail: "N1", prob: null }] };
         const tripNo = { lastStatus: "no", history: [{ ts: now, status: "no", tail: "N2", prob: null }] };
         const nW = buildGuardNotification({ fn: "UA1596", date: "2026-08-05", tail: "N1" }, "withdrawn",
-          { status: "early" }, "UA1214 +25min has a ✓ tail (N2)");
+          { status: "early" }, "Better option: UA1214 +25min has confirmed Starlink tail N2 for 2026-08-05 (REPORTED · unitedstarlinktracker.com · 2026-08-05)");
         const nA = buildGuardNotification({ fn: "UA1596", date: "2026-08-05", tail: "N1" }, "publish-yes",
           { status: "yes", tail: "N1" }, "SHOULD NOT APPEAR");
         return {
@@ -1921,7 +2151,7 @@ const CASES = [
         publishNoWorsened: res.wPublishNo === true,
         firstEarlyNotWorsened: res.wFirstEarly === false,
         cCopyIsAwaitingOnlyForWithdrawn: /no assignment yet/.test(res.withdrawnTitle),
-        aToCRescueCarried: /Better option you saw:/.test(res.withdrawnMsg),
+        aToCRescueCarried: /Better option: UA1214 \+25min/.test(res.withdrawnMsg),
         routeBackCuePresent: /Open booking ↗/.test(res.withdrawnMsg),
         aStateNeverCarriesRescue: !/Better option/.test(res.aMsg),
         parseUnconfirmedBranch: !!res.pUnc && res.pUnc.status === "unconfirmed" && res.pUnc.tail === "N77777",
@@ -2051,8 +2281,12 @@ async function run() {
     await context.route(/https:\/\/app\.navan\.com\/.*/, (route) => {
       route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: currentFixture });
     });
+    await context.route(/https:\/\/(www\.)?alaskaair\.com\/.*/, (route) => {
+      route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: currentFixture });
+    });
     // Tracker is fully mocked (deterministic) — never contacted live.
     await context.route(/https:\/\/unitedstarlinktracker\.com\/.*/, fulfillTracker);
+    await context.route(/https:\/\/alaskastarlinktracker\.com\/.*/, fulfillTracker);
 
     const page = await context.newPage();
     const consoleErrors = [];
@@ -2062,6 +2296,8 @@ async function run() {
       if (ONLY && !ONLY.test(c.name)) continue;
       currentFixture = c.navan
         ? navanFixture({ o: c.o, d: c.d, rows: c.rows, topHtml: c.topHtml })
+        : c.alaska
+        ? alaskaFixture({ o: c.o, d: c.d, rows: c.rows })
         : fixture({ o: c.o, d: c.d, rows: c.rows });
       trackerFail = !!c.trackerFail;
       MOCK = c.mock || {};
@@ -2089,6 +2325,8 @@ async function run() {
       const searchDate = c.dateOffsetDays != null ? isoDaysFromNow(c.dateOffsetDays) : farDate();
       const url = c.navan
         ? `https://app.navan.com/app/user2/search/flights-ngs/${c.o}-${c.d}-${searchDate}`
+        : c.alaska
+        ? `https://www.alaskaair.com/search/results?O=${c.o}&D=${c.d}&OD=${searchDate}`
         : `https://www.united.com/en/us/fsr/choose-flights?f=${c.o}&t=${c.d}&d=${searchDate}&tt=1`;
 
       // Multi-step cases drive themselves.
@@ -2214,7 +2452,7 @@ function writeReport({ swUrl, consoleErrors, results }) {
   }
   mkdirSync(OUT, { recursive: true });
   writeFileSync(join(OUT, "phase2-report.md"), L.join("\n"));
-  process.stderr.write(`\nwrote test/out/phase2-report.md\n`);
+  process.stderr.write(`\nwrote ${join(OUT, "phase2-report.md")}\n`);
 }
 
 run().catch((e) => { console.error("FATAL", e); console.error("A surprising result is a claim about the instrument until proven otherwise. Before filing a defect, prove the instrument is sound — with a control that is known-good, not with a second run."); process.exit(1); });
