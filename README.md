@@ -80,13 +80,15 @@ direction. The read-only store verifier runs the binding automatically before ch
 
 Cut a release in this order:
 
-1. Update the manifest and move the shipped notes from `[Unreleased]` into the matching dated
-   changelog entry.
+1. Update the manifest and move the packaged source notes from `[Unreleased]` into the matching
+   dated changelog entry. The date is the immutable source/package release date; state Chrome Web
+   Store publication separately and truthfully.
 2. Build and commit the upload ZIP, file manifest, submission copy and store bundle, then run every
    release gate against that exact commit.
 3. Create an annotated `vX.Y.Z` tag on that release commit and push that tag by its explicit name.
    Never move or force-update a published tag.
 
-A Git tag records source identity; it does not claim the Chrome Web Store has published that source.
+A Git tag and changelog release record source identity; neither claims the Chrome Web Store has
+published that source. Before Jeremy uploads, the entry says `Chrome Web Store: not uploaded`.
 Store upload and Submit remain Jeremy's manual actions, and the public website's release ledger moves
 only after the live listing has been owner-verified.

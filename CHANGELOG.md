@@ -1,7 +1,8 @@
 # Changelog
 
-All notable changes to the WiFi Odds extension are recorded here. Release dates are the dates the
-version became public in the Chrome Web Store, not the dates its Git tag was created.
+All notable changes to the WiFi Odds extension are recorded here. A release date identifies the
+immutable source/package release and its Git tag. Chrome Web Store publication is a separate,
+owner-controlled event and is stated explicitly for each release.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -14,6 +15,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   remains on that device as personal history. Recording an outcome makes no network request.
 
 ## [3.0.0] - 2026-08-02
+
+Chrome Web Store: published 2026-08-02.
 
 ### Added
 
@@ -32,6 +35,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [2.2.0] - 2026-07-31
 
+Chrome Web Store: published 2026-07-31.
+
 ### Added
 
 - Per-flight fallback lookups when route history is missing, so supported rows can still show real
@@ -48,6 +53,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [2.1.0] - 2026-07-29
 
+Chrome Web Store: published 2026-07-29.
+
 ### Changed
 
 - Restyled the popup and injected badges to the WiFi Odds visual system, with distinct treatments
@@ -56,6 +63,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   unchanged.
 
 ## [2.0.0] - 2026-07-28
+
+Chrome Web Store: published 2026-07-28.
 
 ### Added
 
