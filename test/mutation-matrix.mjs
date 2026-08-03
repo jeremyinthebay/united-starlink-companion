@@ -41,6 +41,7 @@ const MATRIX = {
   "gf-setting-claims-reorder": { only: "popup-settings-truthful", expect: "popup-settings-truthful" },
   "resolved-only-denominator": { only: "airline-data-parity", expect: "airline-data-parity" },
 };
+const CONTROLS_EXPECTED = 16;
 
 let broken = 0;
 const rows = [];
@@ -62,5 +63,11 @@ for (const [name, m] of Object.entries(MATRIX)) {
 }
 process.stderr.write("\nMUTATION MATRIX: " +
   (broken ? broken + " mutation(s) NOT caught — instrument broken" : "all " + rows.length + " mutations caught") + "\n");
+if (rows.length !== CONTROLS_EXPECTED) {
+  broken++;
+  process.stderr.write(`CONTROL COUNT MISMATCH: expected ${CONTROLS_EXPECTED}, observed ${rows.length}; a named mutation is missing\n`);
+} else {
+  process.stderr.write(`CONTROL COUNT: expected ${CONTROLS_EXPECTED}, observed ${rows.length}\n`);
+}
 process.stderr.write(rows.map((r) => `${r.ok ? "OK " : "BAD"} ${r.name} exit=${r.exit}`).join("\n") + "\n");
 process.exit(broken ? 1 : 0);

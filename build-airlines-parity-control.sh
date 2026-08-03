@@ -19,6 +19,7 @@ SITE_REPO_REAL="${SITE_REPO:-$HOME/Projects/wifiodds}"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 PASS=0; FAILED=0
+CONTROLS_EXPECTED=7
 
 # run <label> <expected-exit> <why> -- <env assignments...>
 run() {
@@ -131,5 +132,9 @@ run "C6 · MISSING pin file" 1 \
 
 echo
 echo "controls passed: $PASS · controls misbehaved: $FAILED"
+[ $((PASS + FAILED)) = "$CONTROLS_EXPECTED" ] || {
+  echo "PARITY CONTROLS FAILED — expected $CONTROLS_EXPECTED controls, observed $((PASS + FAILED)); a named control is missing"
+  exit 1
+}
 [ "$FAILED" = 0 ] || { echo "PARITY CONTROLS FAILED — the gate is not guarding what it claims"; exit 1; }
-echo "PARITY CONTROLS OK · the gate follows the pinned object, and fails closed without it"
+echo "PARITY CONTROLS OK · expected $CONTROLS_EXPECTED, observed $((PASS + FAILED)) · the gate follows the pinned object, and fails closed without it"
