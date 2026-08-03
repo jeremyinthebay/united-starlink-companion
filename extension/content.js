@@ -34,11 +34,19 @@
   const GF_ACTIVE = GFLIGHTS &&
     GF_RESULTS_PATH.test(location.pathname) &&
     !GF_DENY_PATH.test(location.pathname);
-  // Hard stop before anything else is even defined: on a www.google.com/travel
-  // path that is not a flights search/results page — Explore, Hotels, a booking
-  // hand-off, anything checkout-shaped — we install no observer, no interval and
-  // no message listener, and touch no DOM.
-  if (GFLIGHTS && !GF_ACTIVE) return;
+  // Non-flight /travel paths touch no DOM and install no observer/interval. A
+  // read-only responder remains so access is never mistaken for page health.
+  if (GFLIGHTS && !GF_ACTIVE) {
+    try {
+      chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+        if (!msg || msg.type !== "integrationSelfTest") return false;
+        sendResponse({ ok: true, host: "gflights", pathGate: false,
+          rowsExamined: 0, rowsBadged: 0, lastScanOutcome: "no-supported-results" });
+        return false;
+      });
+    } catch (e) {}
+    return;
+  }
   const AIRLINE = ALASKA ? "AS" : "UA";
   const TRACKER = ALASKA ? "alaskastarlinktracker.com" : "unitedstarlinktracker.com";
   // The trailing lookahead keeps "Alaska 737-900" (an aircraft type) from being
@@ -116,6 +124,17 @@
   let hostOrder = null;      // array of row tokens, or null when never captured
   let hostOrderKey = "";     // route+phase the capture belongs to
   let didAutoSort = false;   // this context has been auto-sorted at least once
+  let sawAutoSortCue = true;
+  let autoSortCueKey = "";
+  const INTEGRATION_HOST = GFLIGHTS ? "gflights" : ALASKA ? "alaska" : NAVAN ? "navan" : "united";
+  let integrationState = { ok: true, host: INTEGRATION_HOST, pathGate: true,
+    rowsExamined: 0, rowsBadged: 0, lastScanOutcome: "no-supported-results" };
+  function recordIntegration(pathGate, rowsExamined, rowsBadged) {
+    integrationState = { ok: true, host: INTEGRATION_HOST, pathGate: !!pathGate,
+      rowsExamined: Math.max(0, Number(rowsExamined) || 0),
+      rowsBadged: Math.max(0, Number(rowsBadged) || 0),
+      lastScanOutcome: pathGate && Number(rowsBadged) > 0 ? "working" : "no-supported-results" };
+  }
   let watched = new Set(); // "UA1812|2026-07-25"
   // R23 cross-model precedence: the Guard's latest published fact for an EXACT
   // fn|date, read from the same trip store the popup renders. "no" (confirmed
@@ -231,7 +250,7 @@
   // activates the explicit "Prioritize United flights…" action, which persists
   // as uslPrioritize so a deliberate choice sticks across reloads (default off).
   try {
-    chrome.storage.local.get(["uslPrioritize", "uslSortSingle", "uslSortMixed", "uslMetrics"], (v) => {
+    chrome.storage.local.get(["uslPrioritize", "uslSortSingle", "uslSortMixed", "uslMetrics", "uslSawAutoSortCue"], (v) => {
       // Defaults apply only when the key is genuinely ABSENT, so a stored
       // `false` is never silently re-enabled on the next load. A fresh profile
       // and the rendered settings state must agree (gate assertion 1).
@@ -240,6 +259,7 @@
       metricsMode = ["both", "nextgen", "streaming"].includes(v.uslMetrics) ? v.uslMetrics : "both";
       // The legacy explicit action persists per-session on mixed hosts only.
       prioritizeActive = MIXED_HOST ? (!!v.uslPrioritize || sortMixed === "prioritize") : false;
+      sawAutoSortCue = v.uslSawAutoSortCue === true;
       settingsReady = true;
       scheduleScan();
       if (panelEl) renderPanel();
@@ -768,11 +788,13 @@
   }
 
   function gfScan() {
-    if (!gfPathOk()) { gfTeardown(); return; }
-    if (!gfScoring()) return;
+    if (!gfPathOk()) { gfTeardown(); recordIntegration(false, 0, 0); return; }
+    if (!gfScoring()) { recordIntegration(true, 0, 0); return; }
     const present = new Map();
     const want = [];
     const rows = gfRows();
+    const supportedRows = new Set();
+    const badgedRows = new Set();
     for (let i = 0; i < rows.length; i++) {
       try {
         const row = rows[i].el;
@@ -793,6 +815,7 @@
         }
         const marketKey = keys[0];
         if (!WIFI_AIRLINES[marketKey]) continue;
+        supportedRows.add(row);
 
         /* Score the metal, not the ticket. When the row names an unambiguous
          * operating carrier that is not the marketing one, that carrier's fleet
@@ -839,9 +862,11 @@
         // Tier 2 once the odds arrive.
         chip.dataset.gfFn = fn || "";
         gfChipFill(chip, key, fn, hit, op);
+        if (chip.textContent) badgedRows.add(row);
       } catch (e) { /* one bad row never stops the rest */ }
     }
     gfPresent = present;
+    recordIntegration(true, supportedRows.size, badgedRows.size);
     if (want.length) requestPredictions([...new Set(want)]);
     renderGFPanel();
   }
@@ -1154,6 +1179,8 @@
     const targets = [];
     let node;
     while ((node = walker.nextNode())) targets.push(node);
+    const examinedRows = new Set();
+    const badgedRows = new Set();
     // Bug 3: record how many distinct United flight numbers are on the page so
     // the Navan render can tell "still reading the page" from "genuinely none".
     if (NAVAN) {
@@ -1178,13 +1205,14 @@
       if (!el) continue;
       const m = n.nodeValue.match(FN_RE);
       const fn = AIRLINE + m[1];
+      const row = findRow(el);
+      if (row && row.rowEl) examinedRows.add(row.rowEl);
       // On prediction hosts AND united.com (v2.2 fallback), a flight not yet in
       // the map is queued for a per-flight fetch instead of being badged "n/a"
       // outright. After the fetch it badges its real % (or "n/a" only if the
       // tracker genuinely has no data for that flight number).
       if ((PAGE_PREDICT || UNITED_FALLBACK) && !probMap.has(fn)) { navanWants.push(fn); continue; }
       const hit = probMap.get(fn);
-      const row = findRow(el);
       if (!el.dataset.uslBadged) {
         const dup = row && row.rowEl.querySelector('[data-b="' + fn + '"]');
         if (dup) {
@@ -1215,9 +1243,11 @@
         registry.set(fn, row);
         registered = true;
       }
+      if (row && el.querySelector(".usl-metrics")) badgedRows.add(row.rowEl);
     }
     if (registered) { updatePanelSortBtn(); refreshPanelTimes(); }
     if ((PAGE_PREDICT || UNITED_FALLBACK) && navanWants.length) requestPredictions([...new Set(navanWants)]);
+    recordIntegration(true, examinedRows.size, badgedRows.size);
     // Capture the host's own order on EVERY scan until something moves rows, so
     // an undo target exists on mixed hosts too (where nothing auto-sorts).
     captureHostOrder();
@@ -1488,7 +1518,7 @@
   function restoreHostOrder() {
     const P = findContainer();
     const key = ctx ? `${ctx.o}-${ctx.d}|${ctx.phase}` : "";
-    if (!P || !hostOrder || hostOrderKey !== key) { didAutoSort = false; desiredOrder = null; return false; }
+    if (!P || !hostOrder || hostOrderKey !== key) { didAutoSort = false; autoSortCueKey = ""; desiredOrder = null; return false; }
     const kids = [...P.children];
     const flightIdx = [];
     kids.forEach((el, i) => { if (isFlightUnit(el)) flightIdx.push(i); });
@@ -1500,7 +1530,7 @@
     const seq = [];
     for (const t of hostOrder) { const el = byTok.get(t); if (el) { seq.push(el); byTok.delete(t); } }
     for (const el of byTok.values()) seq.push(el);
-    if (seq.length !== flightIdx.length) { didAutoSort = false; desiredOrder = null; return false; }
+    if (seq.length !== flightIdx.length) { didAutoSort = false; autoSortCueKey = ""; desiredOrder = null; return false; }
     const flightSet = new Set(flightIdx);
     let fi = 0;
     const desired = kids.map((el, i) => (flightSet.has(i) ? seq[fi++] : el));
@@ -1509,6 +1539,7 @@
     for (const el of desired) P.insertBefore(el, anchor);
     anchor.remove();
     didAutoSort = false;
+    autoSortCueKey = "";
     desiredOrder = null;
     lastSortTs = Date.now();
     return true;
@@ -1529,7 +1560,15 @@
     const now = currentFlightOrder(P);
     if (now.join(",") === ideal.tokens.join(",")) { didAutoSort = true; return; }
     const res = sortPage();
-    if (res && res.ok) { didAutoSort = true; if (panelEl) renderPanel(); }
+    if (res && res.ok) {
+      didAutoSort = true;
+      if (!sawAutoSortCue) {
+        sawAutoSortCue = true;
+        autoSortCueKey = ctxKey;
+        try { chrome.storage.local.set({ uslSawAutoSortCue: true }); } catch (e) {}
+      }
+      if (panelEl) renderPanel();
+    }
   }
 
   function maybeResort() {
@@ -1921,6 +1960,9 @@
       (didAutoSort || prioritizeActive
         ? `<div class="usl-sorted" role="status">` +
           `<span class="usl-sorted__t">Sorted by historical next-gen odds</span>` +
+          (autoSortCueKey === ctxKey
+            ? `<span class="usl-sort-cue">Automatic on single-airline results · change in Settings.</span>`
+            : "") +
           `<button type="button" class="usl-undo" aria-label="Keep the booking site's order and stop sorting">Keep site order</button>` +
           `</div>`
         : "") +
@@ -2157,6 +2199,10 @@
         sendResponse(ctx ? Object.assign({ airline: AIRLINE }, ctx) : { airline: AIRLINE });
         return false;
       }
+      if (msg.type === "integrationSelfTest") {
+        sendResponse(Object.assign({}, integrationState));
+        return false;
+      }
       if (msg.type === "gotoFlight") { sendResponse({ ok: gotoFlight(msg.fn) }); return false; }
       if (msg.type === "sortPage") { sendResponse(sortPage()); return false; }
       return false;
@@ -2179,7 +2225,7 @@
     // below applies — the chips and the summary panel are all there is.
     if (GFLIGHTS) { try { gfScan(); } catch (e) {} return; }
     const c = getContext();
-    if (!c) { if (panelEl) { panelEl.remove(); panelEl = null; } ctx = null; ctxKey = ""; return; }
+    if (!c) { if (panelEl) { panelEl.remove(); panelEl = null; } ctx = null; ctxKey = ""; autoSortCueKey = ""; return; }
     const key = `${c.o}-${c.d}|${c.date}|${c.phase}`;
     if (c.navan) {
       // Navan: badges come from scan()/predictions; just (re)render the panel from
@@ -2242,7 +2288,7 @@
     const routeChanged = !ctx || c.o !== ctx.o || c.d !== ctx.d;
     ctx = c; ctxKey = key;
     desiredOrder = null;
-    if (routeChanged) { data = null; dataFail = false; dataTries = 0; dataNextTry = 0; }
+    if (routeChanged) { data = null; dataFail = false; dataTries = 0; dataNextTry = 0; autoSortCueKey = ""; }
     if (dataKey !== key || mayRetry) {
       dataKey = key;                    // mark attempted BEFORE the await so 2s ticks short-circuit
       data = await loadData(c, false);

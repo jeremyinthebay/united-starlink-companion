@@ -216,6 +216,48 @@ const MUTATIONS = {
     expect: "airline-data-parity",
     note: "the stale resolved-only denominator returns; airBaltic reads 100 not 51",
   },
+  "coverage-ready-label": {
+    file: "popup.js",
+    from: 's.textContent = "access on";',
+    to: 's.textContent = "ready";',
+    expect: "popup-active-page-health",
+    note: "permission is relabelled as readiness",
+  },
+  "permission-implies-health": {
+    file: "popup.js",
+    from: "var working = !failed && !!resp && resp.ok === true && resp.pathGate === true && Number(resp.rowsBadged) > 0;",
+    to: "var working = !!host;",
+    expect: "popup-active-page-health",
+    note: "granted access impersonates an annotated working page",
+  },
+  "fresh-result-claim": {
+    file: "popup.js",
+    from: 'res && res.cached ? "Cached result" : "Refetched now"',
+    to: 'res && res.cached ? "Cached result" : "Fresh result"',
+    expect: "popup-refetch-source-date",
+    note: "a network response is relabelled as fresh source data",
+  },
+  "source-date-omitted": {
+    file: "popup.js",
+    from: ': "source date not provided";',
+    to: ': "";',
+    expect: "popup-refetch-source-date",
+    note: "missing publisher date is hidden instead of stated",
+  },
+  "sort-cue-without-move": {
+    file: "content.js",
+    from: 'if (now.join(",") === ideal.tokens.join(",")) { didAutoSort = true; return; }',
+    to: 'if (now.join(",") === ideal.tokens.join(",")) { didAutoSort = true; autoSortCueKey = ctxKey; if (panelEl) renderPanel(); return; }',
+    expect: "united-autosort-no-move-no-cue",
+    note: "an already-ranked page claims the extension moved it",
+  },
+  "sort-cue-on-manual-sort": {
+    file: "content.js",
+    from: "          prioritizeActive = true;",
+    to: "          prioritizeActive = true; autoSortCueKey = ctxKey; if (panelEl) renderPanel();",
+    expect: "navan-prioritize-explicit-action",
+    note: "manual Navan prioritisation is mislabelled as automatic",
+  },
   "outcome-network-leak": {
     file: "bg.js",
     from: "async function recordTripOutcome(fn, date, outcome) {",
@@ -251,9 +293,10 @@ if (MUT) {
   manifest.host_permissions = [...new Set([
     ...(manifest.host_permissions || []),
     "https://www.alaskaair.com/*", "https://alaskaair.com/*", "https://alaskastarlinktracker.com/*",
+    "https://www.google.com/*",
   ])];
   manifest.optional_host_permissions = (manifest.optional_host_permissions || [])
-    .filter((p) => !/alaskaair\.com/.test(p));
+    .filter((p) => !/alaskaair\.com|www\.google\.com/.test(p));
   writeFileSync(mf, JSON.stringify(manifest, null, 2) + "\n");
 }
 // Optional case filter (used by mutation-matrix.mjs to keep each mutation run
@@ -305,6 +348,9 @@ function navanFixture({ o, d, rows = [], topHtml = "" }) {
     <p>Depart from ${o}</p>
     <div id="results">${topHtml}${rowHtml || "<p>No flights</p>"}</div>
     </body></html>`;
+}
+function googleFixture() {
+  return '<!doctype html><html><body><h1>Travel hotels</h1><p>No flight results on this path.</p></body></html>';
 }
 
 function alaskaFixture({ o, d, rows = [] }) {
@@ -611,6 +657,98 @@ const CASES = [
     },
   },
   {
+    name: "popup-refetch-source-date",
+    o: "SFO", d: "DEN", rows: [], mock: {},
+    driver: async ({ page, extId }) => {
+      if (!extId) return { appeared: false, panelText: "(no extension id)", badges: [], checks: { extIdPresent: false } };
+      await page.goto("chrome-extension://" + extId + "/popup.html", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => typeof routeResultStatus === "function", null, { timeout: 15000 });
+      const out = await page.evaluate(() => ({
+        fetchedUnknown: routeResultStatus({ cached: false }),
+        fetchedDated: routeResultStatus({ cached: false, sourceDate: "2026-08-03" }),
+        cachedUnknown: routeResultStatus({ cached: true }),
+      }));
+      return { appeared: true, panelText: JSON.stringify(out), badges: [], probe: out, checks: {
+        refetchNamesAction: out.fetchedUnknown === "Refetched now · source date not provided",
+        publisherDateShownWhenPresent: out.fetchedDated === "Refetched now · source date 2026-08-03",
+        cachedStillQualified: out.cachedUnknown === "Cached result · source date not provided",
+        noFreshnessClaim: !/Fresh result/.test(JSON.stringify(out)),
+      } };
+    },
+  },
+  {
+    name: "popup-active-page-health",
+    o: "SFO", d: "DEN",
+    rows: [{ num: 1596, time: "8:30 a.m." }, { num: 1214, time: "11:05 a.m." }],
+    mock: { o: "SFO", d: "DEN", route: [
+      { fn: "UA1596", prob: 68, obs: 51, conf: "high" },
+      { fn: "UA1214", prob: 30, obs: 40, conf: "medium" },
+    ], predict: {}, itins: [] },
+    driver: async ({ page, url, context, extId }) => {
+      if (!extId) return { appeared: false, panelText: "(no extension id)", badges: [], checks: { extIdPresent: false } };
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelectorAll('.res-row .usl-metrics').length === 2, null, { timeout: 30000 });
+      const popup = await context.newPage();
+      await popup.goto("chrome-extension://" + extId + "/popup.html", { waitUntil: "domcontentloaded" });
+      await popup.waitForFunction(() => typeof probeActiveHost === "function", null, { timeout: 15000 });
+      const probe = async () => popup.evaluate(async () => {
+        const tabs = await new Promise((resolve) => chrome.tabs.query({}, resolve));
+        const hits = await Promise.all(tabs.map((tab) => new Promise((resolve) =>
+          chrome.tabs.sendMessage(tab.id, { type: "integrationSelfTest" }, (response) => {
+            void chrome.runtime.lastError; resolve({ tab, response: response || null });
+          }))));
+        const hit = hits.find((x) => x.response && x.response.host === "united");
+        if (!hit) return { response: null, cells: [], health: "no-united-response" };
+        const response = hit.response;
+        probeActiveHost({ id: hit.tab.id, url: "https://www.united.com/" }, {});
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        return {
+          response,
+          cells: [...document.querySelectorAll(".usl-host-s")].map((e) => e.textContent.trim()),
+          health: (document.querySelector(".usl-host-health") || {}).textContent || "",
+        };
+      });
+      const good = await probe();
+      await page.evaluate(() => document.querySelectorAll(".res-row").forEach((e) => e.remove()));
+      await page.waitForTimeout(1800);
+      const empty = await probe();
+      await popup.close();
+      const out = { good, empty };
+      return { appeared: true, panelText: JSON.stringify(out), badges: [], probe: out, checks: {
+        permissionCopyIsAccess: good.cells.length === 2 && good.cells.every((x) => x === "access on") && !/ready/i.test(JSON.stringify(good.cells)),
+        knownGoodBridgeAlive: !!good.response && good.response.host === "united" && good.response.pathGate === true,
+        workingRequiresAnnotations: !!good.response && good.response.rowsExamined === 2 && good.response.rowsBadged === 2 && good.response.lastScanOutcome === "working" && good.health === "working on this page",
+        accessDoesNotImplyHealth: !!empty.response && empty.response.rowsExamined === 0 && empty.response.rowsBadged === 0 && empty.response.lastScanOutcome === "no-supported-results" && empty.health === "no supported results detected",
+      } };
+    },
+  },
+  {
+    name: "google-nonflight-self-test", google: true, googleUrl: "https://www.google.com/travel/hotels", o: "SFO", d: "DEN", rows: [], mock: {},
+    driver: async ({ page, url, context, extId, sw }) => {
+      if (sw) await sw.evaluate(async () => { for (let i = 0; i < 30; i++) { const r = await chrome.scripting.getRegisteredContentScripts({ ids: ['usl-dyn-gflights'] }); if (r.length) return true; await new Promise((x) => setTimeout(x, 100)); } return false; });
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      const popup = await context.newPage();
+      await popup.goto("chrome-extension://" + extId + "/popup.html", { waitUntil: "domcontentloaded" });
+      await popup.waitForFunction(() => typeof probeActiveHost === "function", null, { timeout: 15000 });
+      const out = await popup.evaluate(async () => {
+        const tabs = await new Promise((resolve) => chrome.tabs.query({}, resolve));
+        const tab = tabs.find((t) => /^https:\/\/www\.google\.com\/travel\/hotels/.test(t.url || ""));
+        const response = tab ? await new Promise((resolve) => chrome.tabs.sendMessage(tab.id, { type: "integrationSelfTest" }, (r) => { void chrome.runtime.lastError; resolve(r || null); })) : null;
+        if (tab) probeActiveHost(tab, { gflights: true });
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        return { response, health: (document.querySelector('.usl-host-health') || {}).textContent || '' };
+      });
+      await popup.close();
+      const untouched = await page.evaluate(() => !document.querySelector('[class*="usl-"]'));
+      return { appeared: true, panelText: JSON.stringify(out), badges: [], probe: out, checks: {
+        failClosedResponderAlive: !!out.response && out.response.host === "gflights" && out.response.pathGate === false,
+        countersRemainZero: out.response.rowsExamined === 0 && out.response.rowsBadged === 0 && out.response.lastScanOutcome === "no-supported-results",
+        popupDoesNotCallItWorking: out.health === "no supported results detected",
+        nonFlightPageUntouched: untouched === true,
+      } };
+    },
+  },
+  {
     // LAX→EWR: a transcon with no DIRECT Starlink history but a real connection.
     name: "LAX-EWR-empty-with-connection",
     o: "LAX", d: "EWR", rows: [],
@@ -901,6 +1039,7 @@ const CASES = [
         boundaryAppearsOnce: boundaryCount === 1,
         boundaryHonestCoverage: /Coverage: United\. Other airlines stay unscored and keep the booking site's order\./.test(panelText),
         unsupportedCarriersUnbadged: unsupportedBadged === false,
+        manualSortHasNoAutoCue: !/Automatic on single-airline results/.test(panelText),
         // Next-gen first, streaming-class ConnectScore second (Jeremy, 31 Jul).
         nextGenFirstThenStreaming: (() => {
           const t = panelText.toLowerCase();
@@ -1601,6 +1740,7 @@ const CASES = [
         const s = document.querySelector(".usl-sorted");
         const u = document.querySelector(".usl-undo");
         return { label: s ? s.innerText : "", hasUndo: !!u,
+          cue: (document.querySelector('.usl-sort-cue') || {}).textContent || '',
           undoIsButton: !!u && u.tagName === "BUTTON",
           undoName: u ? u.getAttribute("aria-label") : "" };
       });
@@ -1615,7 +1755,7 @@ const CASES = [
       // the service worker.
       const persisted = sw
         ? await sw.evaluate(() => new Promise((res) =>
-            chrome.storage.local.get("uslSortSingle", (v) => res(v.uslSortSingle)))).catch(() => "sw-error")
+            chrome.storage.local.get(["uslSortSingle", "uslSawAutoSortCue"], res))).catch(() => "sw-error")
         : "no-sw";
       await page.waitForTimeout(2500);   // prove it stays put after later ticks
       const stillRestored = await first();
@@ -1630,10 +1770,35 @@ const CASES = [
           undoIsRealButton: state.hasUndo && state.undoIsButton,
           undoAccessibleName: /booking site/i.test(state.undoName || ""),
           undoRestoresHostOrder: eq(restored, ["1214", "1596", "2402"]),
-          undoPersistsOff: persisted === false,
+          firstActualMoveExplained: state.cue === "Automatic on single-airline results · change in Settings.",
+          firstCuePersisted: persisted && persisted.uslSawAutoSortCue === true,
+          undoPersistsOff: persisted && persisted.uslSortSingle === false,
           staysRestoredAfterLaterTicks: eq(stillRestored, ["1214", "1596", "2402"]),
         },
       };
+    },
+  },
+  {
+    name: "united-autosort-no-move-no-cue",
+    o: "SFO", d: "DEN",
+    rows: [{ num: 1596, time: "8:30 a.m." }, { num: 1214, time: "11:05 a.m." }, { num: 2402, time: "2:15 p.m." }],
+    mock: { o: "SFO", d: "DEN", route: [
+      { fn: "UA1596", prob: 68, obs: 51, conf: "high" },
+      { fn: "UA1214", prob: 40, obs: 40, conf: "medium" },
+      { fn: "UA2402", prob: 12, obs: 30, conf: "medium" },
+    ], predict: {}, itins: [] },
+    driver: async ({ page, url, sw }) => {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelectorAll('.res-row .usl-metrics').length === 3, null, { timeout: 30000 });
+      await page.waitForTimeout(1800);
+      const cue = await page.$eval('.usl-sort-cue', (e) => e.textContent).catch(() => "");
+      const order = await page.evaluate(() => [...document.querySelectorAll('.res-row')].map((r) => (r.textContent.match(/United\s?(\d{2,4})/) || [])[1]));
+      const seen = sw ? await sw.evaluate(() => chrome.storage.local.get('uslSawAutoSortCue').then((v) => v.uslSawAutoSortCue)) : null;
+      return { appeared: true, panelText: cue, badges: [], probe: { cue, order, seen }, checks: {
+        alreadyRankedOrderUnchanged: eq(order, ["1596", "1214", "2402"]),
+        noCueWithoutActualMove: cue === "",
+        firstCueNotConsumed: seen !== true,
+      } };
     },
   },
   {
@@ -2284,6 +2449,9 @@ async function run() {
     await context.route(/https:\/\/(www\.)?alaskaair\.com\/.*/, (route) => {
       route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: currentFixture });
     });
+    await context.route(/https:\/\/www\.google\.com\/travel\/.*/, (route) => {
+      route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: currentFixture });
+    });
     // Tracker is fully mocked (deterministic) — never contacted live.
     await context.route(/https:\/\/unitedstarlinktracker\.com\/.*/, fulfillTracker);
     await context.route(/https:\/\/alaskastarlinktracker\.com\/.*/, fulfillTracker);
@@ -2294,7 +2462,9 @@ async function run() {
 
     for (const c of CASES) {
       if (ONLY && !ONLY.test(c.name)) continue;
-      currentFixture = c.navan
+      currentFixture = c.google
+        ? googleFixture()
+        : c.navan
         ? navanFixture({ o: c.o, d: c.d, rows: c.rows, topHtml: c.topHtml })
         : c.alaska
         ? alaskaFixture({ o: c.o, d: c.d, rows: c.rows })
@@ -2323,7 +2493,9 @@ async function run() {
       // Most cases search a far date (stable, no firm-tail ✓). A case may opt
       // into a near date (dateOffsetDays) to exercise the confirmed-tail path.
       const searchDate = c.dateOffsetDays != null ? isoDaysFromNow(c.dateOffsetDays) : farDate();
-      const url = c.navan
+      const url = c.google
+        ? (c.googleUrl || "https://www.google.com/travel/hotels")
+        : c.navan
         ? `https://app.navan.com/app/user2/search/flights-ngs/${c.o}-${c.d}-${searchDate}`
         : c.alaska
         ? `https://www.alaskaair.com/search/results?O=${c.o}&D=${c.d}&OD=${searchDate}`

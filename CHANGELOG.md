@@ -21,6 +21,9 @@ Chrome Web Store: not uploaded.
   error that rolls optimistic state back when a trip cannot be guarded.
 - A first-run coverage page that explains all four supported flight-search hosts and offers the
   two optional Alaska and Google Flights grants from explicit user-gesture buttons.
+- A local active-page self-test that distinguishes granted host access from a page where supported
+  results were actually detected and annotated.
+- A one-time explanation beside the first automatic single-carrier reorder, with a direct pointer to Settings.
 
 ### Fixed
 
@@ -32,6 +35,8 @@ Chrome Web Store: not uploaded.
   alternatives or an explicit no-confirmed-option result.
 - Kept the four future row-degradation states while making their currently untestable status
   explicit and machine-checked in the mutation gate.
+- Replaced the popup's ambiguous `ready` and `Fresh result` labels with `access on`, an independent
+  active-page health result, and source-date-qualified refetch wording.
 
 ## [3.0.0] - 2026-08-02
 

@@ -23,6 +23,11 @@ boarding and alert when the assignment changes.
   untestable until a supported host can render them.
 - A one-screen first-run guide explains the four supported flight-search hosts. Alaska and Google
   Flights remain optional and are requested only when the traveller presses the matching button.
+- The popup now separates host permission (`access on`) from an active-page self-test. It reports
+  whether supported results were actually detected, and route refetches disclose the source date
+  or say `source date not provided`.
+- The first automatic single-carrier reorder explains why it happened and points directly to
+  Settings; already-ranked and manually prioritised pages do not show that cue.
 
 ## Sort behaviour
 

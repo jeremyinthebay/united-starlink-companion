@@ -35,11 +35,18 @@ const MATRIX = {
   "settings-off-still-sorts": { only: "united-autosort-off-respected", expect: "united-autosort-off-respected" },
   "unlabelled-badge":       { only: "row-metrics-labelled", expect: "row-metrics-labelled" },
   "popup-first-row-crown":  { only: "popup-ranked-history-no-crown", expect: "popup-ranked-history-no-crown" },
+  "coverage-ready-label": { only: "popup-active-page-health", expect: "popup-active-page-health" },
+  "permission-implies-health": { only: "popup-active-page-health", expect: "popup-active-page-health" },
+  "fresh-result-claim": { only: "popup-refetch-source-date", expect: "popup-refetch-source-date" },
+  "source-date-omitted": { only: "popup-refetch-source-date", expect: "popup-refetch-source-date" },
+  "sort-cue-without-move": { only: "united-autosort-no-move-no-cue", expect: "united-autosort-no-move-no-cue" },
+  "sort-cue-on-manual-sort": { only: "navan-prioritize-explicit-action", expect: "navan-prioritize-explicit-action" },
   "merged-metric-provenance": { only: "row-metrics-labelled", expect: "row-metrics-labelled" },
   "alaska-united-action":   { only: "alaska-no-united-action", expect: "alaska-no-united-action" },
   "guard-span-control":     { only: "guard-keyboard-roundtrip", expect: "guard-keyboard-roundtrip" },
   "guard-add-no-rollback":  { only: "guard-add-failure-rolls-back", expect: "guard-add-failure-rolls-back" },
   "gold-policy-claim":      { only: "guard-alternative-evidence", expect: "guard-alternative-evidence" },
+  "outcome-network-leak":   { only: "outcome-capture-local-only", expect: "outcome-capture-local-only" },
   // "fleet-as-probability" is intentionally ABSENT. Its target state cannot
   // render on any currently supported host (see the note in phase2-e2e.mjs),
   // so no assertion could catch it. Listing it here would manufacture a green
@@ -52,7 +59,7 @@ const MATRIX = {
   "first-run-no-permission-request": { gate: FIRST_RUN_GATE, only: "first-run-coverage", expect: "first-run-coverage" },
   "first-run-add-tabs-permission": { gate: FIRST_RUN_GATE, only: "first-run-coverage", expect: "first-run-coverage" },
 };
-const CONTROLS_EXPECTED = 25;
+const CONTROLS_EXPECTED = 32;
 
 // Owner ruling, 3 Aug 2026: keep these honest-degradation states, but never
 // manufacture a green mutation result for branches no supported host can
@@ -70,6 +77,21 @@ const UNTESTABLE_STATES_EXPECTED = 4;
 
 let broken = 0;
 const rows = [];
+const gateSource = readFileSync(GATE, "utf8");
+const mutationBlock = gateSource.slice(
+  gateSource.indexOf("const MUTATIONS = {"),
+  gateSource.indexOf("\n};\nconst MUT"),
+);
+const registryNames = [...mutationBlock.matchAll(/^  "([^"]+)": \{/gm)].map((m) => m[1]);
+const registryTestable = new Set(registryNames.filter((name) => !Object.prototype.hasOwnProperty.call(UNTESTABLE, name)));
+const matrixPhase2 = new Set(Object.entries(MATRIX).filter(([, v]) => !v.gate).map(([name]) => name));
+const registryMissing = [...registryTestable].filter((name) => !matrixPhase2.has(name));
+const registryExtra = [...matrixPhase2].filter((name) => !registryTestable.has(name));
+if (registryMissing.length || registryExtra.length) {
+  broken++;
+  process.stderr.write("MUTATION REGISTRY/MATRIX SET MISMATCH: missing=" +
+    (registryMissing.join(",") || "none") + " extra=" + (registryExtra.join(",") || "none") + "\n");
+}
 const contentSource = readFileSync(join(HERE, "..", "extension", "content.js"), "utf8");
 const untestableEntries = Object.entries(UNTESTABLE);
 const untestableStates = [...new Set(untestableEntries.flatMap(([, v]) => v.states))];

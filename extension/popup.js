@@ -12,7 +12,7 @@ var airlineEl = document.getElementById("usl-airline");
 var creditEl = document.getElementById("usl-credit");
 var fullLinkEl = document.getElementById("usl-full-link");
 
-var activeTab = null;      // active browser tab (if united.com/alaskaair.com with a route)
+var activeTab = null;      // active browser tab, on any page
 var tabRoute = null;       // {o,d} parsed from that tab
 var pageFlights = {};      // fn -> times string, as found on the page
 var lastData = null, lastO = null, lastD = null;
@@ -61,6 +61,13 @@ function el(tag, className, text) {
 
 function clearResults() { resultsEl.innerHTML = ""; }
 function setStatus(text) { statusEl.textContent = text || ""; }
+function sourceDateLabel(res) {
+  var d = res && typeof res.sourceDate === "string" ? res.sourceDate : "";
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? "source date " + d : "source date not provided";
+}
+function routeResultStatus(res) {
+  return (res && res.cached ? "Cached result" : "Refetched now") + " · " + sourceDateLabel(res);
+}
 
 function sameRoute(o, d) {
   return tabRoute && tabRoute.o === o && tabRoute.d === d;
@@ -225,7 +232,7 @@ function loadRoute(o, d) {
       renderResults(o, d, res);
       return;
     }
-    setStatus(res.cached ? "Cached result" : "Fresh result");
+    setStatus(routeResultStatus(res));
     renderResults(o, d, res);
     loadPageFlights(o, d);
   });
@@ -274,13 +281,12 @@ function init() {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     var tab = tabs && tabs[0];
     var urlRoute = tab && tab.url ? parseTabUrl(tab.url) : null;
-    syncEnableButton(tab);
-    syncGFlightsButton(tab);
+    activeTab = tab || null;
+    syncHosts(tab);
     if (!urlRoute) {
       setStatus("Enter a route to check Starlink odds.");
       return;
     }
-    activeTab = tab;
     setAirline(urlRoute.airline);
     // Ask the content script which leg is actually being shown (round trips:
     // the URL still says outbound while the RETURN list is on screen).
@@ -309,7 +315,7 @@ function init() {
  * `content_scripts.matches` entries in manifest.json — granted at install and
  * not revocable from here. That is a fact about the manifest, not an optimism:
  * if either is ever moved to an optional permission this flag has to move with
- * it, or the board starts publishing a "ready" nobody granted.
+ * it, or the board starts publishing "access on" nobody granted.
  *
  * Alaska and Google Flights are optional origins, so their state is READ from
  * chrome.permissions.contains on every render. Nothing here caches a grant. */
@@ -331,7 +337,17 @@ var HOSTS = [
 var hostsEl = document.getElementById("usl-hosts");
 var setupEl = document.getElementById("usl-setup");
 
-function drawHosts(state) {
+function activeHostKey(url) {
+  try {
+    var u = new URL(url || "");
+    if (/(^|\.)united\.com$/.test(u.hostname)) return "united";
+    if (u.hostname === "app.navan.com") return "navan";
+    if (/(^|\.)alaskaair\.com$/.test(u.hostname)) return "alaska";
+    if (u.hostname === "www.google.com" && u.pathname.indexOf("/travel/") === 0) return "gflights";
+  } catch (e) {}
+  return null;
+}
+function drawHosts(state, health) {
   if (!hostsEl) return;
   hostsEl.textContent = "";
   var pending = 0;
@@ -347,8 +363,15 @@ function drawHosts(state) {
     if (on) {
       var s = document.createElement("div");
       s.className = "usl-host-s";
-      s.textContent = "ready";
+      s.textContent = "access on";
       cell.appendChild(s);
+      if (health && health.key === h.key) {
+        var hs = document.createElement("div");
+        hs.className = "usl-host-health " + (health.working ? "usl-host-health--working" : "usl-host-health--empty");
+        hs.setAttribute("role", "status");
+        hs.textContent = health.working ? "working on this page" : "no supported results detected";
+        cell.appendChild(hs);
+      }
     } else {
       // A real <button>, because chrome.permissions.request() needs a user
       // gesture and only a focusable control gives keyboard users one.
@@ -380,31 +403,43 @@ function askFor(h) {
   }
 }
 
-function syncHosts() {
+function probeActiveHost(tab, state) {
+  var key = tab && activeHostKey(tab.url);
+  var host = key && HOSTS.find(function (h) { return h.key === key; });
+  if (!key || !host || !(host.always || state[key] === true)) { drawHosts(state, null); return; }
+  try {
+    chrome.tabs.sendMessage(tab.id, { type: "integrationSelfTest" }, function (resp) {
+      var failed = !!chrome.runtime.lastError;
+      var working = !failed && !!resp && resp.ok === true && resp.pathGate === true && Number(resp.rowsBadged) > 0;
+      drawHosts(state, { key: key, working: working, detail: resp || null });
+    });
+  } catch (e) { drawHosts(state, { key: key, working: false, detail: null }); }
+}
+function syncHosts(tab) {
   if (!hostsEl) return;
-  if (!chrome.permissions) { drawHosts({}); return; }
+  tab = tab || activeTab;
+  if (!chrome.permissions) { probeActiveHost(tab, {}); return; }
   var state = {};
   var left = 0;
   HOSTS.forEach(function (h) { if (!h.always) left++; });
-  if (!left) { drawHosts(state); return; }
+  if (!left) { probeActiveHost(tab, state); return; }
   HOSTS.forEach(function (h) {
     if (h.always) return;
     chrome.permissions.contains({ origins: h.origins }, function (granted) {
       void chrome.runtime.lastError;
       state[h.key] = !!granted;
-      if (--left === 0) drawHosts(state);
+      if (--left === 0) probeActiveHost(tab, state);
     });
   });
 }
 
-function syncEnableButton(tab) { void tab; syncHosts(); }
+function syncEnableButton(tab) { syncHosts(tab); }
 
 /* Google Flights used to have its own button and its own sync function, with
  * the same gesture-bound request shape as Alaska. Both hosts now render through
  * the coverage board above, so this is the board's callers keeping their old
  * names rather than a second implementation. */
-function syncGFlightsButton(tab) { void tab; syncHosts(); }
-syncHosts();
+function syncGFlightsButton(tab) { syncHosts(tab); }
 
 if (airlineEl) airlineEl.addEventListener("change", function () {
   updateCredit();
