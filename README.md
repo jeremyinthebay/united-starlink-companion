@@ -69,3 +69,24 @@ together; a missing service worker is a hard gate failure, never a reason to fal
 
 `test/store-screenshots.mjs` is not a routine test: it is the explicit headed exception that captures
 real-site Chrome Web Store artwork. Do not run that artifact generator as part of automated testing.
+
+## Release history and tags
+
+[`CHANGELOG.md`](CHANGELOG.md) is the extension repository's release history. Keep current work under
+`[Unreleased]`; the first dated release entry must always equal `extension/manifest.json`'s version.
+`node build-release-history-verify.mjs` enforces that binding, the date and ordering rules, and the
+backfill through 2.0.0. `sh test/release-history-gate.sh` proves the gate fails in each named
+direction. The read-only store verifier runs the binding automatically before checking artifacts.
+
+Cut a release in this order:
+
+1. Update the manifest and move the shipped notes from `[Unreleased]` into the matching dated
+   changelog entry.
+2. Build and commit the upload ZIP, file manifest, submission copy and store bundle, then run every
+   release gate against that exact commit.
+3. Create an annotated `vX.Y.Z` tag on that release commit and push that tag by its explicit name.
+   Never move or force-update a published tag.
+
+A Git tag records source identity; it does not claim the Chrome Web Store has published that source.
+Store upload and Submit remain Jeremy's manual actions, and the public website's release ledger moves
+only after the live listing has been owner-verified.

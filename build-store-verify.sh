@@ -18,6 +18,12 @@ VER=$(node -e "console.log(require('./extension/manifest.json').version)")
 ADIR=v$(printf '%s' "$VER" | cut -d. -f1,2)
 FAIL=0
 
+# The manifest is not the release history by itself. Bind it to the first
+# released CHANGELOG entry before resolving any version-named artifact paths.
+# This is a worktree check here; a committed release runs this same script from
+# its committed files, while an in-progress version bump fails before packaging.
+node ./build-release-history-verify.mjs
+
 # The exact committed manifest description — the one string every store-copy surface must quote.
 DESC=$(git show HEAD:extension/manifest.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).description))")
 

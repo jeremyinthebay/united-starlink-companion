@@ -6,7 +6,8 @@ set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 EXPECTED_FAIL="FAIL: bundled screenshot provenance block differs byte-for-byte from committed literal"
-EXPECTED_OK="store-verify OK · committed artifacts == HEAD:extension · bundle embeds them · store copy matches the shipped product (v3.0.0)"
+VERSION=$(node -e "console.log(require('$ROOT/extension/manifest.json').version)")
+EXPECTED_OK="store-verify OK · committed artifacts == HEAD:extension · bundle embeds them · store copy matches the shipped product (v${VERSION})"
 TMP_ROOT=$(mktemp -d)
 trap 'rm -rf "$TMP_ROOT"' EXIT HUP INT TERM
 
