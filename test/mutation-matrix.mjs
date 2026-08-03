@@ -45,7 +45,12 @@ const MATRIX = {
   "alaska-united-action":   { only: "alaska-no-united-action", expect: "alaska-no-united-action" },
   "guard-span-control":     { only: "guard-keyboard-roundtrip", expect: "guard-keyboard-roundtrip" },
   "guard-add-no-rollback":  { only: "guard-add-failure-rolls-back", expect: "guard-add-failure-rolls-back" },
-  "gold-policy-claim":      { only: "guard-alternative-evidence", expect: "guard-alternative-evidence" },
+  "gold-policy-claim":      { only: "guard-shortlist-capture", expect: "guard-shortlist-capture" },
+  "shortlist-dropped":      { only: "guard-shortlist-capture", expect: "guard-shortlist-capture" },
+  "shortlist-unbounded":    { only: "guard-shortlist-capture", expect: "guard-shortlist-capture" },
+  "shortlist-live-requery": { only: "guard-shortlist-capture", expect: "guard-shortlist-capture" },
+  "shortlist-bare-max":     { only: "guard-shortlist-no-bare-max", expect: "guard-shortlist-no-bare-max" },
+  "shortlist-retention-unbound": { only: "guard-shortlist-capture", expect: "guard-shortlist-capture" },
   "outcome-network-leak":   { only: "outcome-capture-local-only", expect: "outcome-capture-local-only" },
   // "fleet-as-probability" is intentionally ABSENT. Its target state cannot
   // render on any currently supported host (see the note in phase2-e2e.mjs),
@@ -59,7 +64,7 @@ const MATRIX = {
   "first-run-no-permission-request": { gate: FIRST_RUN_GATE, only: "first-run-coverage", expect: "first-run-coverage" },
   "first-run-add-tabs-permission": { gate: FIRST_RUN_GATE, only: "first-run-coverage", expect: "first-run-coverage" },
 };
-const CONTROLS_EXPECTED = 32;
+const CONTROLS_EXPECTED = 37;
 
 // Owner ruling, 3 Aug 2026: keep these honest-degradation states, but never
 // manufacture a green mutation result for branches no supported host can

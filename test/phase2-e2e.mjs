@@ -166,10 +166,45 @@ const MUTATIONS = {
   },
   "gold-policy-claim": {
     file: "bg.js",
-    from: 'const where = rm ? rm[1] + "→" + rm[2] : "this trip";',
-    to: 'return "Best alternative: UA999 (75%). Same-day switch is free with Gold+.";\n  const where = rm ? rm[1] + "→" + rm[2] : "this trip";',
-    expect: "guard-alternative-evidence",
+    from: 'return "Better option you saw: " + candidate.fn',
+    to: 'return "Same-day switch is free with Gold+. Better option you saw: " + candidate.fn',
+    expect: "guard-shortlist-capture",
     note: "an unsourced same-day-switch policy and percentage return to a notification",
+  },
+  "shortlist-dropped": {
+    file: "content.js",
+    from: "shortlist: captureGuardShortlist(fn),",
+    to: "shortlist: [],",
+    expect: "guard-shortlist-capture",
+    note: "Guard silently drops the visible alternatives snapshot",
+  },
+  "shortlist-unbounded": {
+    file: "bg.js",
+    from: ".slice(0, GUARD_SHORTLIST_CAP);",
+    to: ".slice(0, GUARD_SHORTLIST_CAP + 1);",
+    expect: "guard-shortlist-capture",
+    note: "the local shortlist exceeds its five-item privacy bound",
+  },
+  "shortlist-live-requery": {
+    file: "bg.js",
+    from: "const n = guardNotificationForTrip(t, transition, res, facts);",
+    to: "await getRouteData('SFO', 'DEN', true, airlineOf(t.fn));\n    const n = guardNotificationForTrip(t, transition, res, facts);",
+    expect: "guard-shortlist-capture",
+    note: "a later alert re-queries a changed route instead of using the immutable snapshot",
+  },
+  "shortlist-bare-max": {
+    file: "content.js",
+    from: "const winner = winnerFnOf(candidates.map((x) => ({ fn: x.fn, prob: x.probability })));",
+    to: "const winner = candidates.length ? candidates[0].fn : null;",
+    expect: "guard-shortlist-no-bare-max",
+    note: "Guard crowns the highest number without the shared decision-eligibility gate",
+  },
+  "shortlist-retention-unbound": {
+    file: "bg.js",
+    from: "clearDepartedShortlist(t, now);",
+    to: "void t;",
+    expect: "guard-shortlist-capture",
+    note: "the trip-check loop stops clearing captured alternatives after departure",
   },
   /* NOT IN THE MATRIX RUN, deliberately, and this is a COVERAGE GAP worth
    * stating rather than hiding. `fleet` / `announced` / `notinfleet` /
@@ -2025,28 +2060,145 @@ const CASES = [
     },
   },
   {
-    name: "guard-alternative-evidence",
-    o: "SFO", d: "DEN", rows: [], dateOffsetDays: 30,
-    mock: { o: "SFO", d: "DEN", route: [], itins: [], deps: [
-      { fn: "UA1214", o: "SFO", d: "DEN", date: isoDaysFromNow(30), time: "12:30", tail: "N127UA" },
-    ] },
-    driver: async ({ sw }) => {
+    name: "guard-shortlist-capture",
+    o: "SFO", d: "DEN", dateOffsetDays: 30,
+    rows: [
+      { num: 1596, time: "8:00 a.m." }, { num: 1214, time: "9:00 a.m." },
+      { num: 800, time: "10:00 a.m." }, { num: 801, time: "11:00 a.m." },
+      { num: 802, time: "12:00 p.m." }, { num: 803, time: "1:00 p.m." },
+      { num: 804, time: "2:00 p.m." },
+    ],
+    mock: { o: "SFO", d: "DEN", route: [
+      { fn: "UA1214", prob: 80, obs: 60, conf: "high" },
+      { fn: "UA800", prob: 60, obs: 50, conf: "medium" },
+      { fn: "UA801", prob: 50, obs: 40, conf: "medium" },
+      { fn: "UA802", prob: 40, obs: 30, conf: "medium" },
+      { fn: "UA803", prob: 30, obs: 20, conf: "medium" },
+      { fn: "UA804", prob: 20, obs: 10, conf: "medium" },
+      { fn: "UA1596", prob: 10, obs: 5, conf: "low" },
+    ], predict: {}, itins: [] },
+    driver: async ({ page, url, sw, context }) => {
       if (!sw) return { appeared: false, panelText: "(no service worker)", badges: [], checks: { swPresent: false } };
-      const dates = { yes: isoDaysFromNow(30), no: isoDaysFromNow(31) };
-      const out = await sw.evaluate(async (d) => {
-        const confirmed = await suggestAlt({ fn: "UA1596", date: d.yes, route: "SFO-DEN", departs: d.yes + "T10:00:00Z" }, {});
-        const none = await suggestAlt({ fn: "UA1596", date: d.no, route: "SFO-DEN", departs: d.no + "T10:00:00Z" }, {
-          alts: [{ flights: "UA999", pct: 75 }],
-        });
-        return { confirmed, none };
-      }, dates);
-      const text = out.confirmed + "\n" + out.none;
-      return { appeared: true, panelText: text, badges: [], probe: out, checks: {
-        confirmedAlternativeGrounded: /Better option: UA1214 \+150min/.test(out.confirmed) &&
-          /confirmed Starlink tail N127UA/.test(out.confirmed) &&
-          /REPORTED · unitedstarlinktracker\.com · \d{4}-\d{2}-\d{2}/.test(out.confirmed),
-        noOptionStatedExplicitly: /No confirmed better option found for SFO→DEN/.test(out.none),
-        noUnsourcedPercentageOrPolicy: !/%|Gold\+|free with/.test(text),
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelectorAll(".usl-watch").length === 7, null, { timeout: 30000 });
+      const target = page.locator(".res-row").filter({ hasText: "United 1596" }).locator(".usl-watch");
+      await target.click();
+      await page.waitForFunction(() => {
+        const e = [...document.querySelectorAll(".res-row")].find((r) => /United\s*1596/.test(r.textContent || ""))?.querySelector(".usl-watch");
+        return !!e && e.getAttribute("aria-pressed") === "true" && !e.disabled;
+      }, null, { timeout: 30000 });
+      const stored = await sw.evaluate(() => chrome.storage.local.get("uslTrips").then((v) => v.uslTrips || []));
+      const trip = stored.find((t) => t.fn === "UA1596") || null;
+      const beforeBytes = JSON.stringify(trip && trip.shortlist);
+      await sw.evaluate((t) => new Promise((resolve) => chrome.runtime.sendMessage({
+        type: "tripAdd", fn: t.fn, date: t.date, route: t.route,
+        shortlist: [{ fn: "UA999", probability: 99, observations: 99, confidence: "high", decisionEligible: true }],
+      }, (res) => { void chrome.runtime.lastError; resolve(res || null); })), trip);
+      const afterDuplicate = await sw.evaluate(() => chrome.storage.local.get("uslTrips").then((v) => v.uslTrips || []));
+      const duplicateTrip = afterDuplicate.find((t) => t.fn === "UA1596") || null;
+      const out = await sw.evaluate((t) => {
+        const no = { tail: "N000UA", equip: "Viasat" };
+        const grounded = guardNotificationForTrip(t, "publish-no", no, [t]);
+        const empty = guardNotificationForTrip(Object.assign({}, t, { shortlist: [] }), "publish-no", no, [t]);
+        const contradicted = guardNotificationForTrip(t, "publish-no", no,
+          [t, { fn: "UA1214", date: t.date, lastStatus: "no" }]);
+        const unknown = guardNotificationForTrip(t, "unknown", { status: "unknown" }, [t]);
+        const overflow = normalizeShortlist([
+          { fn: "UA1214", probability: 80, observations: 60, confidence: "high", decisionEligible: true },
+          { fn: "UA800", probability: 60, observations: 50, confidence: "medium" },
+          { fn: "UA801", probability: 50, observations: 40, confidence: "medium" },
+          { fn: "UA802", probability: 40, observations: 30, confidence: "medium" },
+          { fn: "UA803", probability: 30, observations: 20, confidence: "medium" },
+          { fn: "UA804", probability: 20, observations: 10, confidence: "medium" },
+        ], { fn: t.fn, date: t.date, route: "SFO-DEN" }, t.added);
+        const departed = Object.assign({}, t, { shortlist: t.shortlist.slice(), departs: "2000-01-01T12:00:00Z" });
+        const clearedAfterDeparture = clearDepartedShortlist(departed, Date.now());
+        const popupAdded = newTrip("UA999", t.date, "SFO-DEN", {});
+        return { grounded, empty, contradicted, unknown, overflow,
+          clearedAfterDeparture, departedShortlistLength: departed.shortlist.length,
+          popupAddedShortlistLength: popupAdded.shortlist.length };
+      }, trip);
+      const laterRequests = [];
+      const onRequest = (req) => {
+        if (/unitedstarlinktracker\.com\/(?:mcp|api\/plan-route)/.test(req.url())) laterRequests.push(req.url());
+      };
+      context.on("request", onRequest);
+      await sw.evaluate(async (t) => notifyTrip(t, "publish-no", { tail: "N000UA", equip: "Viasat" }, [t]), trip);
+      await page.waitForTimeout(250);
+      context.off("request", onRequest);
+      const after = await sw.evaluate(() => chrome.storage.local.get("uslTrips").then((v) => v.uslTrips || []));
+      const afterTrip = after.find((t) => t.fn === "UA1596") || null;
+      const expectedKeys = ["capturedAt", "confidence", "date", "decisionEligible", "fn",
+        "observations", "probability", "route", "source", "sourceDate", "tier"].sort();
+      const shortlistFns = trip && trip.shortlist ? trip.shortlist.map((x) => x.fn) : [];
+      const eligible = trip && trip.shortlist ? trip.shortlist.filter((x) => x.decisionEligible) : [];
+      const allText = JSON.stringify(out);
+      await target.click();
+      await page.waitForFunction(() => {
+        const e = [...document.querySelectorAll(".res-row")].find((r) => /United\s*1596/.test(r.textContent || ""))?.querySelector(".usl-watch");
+        return !!e && e.getAttribute("aria-pressed") === "false" && !e.disabled;
+      }, null, { timeout: 15000 });
+      const removed = await sw.evaluate(() => chrome.storage.local.get("uslTrips").then((v) => v.uslTrips || []));
+      const retention = await sw.evaluate(async (date) => {
+        const departed = newTrip("UA777", date, "SFO-DEN", { shortlist: [
+          { fn: "UA778", probability: 72, observations: 40, confidence: "high", decisionEligible: true },
+        ] });
+        departed.lastStatus = "yes";
+        departed.tail = "N777UA";
+        departed.departs = "2000-01-01T12:00:00Z";
+        await chrome.storage.local.set({ uslTrips: [departed] });
+        const checked = await runTripChecks(true);
+        return checked[0] || null;
+      }, trip.date);
+      return { appeared: !!trip, panelText: allText, badges: [], probe: { trip, out, laterRequests }, checks: {
+        shortlistBoundedAndRanked: eq(shortlistFns, ["UA1214", "UA800", "UA801", "UA802", "UA803"]),
+        captureTimeFrozenWithTrip: trip && trip.shortlist.every((x) => x.capturedAt === trip.added),
+        duplicatePreservesOriginalSnapshot: duplicateTrip && JSON.stringify(duplicateTrip.shortlist) === beforeBytes,
+        popupAddedTripStartsEmpty: out.popupAddedShortlistLength === 0,
+        oneSharedDecisionWinner: eligible.length === 1 && eligible[0].fn === "UA1214",
+        privacyShapeExact: trip && trip.shortlist.every((x) => eq(Object.keys(x).sort(), expectedKeys)),
+        workerEnforcesFiveItemCap: out.overflow.length === 5 && !out.overflow.some((x) => x.fn === "UA804"),
+        departureClearsSnapshot: out.clearedAfterDeparture === true && out.departedShortlistLength === 0,
+        groundedHistoricalCopy: /Better option you saw: UA1214 · 80% historical next-gen odds/.test(out.grounded.message) &&
+          /REPORTED · unitedstarlinktracker\.com · source date not provided; captured /.test(out.grounded.message),
+        emptySnapshotAddsNoRescue: !/Better option/.test(out.empty.message),
+        exactDateNoSuppressesRescue: !/Better option/.test(out.contradicted.message),
+        unknownStillSilent: out.unknown === null,
+        noUnsupportedPolicyOrMysteryOption: !/Gold\+|free with|fare|UA999/.test(allText),
+        laterAlertMakesNoRouteRequest: laterRequests.length === 0,
+        snapshotBytesUnchanged: afterTrip && JSON.stringify(afterTrip.shortlist) === beforeBytes,
+        removeClearsSnapshot: removed.every((t) => t.fn !== "UA1596"),
+        realTripCheckClearsAfterDeparture: retention && Array.isArray(retention.shortlist) && retention.shortlist.length === 0,
+      } };
+    },
+  },
+  {
+    name: "guard-shortlist-no-bare-max",
+    o: "SFO", d: "DEN", dateOffsetDays: 30,
+    rows: [
+      { num: 1596, time: "8:00 a.m." },
+      { num: 1214, time: "9:00 a.m." },
+      { num: 800, time: "10:00 a.m." },
+    ],
+    mock: { o: "SFO", d: "DEN", route: [
+      { fn: "UA1214", prob: 60, obs: 60, conf: "high" },
+      { fn: "UA800", prob: 55, obs: 50, conf: "medium" },
+      { fn: "UA1596", prob: 10, obs: 5, conf: "low" },
+    ], predict: {}, itins: [] },
+    driver: async ({ page, url, sw }) => {
+      if (!sw) return { appeared: false, panelText: "(no service worker)", badges: [], checks: { swPresent: false } };
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelectorAll(".usl-watch").length === 3, null, { timeout: 30000 });
+      await page.locator(".res-row").filter({ hasText: "United 1596" }).locator(".usl-watch").click();
+      await page.waitForFunction(() => {
+        const e = [...document.querySelectorAll(".res-row")].find((r) => /United\s*1596/.test(r.textContent || ""))?.querySelector(".usl-watch");
+        return !!e && e.getAttribute("aria-pressed") === "true" && !e.disabled;
+      }, null, { timeout: 30000 });
+      const trips = await sw.evaluate(() => chrome.storage.local.get("uslTrips").then((v) => v.uslTrips || []));
+      const shortlist = (trips.find((t) => t.fn === "UA1596") || {}).shortlist || [];
+      return { appeared: true, panelText: JSON.stringify(shortlist), badges: [], probe: shortlist, checks: {
+        closeGapCrownsNobody: shortlist.length === 2 && shortlist.every((x) => x.decisionEligible === false),
+        historicalRowsStillCaptured: eq(shortlist.map((x) => x.fn), ["UA1214", "UA800"]),
       } };
     },
   },

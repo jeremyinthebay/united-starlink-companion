@@ -31,8 +31,9 @@ Chrome Web Store: not uploaded.
   recommendation without the injected decision card's full evidence gate.
 - Gave per-flight next-gen odds and ConnectScore separate tier, source, and source-date metadata.
 - Removed the United-labelled prioritisation action from Alaska's single-carrier results.
-- Removed an unsourced same-day-switch policy claim and limited rescue copy to sourced confirmed
-  alternatives or an explicit no-confirmed-option result.
+- Guardian now captures up to five decision-qualified alternatives from the booking results visible
+  when a flight is guarded. Later rescue alerts use only that immutable local snapshot and make no
+  fresh route lookup.
 - Kept the four future row-degradation states while making their currently untestable status
   explicit and machine-checked in the mutation gate.
 - Replaced the popup's ambiguous `ready` and `Fresh result` labels with `access on`, an independent

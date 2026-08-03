@@ -1260,6 +1260,35 @@
     setTimeout(scan, 700);
   }
 
+  // Freeze the alternatives that were genuinely visible when Guard was
+  // activated. This is intentionally small and contains no fare, time, DOM,
+  // account or URL data; the service worker re-derives identity, provenance and
+  // capture time before anything is persisted.
+  const GUARD_SHORTLIST_CAP = 5;
+  function guardRowVisible(rowEl) {
+    if (!rowEl || !rowEl.isConnected || !rowEl.getClientRects().length) return false;
+    const style = getComputedStyle(rowEl);
+    return style.display !== "none" && style.visibility !== "hidden";
+  }
+  function captureGuardShortlist(guardedFn) {
+    const candidates = [];
+    for (const [fn, row] of registry.entries()) {
+      const hit = probMap.get(fn);
+      if (!row || !guardRowVisible(row.rowEl) || !hit || typeof hit.prob !== "number") continue;
+      candidates.push({
+        fn, probability: hit.prob,
+        observations: Number.isInteger(hit.obs) && hit.obs >= 0 ? hit.obs : null,
+        confidence: ["high", "medium", "low", "type"].includes(hit.conf) ? hit.conf : null,
+      });
+    }
+    candidates.sort((a, b) => (b.probability - a.probability) ||
+      ((b.observations == null ? -1 : b.observations) -
+        (a.observations == null ? -1 : a.observations)) || a.fn.localeCompare(b.fn));
+    const winner = winnerFnOf(candidates.map((x) => ({ fn: x.fn, prob: x.probability })));
+    return candidates.filter((x) => x.fn !== guardedFn).slice(0, GUARD_SHORTLIST_CAP)
+      .map((x) => Object.assign({}, x, { decisionEligible: x.fn === winner }));
+  }
+
 
   function addWatchStar(el, fn) {
     if (!ctx || !ctx.date || el.querySelector(".usl-watch")) return;
@@ -1353,7 +1382,10 @@
           sourceDate: hit.dep && hit.dep.date ? hit.dep.date : null,
         } : null;
         try {
-          chrome.runtime.sendMessage({ type: "tripAdd", fn, date, route, guardPrediction }, (res) => {
+          chrome.runtime.sendMessage({
+            type: "tripAdd", fn, date, route, guardPrediction,
+            shortlist: captureGuardShortlist(fn),
+          }, (res) => {
             const err = chrome.runtime.lastError;
             if (err || !res || res.ok === false) return rollback(false, (res && res.error) || (err && err.message));
             pending(false);

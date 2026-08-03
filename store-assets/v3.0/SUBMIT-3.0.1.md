@@ -17,8 +17,9 @@ boarding and alert when the assignment changes.
 - The Guard star is now a native keyboard-operable button with a 44-pixel target. Enter and Space
   work like click, pending requests are exposed, and a rejected add rolls back with a visible error.
 - Alaska no longer shows a United-labelled prioritisation action.
-- Guardian rescue copy no longer claims a same-day switch is free. It names only a confirmed
-  alternative with its tail, tracker and date, or says no confirmed better option was found.
+- Guardian rescue copy no longer claims a same-day switch is free. It can name only the one
+  decision-qualified historical alternative that was visible when Guard was activated, with its
+  tier, tracker, missing/present source date, and capture date. It makes no later route lookup.
 - Four future carrier-level degradation states remain in the source and are declared explicitly
   untestable until a supported host can render them.
 - A one-screen first-run guide explains the four supported flight-search hosts. Alaska and Google
@@ -51,10 +52,13 @@ To fetch odds, the service worker sends the following to the relevant community 
 
 Local post-flight “worked” / “didn't work” answers remain in `chrome.storage.local` and make no
 network request. There is no account, analytics, advertising identifier, or third-party tracking.
+The bounded Guard shortlist also remains on the device, never includes fares, times, page markup,
+account data or URLs, and is cleared after departure or when the guarded trip is removed.
 
 ## Permissions justification
 
-- `storage` — local odds cache, preferences, guarded trips, and local outcome history.
+- `storage` — local odds cache, preferences, guarded trips, their bounded Guard-time alternative
+  snapshots, and local outcome history.
 - `activeTab`, `scripting` — display the extension on supported booking searches.
 - `alarms` — periodic Guard checks and selector refresh.
 - `notifications` — dated tail-assignment and post-flight prompts.

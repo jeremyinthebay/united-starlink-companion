@@ -316,9 +316,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           sendResponse({ ok: false, error: "Max " + MAX_TRIPS + " guarded trips — remove one first.", trips });
           return;
         }
-        // Route-back source: prefer an explicit shortlist/source from the
-        // message (full rescue, later), else capture the page the star was
-        // clicked on straight off the sender — no content.js change needed.
+        // Route-back source comes from the sender. The content script may also
+        // supply the visible Guard-time alternatives; newTrip validates,
+        // bounds and freezes that snapshot before storage.
         const senderUrl = (sender && (sender.url || (sender.tab && sender.tab.url))) || null;
         trips.push(newTrip(fn, date, msg.route || null, {
           source: msg.source || null,
@@ -504,8 +504,8 @@ function lastPublishedStatus(trip) {
  * `withdrawn` (was confirmed Starlink, tail pulled back to unpublished) is ALSO
  * worsened. A B→C withdrawal, first/continuing early, transient, budget and
  * invalid states are NOT worsened. The rescue is still only shown when
- * suggestAlt() returns a genuinely grounded alternative (notifyTrip filters the
- * generic fallback) — a worsened state never invents one. */
+ * capturedAlternative() returns the one genuinely grounded Guard-time option
+ * — a worsened state never invents one. */
 function worsened(transition, trip) {
   if (notifyState(transition) === "B") return true;
   if (transition === "withdrawn" && lastPublishedStatus(trip) === "yes") return true;
@@ -514,21 +514,64 @@ function worsened(transition, trip) {
 
 function newTrip(fn, date, route, opts) {
   opts = opts || {};
-  return {
-    fn, date, route: route || null, added: Date.now(),
+  const added = Date.now();
+  const trip = {
+    fn, date, route: normalizedTripRoute(route), added,
     history: [], asOf: null, lastError: null, lastNotifKey: null,
     invalidCount: 0, departs: null,
-    // v2.4 additions. shortlist ships EMPTY in 3.0 (rescue uses suggestAlt's
-    // live fallback); source/sourceUrl carry the route-back; assignedAt stays
-    // null until the @martinamps feed lands — never the departure time.
+    // The shortlist is the bounded, local snapshot visible at Guard time.
+    // source/sourceUrl carry the route-back; assignedAt stays null until the
+    // @martinamps feed lands — never the departure time.
     source: opts.source || null,
     sourceUrl: opts.sourceUrl || null,
-    shortlist: Array.isArray(opts.shortlist) ? opts.shortlist.slice(0, 5) : [],
+    shortlist: [],
     assignedAt: null,
     guardPrediction: normalizeGuardPrediction(opts.guardPrediction),
     outcome: null,
     outcomePrompted: false,
   };
+  trip.shortlist = normalizeShortlist(opts.shortlist, trip, added);
+  return trip;
+}
+
+const GUARD_SHORTLIST_CAP = 5;
+function normalizedTripRoute(value) {
+  const m = String(value || "").toUpperCase().match(/^([A-Z]{3})-([A-Z]{3})$/);
+  return m && m[1] !== m[2] ? m[1] + "-" + m[2] : null;
+}
+function trackerSourceFor(fn) {
+  return airlineOf(fn) === "AS" ? "alaskastarlinktracker.com" : "unitedstarlinktracker.com";
+}
+function normalizeShortlist(value, trip, capturedAt) {
+  const route = normalizedTripRoute(trip && trip.route);
+  const guardedFn = String(trip && trip.fn || "").toUpperCase();
+  const date = String(trip && trip.date || "");
+  if (!route || !Array.isArray(value) || !Number.isFinite(capturedAt)) return [];
+  const frozenAt = capturedAt;
+  const unique = new Map();
+  for (const raw of value) {
+    if (!raw || typeof raw !== "object") continue;
+    const fn = String(raw.fn || "").toUpperCase();
+    if (!/^(?:UA|AS)\d{1,4}$/.test(fn) || fn === guardedFn || unique.has(fn)) continue;
+    if (airlineOf(fn) !== airlineOf(guardedFn)) continue;
+    const probability = Number(raw.probability);
+    if (!Number.isFinite(probability) || probability < 0 || probability > 100) continue;
+    unique.set(fn, {
+      fn, route, date, probability: Math.round(probability),
+      observations: Number.isInteger(raw.observations) && raw.observations >= 0 ? raw.observations : null,
+      confidence: ["high", "medium", "low", "type"].includes(raw.confidence) ? raw.confidence : null,
+      tier: "REPORTED", source: trackerSourceFor(fn), sourceDate: null,
+      capturedAt: frozenAt, decisionEligible: raw.decisionEligible === true,
+    });
+  }
+  const result = [...unique.values()].sort((a, b) =>
+    b.probability - a.probability ||
+    (b.observations == null ? -1 : b.observations) - (a.observations == null ? -1 : a.observations) ||
+    a.fn.localeCompare(b.fn)).slice(0, GUARD_SHORTLIST_CAP);
+  if (result.filter((x) => x.decisionEligible).length > 1) {
+    for (const item of result) item.decisionEligible = false;
+  }
+  return result;
 }
 
 function normalizeGuardPrediction(value) {
@@ -563,7 +606,12 @@ function migrateTrips(trips) {
     // exact pre-2.4 behaviour (no shortlist, route-back falls back to carrier).
     if (t.source === undefined) { t.source = null; changed = true; }
     if (t.sourceUrl === undefined) { t.sourceUrl = null; changed = true; }
-    if (!Array.isArray(t.shortlist)) { t.shortlist = []; changed = true; }
+    const hadShortlistArray = Array.isArray(t.shortlist);
+    const shortlist = normalizeShortlist(hadShortlistArray ? t.shortlist : [], t, t.added);
+    if (!hadShortlistArray || JSON.stringify(shortlist) !== JSON.stringify(t.shortlist)) {
+      t.shortlist = shortlist;
+      changed = true;
+    }
     if (t.assignedAt === undefined) { t.assignedAt = null; changed = true; }
     if (t.guardPrediction === undefined) { t.guardPrediction = null; changed = true; }
     if (t.outcome === undefined) { t.outcome = null; changed = true; }
@@ -769,39 +817,36 @@ function priorTail(trip) {
   return null;
 }
 
-/* Rebooking suggestion: only a same-day CONFIRMED ✓ departure is grounded
- * enough to recommend. Parsed percentages carry neither a confirmed tail nor
- * a source date, so they never become notification advice. */
-async function suggestAlt(trip, res) {
-  const routeStr = trip.routeSeen || trip.route || "";
-  const rm = String(routeStr).toUpperCase().match(/([A-Z]{3})[^A-Z]?([A-Z]{3})/);
-  const tracker = airlineOf(trip.fn) === "AS" ? "alaskastarlinktracker.com" : "unitedstarlinktracker.com";
-  if (rm) {
-    try {
-      if (await budgetTake(1)) {
-        const rd = await getRouteData(rm[1], rm[2], false, airlineOf(trip.fn));
-        if (rd && !rd.cached) await budgetTake(1); // an uncached lookup costs a 2nd MCP call
-        const dep = ((rd && rd.deps) || []).find((x) => x.date === trip.date && x.fn !== trip.fn);
-        if (dep) {
-          if (trip.departs) {
-            const mine = Date.parse(trip.departs);
-            const theirs = Date.parse(dep.date + "T" + dep.time + ":00Z");
-            if (!isNaN(mine) && !isNaN(theirs)) {
-              const dm = Math.round((theirs - mine) / 60000);
-              return "Better option: " + dep.fn + " " + (dm >= 0 ? "+" : "-") + Math.abs(dm) +
-                "min has confirmed Starlink tail " + dep.tail + " for " + dep.date +
-                " (REPORTED · " + tracker + " · " + dep.date + ").";
-            }
-          }
-          return "Better option: " + dep.fn + " departs " + dep.time + "Z with confirmed Starlink tail " +
-            dep.tail + " for " + dep.date + " (REPORTED · " + tracker + " · " + dep.date + ").";
-        }
-      }
-    } catch (e) {}
-  }
-  const where = rm ? rm[1] + "→" + rm[2] : "this trip";
-  return "No confirmed better option found for " + where + " on " + trip.date +
-    " (REPORTED · " + tracker + " · " + trip.date + " lookup).";
+/* A rescue line may use only the bounded shortlist captured when Guard was
+ * activated. It never re-queries the tracker, fares or the booking page. */
+function capturedAlternative(trip, facts) {
+  const route = trip && (trip.routeSeen || trip.route);
+  const list = Array.isArray(trip && trip.shortlist) ? trip.shortlist : [];
+  const eligible = list.filter((x) => x && x.decisionEligible === true &&
+    x.fn !== trip.fn && x.route === route && x.date === trip.date &&
+    typeof x.probability === "number" && x.probability >= 0 && x.probability <= 100 &&
+    x.tier === "REPORTED" && x.source === trackerSourceFor(x.fn) && Number.isFinite(x.capturedAt));
+  if (eligible.length !== 1) return null;
+  const candidate = eligible[0];
+  const contradicted = (facts || []).some((t) => t && t.fn === candidate.fn &&
+    t.date === trip.date && t.lastStatus === "no");
+  return contradicted ? null : candidate;
+}
+
+function fmtCaptureDate(ts) {
+  const d = new Date(ts);
+  if (!Number.isFinite(d.getTime())) return "at guard time";
+  const mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][d.getMonth()];
+  return mon + " " + d.getDate();
+}
+
+function formatCapturedAlternative(candidate) {
+  if (!candidate) return "";
+  const sourceDate = /^\d{4}-\d{2}-\d{2}$/.test(candidate.sourceDate || "")
+    ? "source date " + candidate.sourceDate : "source date not provided";
+  return "Better option you saw: " + candidate.fn + " · " + candidate.probability +
+    "% historical next-gen odds (REPORTED · " + candidate.source + " · " + sourceDate +
+    "; captured " + fmtCaptureDate(candidate.capturedAt) + ").";
 }
 
 // "2026-07-25" → "Jul 25" for the terse notification head. Falls back to the
@@ -816,7 +861,7 @@ function fmtTripDate(dateStr) {
 /* v2.4 notification copy — exactly the three honest states (§7.2). Every state
  * carries the trip identity and a route-back cue ("Open booking ↗"); only a
  * WORSENED state (B) carries a rescue line, and that line is passed in as
- * altText so the transient suggestAlt() call stays out of the pure formatter.
+ * altText so the immutable Guard-time snapshot stays out of the pure formatter.
  * Titles use "· <date> —" per the design; bodies stay plain for the prose
  * ratchet. null means timeline-only (no toast). */
 function buildGuardNotification(trip, transition, res, altText) {
@@ -851,18 +896,17 @@ function buildGuardNotification(trip, transition, res, altText) {
     message: "Aircraft not assigned yet (tails publish ~48h out). We'll keep watching." + rescue + back, priority: 2 };
 }
 
-async function notifyTrip(t, transition, res) {
+function guardNotificationForTrip(t, transition, res, facts) {
+  let altText = "";
+  if (worsened(transition, t)) {
+    altText = formatCapturedAlternative(capturedAlternative(t, facts));
+  }
+  return buildGuardNotification(t, transition, res, altText);
+}
+
+async function notifyTrip(t, transition, res, facts) {
   try {
-    // Rescue is sourced live only on a worsened transition (state B, or an A→C
-    // withdrawal per R23 P1-02); shortlist is empty in 3.0 so this is
-    // suggestAlt()'s live fallback. It returns either a fully sourced confirmed
-    // option or an explicit no-option result; neither invents policy advice.
-    let altText = "";
-    if (worsened(transition, t)) {
-      const s = await suggestAlt(t, res);
-      if (s) altText = String(s).replace(/\.$/, "");
-    }
-    const n = buildGuardNotification(t, transition, res, altText);
+    const n = guardNotificationForTrip(t, transition, res, facts);
     if (!n) return;
     // Stable id encodes fn+date so the onClicked handler can route back, and a
     // re-fire replaces the old toast instead of stacking.
@@ -882,6 +926,11 @@ function departurePassed(t, now) {
   if (!isNaN(exact)) return exact < now;
   const dayEnd = Date.parse(String(t && t.date || "") + "T23:59:59");
   return !isNaN(dayEnd) && dayEnd < now;
+}
+function clearDepartedShortlist(t, now) {
+  if (!departurePassed(t, now) || !Array.isArray(t.shortlist) || !t.shortlist.length) return false;
+  t.shortlist = [];
+  return true;
 }
 
 async function promptForOutcome(t) {
@@ -980,6 +1029,7 @@ async function runTripChecksInner(force) {
     // user removes them. Unanswered prompts get a 30-day grace period.
     if (d < -30 && !t.outcome) { t.expired = true; continue; }
     await promptForOutcome(t);
+    clearDepartedShortlist(t, now);
     if ((t.invalidCount || 0) >= 2) continue;          // bad flight number: halt
     if (isTerminal(t, now)) continue;                  // published + already departed
     // near departure (<=4 days): check every run; farther out: at most daily
@@ -994,7 +1044,7 @@ async function runTripChecksInner(force) {
     const res = await checkTrip(t);
     const out = applyCheckResult(t, res, Date.now());
     Object.assign(t, out.trip);
-    if (out.shouldNotify) await notifyTrip(t, out.transition, res);
+    if (out.shouldNotify) await notifyTrip(t, out.transition, res, trips);
     await new Promise((r) => setTimeout(r, 400));
   }
   trips = trips.filter((t) => !t.expired);
