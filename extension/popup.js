@@ -585,6 +585,22 @@ function renderHistory(t) {
   return wrap;
 }
 
+function outcomeHistoryLine(trips, trip) {
+  var flown = trips.filter(function (t) { return t.fn === trip.fn && t.outcome && t.outcome !== "didnt_fly"; });
+  if (!flown.length) return "";
+  var predicted = flown.filter(function (t) { return t.guardPrediction && t.guardPrediction.status === "yes"; }).length;
+  var worked = flown.filter(function (t) { return t.outcome === "worked"; }).length;
+  return "You've flown " + trip.fn + " " + (flown.length === 1 ? "once" : flown.length + " times") +
+    " — Starlink predicted " + predicted + " of " + flown.length + ", worked " + worked + " of " + flown.length + ".";
+}
+
+function departurePassed(t) {
+  var exact = t && t.departs ? Date.parse(t.departs) : NaN;
+  if (!isNaN(exact)) return exact < Date.now();
+  var dayEnd = Date.parse(String(t && t.date || "") + "T23:59:59");
+  return !isNaN(dayEnd) && dayEnd < Date.now();
+}
+
 function renderTrips(trips) {
   tripsEl.innerHTML = "";
   if (!trips.length) {
@@ -618,6 +634,24 @@ function renderTrips(trips) {
     // Stale data: last check failed, so say when the state was last confirmed.
     if (t.lastError && t.asOf) sub.appendChild(el("span", "usl-asof", "as of " + fmtTs(t.asOf)));
     left.appendChild(sub);
+    var historyLine = outcomeHistoryLine(trips, t);
+    if (historyLine) left.appendChild(el("div", "usl-outcome-history", historyLine));
+    if (departurePassed(t) && !t.outcome) {
+      var actions = el("div", "usl-outcome-actions");
+      [["Worked", "worked"], ["Didn't work", "didnt_work"]].forEach(function (choice) {
+        var button = el("button", "usl-outcome-btn", choice[0]);
+        button.type = "button";
+        button.addEventListener("click", function (event) {
+          event.stopPropagation();
+          chrome.runtime.sendMessage({ type: "tripOutcome", fn: t.fn, date: t.date, outcome: choice[1] }, function (res) {
+            void chrome.runtime.lastError;
+            if (res && res.trips) renderTrips(res.trips);
+          });
+        });
+        actions.appendChild(button);
+      });
+      left.appendChild(actions);
+    }
     var hist = renderHistory(t);
     if (hist) {
       hist.style.display = "none";

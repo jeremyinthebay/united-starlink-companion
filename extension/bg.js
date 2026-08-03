@@ -300,6 +300,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const trips = await getTrips();
       const fn = String(msg.fn || "").toUpperCase();
       const date = String(msg.date || "");
+      let added = false;
       // Duplicate registration is a silent no-op (content.js re-sends on star
       // click); only brand-new trips are validated.
       if (!trips.some((t) => t.fn === fn && t.date === date)) {
@@ -323,10 +324,28 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           source: msg.source || null,
           sourceUrl: (typeof senderUrl === "string" && /^https:\/\//.test(senderUrl)) ? senderUrl : null,
           shortlist: msg.shortlist,
+          guardPrediction: msg.guardPrediction,
         }));
+        added = true;
         await setTrips(trips);
       }
       const updated = await runTripChecks(true);
+      // Popup-added trips have no page snapshot. Preserve the first grounded
+      // result returned by the immediate Guard check; later swaps must not
+      // rewrite what the product predicted when the user guarded the flight.
+      if (added) {
+        const trip = updated.find((t) => t.fn === fn && t.date === date);
+        if (trip && !trip.guardPrediction) {
+          trip.guardPrediction = normalizeGuardPrediction({
+            status: trip.lastStatus || "unknown",
+            probability: trip.prob,
+            tier: "REPORTED",
+            source: airlineOf(fn) === "AS" ? "alaskastarlinktracker.com" : "unitedstarlinktracker.com",
+            sourceDate: null,
+          });
+          await setTrips(updated);
+        }
+      }
       sendResponse({ ok: true, trips: updated });
     })();
     return true;
@@ -337,6 +356,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       await setTrips(trips);
       sendResponse({ ok: true, trips });
     })();
+    return true;
+  }
+  if (msg.type === "tripOutcome") {
+    recordTripOutcome(msg.fn, msg.date, msg.outcome).then((result) => sendResponse(result));
     return true;
   }
   if (msg.type === "tripList") {
@@ -502,6 +525,26 @@ function newTrip(fn, date, route, opts) {
     sourceUrl: opts.sourceUrl || null,
     shortlist: Array.isArray(opts.shortlist) ? opts.shortlist.slice(0, 5) : [],
     assignedAt: null,
+    guardPrediction: normalizeGuardPrediction(opts.guardPrediction),
+    outcome: null,
+    outcomePrompted: false,
+  };
+}
+
+function normalizeGuardPrediction(value) {
+  if (!value || typeof value !== "object") return null;
+  const status = ["yes", "no", "early", "unconfirmed", "unknown"].includes(value.status)
+    ? value.status : "unknown";
+  const probability = typeof value.probability === "number" && value.probability >= 0 && value.probability <= 100
+    ? value.probability : null;
+  const source = value.source === "alaskastarlinktracker.com"
+    ? value.source : "unitedstarlinktracker.com";
+  return {
+    status,
+    probability,
+    tier: "REPORTED",
+    source,
+    sourceDate: /^\d{4}-\d{2}-\d{2}$/.test(value.sourceDate || "") ? value.sourceDate : null,
   };
 }
 
@@ -522,6 +565,9 @@ function migrateTrips(trips) {
     if (t.sourceUrl === undefined) { t.sourceUrl = null; changed = true; }
     if (!Array.isArray(t.shortlist)) { t.shortlist = []; changed = true; }
     if (t.assignedAt === undefined) { t.assignedAt = null; changed = true; }
+    if (t.guardPrediction === undefined) { t.guardPrediction = null; changed = true; }
+    if (t.outcome === undefined) { t.outcome = null; changed = true; }
+    if (t.outcomePrompted === undefined) { t.outcomePrompted = false; changed = true; }
     // Seed one history entry from the pre-1.6 state so the timeline isn't blank.
     if (!t.history.length && t.lastStatus) {
       t.history.push({
@@ -828,6 +874,50 @@ async function notifyTrip(t, transition, res) {
   } catch (e) {}
 }
 
+function outcomeNotificationId(fn, date) {
+  return "usl-outcome-" + fn + "-" + date;
+}
+
+function departurePassed(t, now) {
+  const exact = t && t.departs ? Date.parse(t.departs) : NaN;
+  if (!isNaN(exact)) return exact < now;
+  const dayEnd = Date.parse(String(t && t.date || "") + "T23:59:59");
+  return !isNaN(dayEnd) && dayEnd < now;
+}
+
+async function promptForOutcome(t) {
+  if (!t || t.lastStatus === "invalid" || t.outcome || t.outcomePrompted || !departurePassed(t, Date.now())) return false;
+  chrome.notifications.create(outcomeNotificationId(t.fn, t.date), {
+    type: "basic",
+    iconUrl: "icons/icon128.png",
+    title: "How was the WiFi on " + t.fn + "?",
+    message: "Your answer stays on this device and can be cleared with the guarded trip.",
+    priority: 1,
+    buttons: [{ title: "Worked" }, { title: "Didn't work" }],
+  });
+  t.outcomePrompted = true;
+  return true;
+}
+
+async function recordTripOutcome(fn, date, outcome) {
+  const value = outcome === "worked" || outcome === "didnt_work" || outcome === "didnt_fly" ? outcome : null;
+  if (!value) return { ok: false, error: "Unknown outcome." };
+  const trips = await getTrips();
+  const trip = trips.find((t) => t.fn === String(fn || "").toUpperCase() && t.date === String(date || ""));
+  if (!trip) return { ok: false, error: "Guarded trip not found.", trips };
+  trip.outcome = value;
+  trip.outcomePrompted = true;
+  await setTrips(trips);
+  try { chrome.notifications.clear(outcomeNotificationId(trip.fn, trip.date)); } catch (e) {}
+  return { ok: true, trips };
+}
+
+async function recordOutcomeFromNotification(notifId, buttonIndex) {
+  const m = /^usl-outcome-((?:UA|AS)\d{1,4})-(\d{4}-\d{2}-\d{2})$/.exec(notifId || "");
+  if (!m || (buttonIndex !== 0 && buttonIndex !== 1)) return { ok: false };
+  return recordTripOutcome(m[1], m[2], buttonIndex === 0 ? "worked" : "didnt_work");
+}
+
 /* Route back to where the guard was created. Uses the captured results URL when
  * we have one; otherwise the carrier's own site for the flight's airline. Never
  * fabricates a booking-confirmation deep link (guard-and-rescue §5). */
@@ -851,6 +941,12 @@ if (chrome.notifications && chrome.notifications.onClicked) {
         try { chrome.notifications.clear(notifId); } catch (e) {}
       } catch (e) {}
     })();
+  });
+}
+
+if (chrome.notifications && chrome.notifications.onButtonClicked) {
+  chrome.notifications.onButtonClicked.addListener((notifId, buttonIndex) => {
+    recordOutcomeFromNotification(notifId, buttonIndex).catch(() => {});
   });
 }
 
@@ -881,7 +977,10 @@ async function runTripChecksInner(force) {
   const now = Date.now();
   for (const t of trips) {
     const d = daysUntil(t.date);
-    if (d < -1) { t.expired = true; continue; }
+    // Answered trips are the user's local flight history and remain until the
+    // user removes them. Unanswered prompts get a 30-day grace period.
+    if (d < -30 && !t.outcome) { t.expired = true; continue; }
+    await promptForOutcome(t);
     if ((t.invalidCount || 0) >= 2) continue;          // bad flight number: halt
     if (isTerminal(t, now)) continue;                  // published + already departed
     // near departure (<=4 days): check every run; farther out: at most daily

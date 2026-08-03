@@ -907,7 +907,7 @@
         `<span>${esc(a.name)}<span class="usl-time"> · ${esc(a.systemLabel)}${a.fleet ? " " + a.equipped + "/" + a.fleet : ""}</span></span>` +
         `<span class="usl-badge usl-cs ${cls(a.score)}">${a.score}</span></div>`).join("") +
       `<div style="margin-top:8px;font-size:11px;opacity:.75;line-height:1.45">` +
-      `Next-gen odds = chance of a Starlink or Amazon Leo aircraft. ConnectScore = odds of the good satellite wifi today, not of any wifi. ` +
+      `Next-gen odds = chance of a Starlink aircraft today (Amazon Leo from 2027, none flying yet). ConnectScore = odds of the good satellite wifi today, not of any wifi. ` +
       (liveRows ? `United and Alaska rows upgrade to live per-flight odds when Google shows a flight number. ` : ``) +
       `</div>` +
       `<div style="margin-top:8px;font-size:11.5px">` +
@@ -1240,7 +1240,15 @@
       } else {
         watched.add(key);
         paint(true);
-        try { chrome.runtime.sendMessage({ type: "tripAdd", fn, date, route }, () => { void chrome.runtime.lastError; }); } catch {}
+        const hit = probMap.get(fn);
+        const guardPrediction = hit ? {
+          status: hit.dep ? "yes" : "unknown",
+          probability: typeof hit.prob === "number" ? hit.prob : null,
+          tier: "REPORTED",
+          source: TRACKER,
+          sourceDate: hit.dep && hit.dep.date ? hit.dep.date : null,
+        } : null;
+        try { chrome.runtime.sendMessage({ type: "tripAdd", fn, date, route, guardPrediction }, () => { void chrome.runtime.lastError; }); } catch {}
       }
       // Keep the panel's ranked list in step with the row that was just clicked.
       refreshPanelGuards();

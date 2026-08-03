@@ -174,6 +174,13 @@ const MUTATIONS = {
     expect: "airline-data-parity",
     note: "the stale resolved-only denominator returns; airBaltic reads 100 not 51",
   },
+  "outcome-network-leak": {
+    file: "bg.js",
+    from: "async function recordTripOutcome(fn, date, outcome) {",
+    to: "async function recordTripOutcome(fn, date, outcome) {\n  await fetchWithTimeout('https://unitedstarlinktracker.com/outcome-leak');",
+    expect: "outcome-capture-local-only",
+    note: "recording a local outcome silently sends a network request",
+  },
 };
 const MUT = process.env.E2E_MUT || (process.env.E2E_NEG ? "bug3-loading" : "");
 const NEG = !!MUT;
@@ -1826,6 +1833,49 @@ const CASES = [
           positiveNextGenCount: out.positive === 12,
         },
       };
+    },
+  },
+  {
+    name: "outcome-capture-local-only",
+    o: "SFO", d: "DEN", rows: [], mock: {},
+    driver: async ({ page, context, sw, extId }) => {
+      if (!sw || !extId) return { appeared: false, panelText: "(no service worker)", badges: [], checks: { swPresent: false } };
+      const today = new Date().toISOString().slice(0, 10);
+      await sw.evaluate(async ({ date }) => {
+        const trip = newTrip("UA1812", date, "DEN-SFO", {
+          guardPrediction: { status: "yes", probability: 64, tier: "REPORTED", source: "unitedstarlinktracker.com", sourceDate: date },
+        });
+        trip.departs = new Date(Date.now() - 60e3).toISOString();
+        trip.lastStatus = "yes";
+        await setTrips([trip]);
+        await runTripChecks(false);
+      }, { date: today });
+      let outcomeRequests = 0;
+      const countOutcomeRequest = (req) => {
+        if (/unitedstarlinktracker\.com|alaskastarlinktracker\.com|wifiodds\.com/.test(req.url())) outcomeRequests++;
+      };
+      context.on("request", countOutcomeRequest);
+      const answer = await sw.evaluate(({ date }) => recordOutcomeFromNotification("usl-outcome-UA1812-" + date, 0), { date: today });
+      await page.goto("chrome-extension://" + extId + "/popup.html", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => /worked 1 of 1/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => {});
+      const popupText = await page.locator("body").innerText();
+      const stored = await sw.evaluate(() => chrome.storage.local.get("uslTrips").then((v) => v.uslTrips));
+      await page.locator(".usl-trip-x").click();
+      await page.waitForTimeout(200);
+      const removed = await sw.evaluate(() => chrome.storage.local.get("uslTrips").then((v) => v.uslTrips || []));
+      context.off("request", countOutcomeRequest);
+      const source = readFileSync(join(EXT, "content.js"), "utf8");
+      const checks = {
+        predictionSnapshotPersisted: stored.length === 1 && stored[0].guardPrediction && stored[0].guardPrediction.status === "yes" && stored[0].guardPrediction.probability === 64,
+        departurePromptRecorded: stored.length === 1 && stored[0].outcomePrompted === true,
+        notificationAnswerPersisted: answer && answer.ok === true && stored[0].outcome === "worked",
+        personalHistoryRendered: /You've flown UA1812 once/.test(popupText) && /Starlink predicted 1 of 1, worked 1 of 1/.test(popupText),
+        removalClearsOutcome: removed.length === 0,
+        outcomePathsMakeNoNetworkRequest: outcomeRequests === 0,
+        leoPerFlightCopyCorrected: source.includes("chance of a Starlink aircraft today (Amazon Leo from 2027, none flying yet)"),
+        oldLeoPerFlightCopyAbsent: !source.includes("Next-gen odds = chance of a Starlink or Amazon Leo aircraft. ConnectScore"),
+      };
+      return { appeared: true, panelText: popupText, badges: [], probe: { outcomeRequests, stored }, checks };
     },
   },
   {
