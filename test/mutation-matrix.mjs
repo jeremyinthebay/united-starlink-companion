@@ -70,4 +70,5 @@ if (rows.length !== CONTROLS_EXPECTED) {
   process.stderr.write(`CONTROL COUNT: expected ${CONTROLS_EXPECTED}, observed ${rows.length}\n`);
 }
 process.stderr.write(rows.map((r) => `${r.ok ? "OK " : "BAD"} ${r.name} exit=${r.exit}`).join("\n") + "\n");
+if (broken) process.stderr.write("A surprising result is a claim about the instrument until proven otherwise. Before filing a defect, prove the instrument is sound — with a control that is known-good, not with a second run.\n");
 process.exit(broken ? 1 : 0);

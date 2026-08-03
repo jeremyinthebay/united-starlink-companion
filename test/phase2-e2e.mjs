@@ -2177,6 +2177,7 @@ async function run() {
     }
     if (reasons.length) {
       process.stderr.write("\nE2E GATE: FAIL — " + reasons.join("; ") + "\n");
+      process.stderr.write("A surprising result is a claim about the instrument until proven otherwise. Before filing a defect, prove the instrument is sound — with a control that is known-good, not with a second run.\n");
       process.exitCode = 1;
     } else {
       process.stderr.write("\nE2E GATE: PASS — all cases, SW present, no console errors\n");
@@ -2216,4 +2217,4 @@ function writeReport({ swUrl, consoleErrors, results }) {
   process.stderr.write(`\nwrote test/out/phase2-report.md\n`);
 }
 
-run().catch((e) => { console.error("FATAL", e); process.exit(1); });
+run().catch((e) => { console.error("FATAL", e); console.error("A surprising result is a claim about the instrument until proven otherwise. Before filing a defect, prove the instrument is sound — with a control that is known-good, not with a second run."); process.exit(1); });

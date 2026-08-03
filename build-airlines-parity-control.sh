@@ -17,7 +17,7 @@ REPO=$(pwd)
 SITE_REPO_REAL="${SITE_REPO:-$HOME/Projects/wifiodds}"
 
 WORK=$(mktemp -d)
-trap 'rm -rf "$WORK"' EXIT
+trap 'code=$?; if [ "$code" -ne 0 ]; then echo "A surprising result is a claim about the instrument until proven otherwise. Before filing a defect, prove the instrument is sound — with a control that is known-good, not with a second run."; fi; rm -rf "$WORK"' EXIT
 PASS=0; FAILED=0
 CONTROLS_EXPECTED=7
 
