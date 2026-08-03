@@ -67,6 +67,10 @@ Playwright's full Chromium channel in native headless mode because its default h
 not register this MV3 extension's service worker. Keep `headless: true` and `channel: "chromium"`
 together; a missing service worker is a hard gate failure, never a reason to fall back to headed.
 
+`node test/first-run-coverage-e2e.mjs` uses a separate fresh browser profile to prove a real install
+opens the coverage page and both optional-host buttons call `permissions.request`. Its three named
+mutations are included in `node test/mutation-matrix.mjs`.
+
 `test/store-screenshots.mjs` is not a routine test: it is the explicit headed exception that captures
 real-site Chrome Web Store artwork. Do not run that artifact generator as part of automated testing.
 

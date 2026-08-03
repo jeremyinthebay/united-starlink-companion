@@ -1135,6 +1135,18 @@ async function syncDynamicScripts() {
   }
 }
 
+/* ── first-run coverage setup ──────────────────────────────────────────────
+ * Opening an internal extension tab needs no new permission. Keep the reason
+ * gate exact: an update must never reopen onboarding for an existing user. */
+function openFirstRunCoverage(details, createTab) {
+  if (!details || details.reason !== "install") return false;
+  const open = createTab || ((props) => chrome.tabs.create(props));
+  open({ url: chrome.runtime.getURL("coverage.html") });
+  return true;
+}
+
+try { chrome.runtime.onInstalled.addListener(openFirstRunCoverage); } catch (e) {}
+
 /* ── wiring ──────────────────────────────────────────────────────────────── */
 try {
   chrome.alarms.create(SEL_ALARM, { periodInMinutes: 1440, delayInMinutes: 2 });

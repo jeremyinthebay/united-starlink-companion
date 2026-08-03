@@ -19,6 +19,8 @@ Chrome Web Store: not uploaded.
   remains on that device as personal history. Recording an outcome makes no network request.
 - A native keyboard-operable Guard button with a 44-pixel target, first-use guidance, and a visible
   error that rolls optimistic state back when a trip cannot be guarded.
+- A first-run coverage page that explains all four supported flight-search hosts and offers the
+  two optional Alaska and Google Flights grants from explicit user-gesture buttons.
 
 ### Fixed
 

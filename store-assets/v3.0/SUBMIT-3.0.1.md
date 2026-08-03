@@ -21,6 +21,8 @@ boarding and alert when the assignment changes.
   alternative with its tail, tracker and date, or says no confirmed better option was found.
 - Four future carrier-level degradation states remain in the source and are declared explicitly
   untestable until a supported host can render them.
+- A one-screen first-run guide explains the four supported flight-search hosts. Alaska and Google
+  Flights remain optional and are requested only when the traveller presses the matching button.
 
 ## Sort behaviour
 
@@ -53,6 +55,9 @@ network request. There is no account, analytics, advertising identifier, or thir
 - `notifications` — dated tail-assignment and post-flight prompts.
 - `unitedstarlinktracker.com` host permission — fetch United odds.
 - Alaska and Google page access remain optional permissions granted by the traveller at runtime.
+
+On first install, the extension opens its own internal setup page in a new tab. Opening that page
+does not require a new permission. It does not open again on extension or Chrome updates.
 
 ## Manifest description
 

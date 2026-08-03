@@ -17,6 +17,7 @@ import { dirname, join } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GATE = join(HERE, "phase2-e2e.mjs");
+const FIRST_RUN_GATE = join(HERE, "first-run-coverage-e2e.mjs");
 
 // mutation → the focused case filter, and the case whose FAIL must name it.
 const MATRIX = {
@@ -47,8 +48,11 @@ const MATRIX = {
   "refusal-claims-unsorted": { only: "refusal-note-matches-sort-state", expect: "refusal-note-matches-sort-state" },
   "gf-setting-claims-reorder": { only: "popup-settings-truthful", expect: "popup-settings-truthful" },
   "resolved-only-denominator": { only: "airline-data-parity", expect: "airline-data-parity" },
+  "first-run-opens-on-update": { gate: FIRST_RUN_GATE, only: "first-run-coverage", expect: "first-run-coverage" },
+  "first-run-no-permission-request": { gate: FIRST_RUN_GATE, only: "first-run-coverage", expect: "first-run-coverage" },
+  "first-run-add-tabs-permission": { gate: FIRST_RUN_GATE, only: "first-run-coverage", expect: "first-run-coverage" },
 };
-const CONTROLS_EXPECTED = 22;
+const CONTROLS_EXPECTED = 25;
 
 // Owner ruling, 3 Aug 2026: keep these honest-degradation states, but never
 // manufacture a green mutation result for branches no supported host can
@@ -85,7 +89,7 @@ for (const [name, item] of untestableEntries) {
 }
 for (const [name, m] of Object.entries(MATRIX)) {
   process.stderr.write(`\n══ mutation ${name} ══\n`);
-  const r = spawnSync(process.execPath, [GATE], {
+  const r = spawnSync(process.execPath, [m.gate || GATE], {
     env: { ...process.env, E2E_MUT: name, E2E_ONLY: m.only },
     encoding: "utf8", timeout: 10 * 60 * 1000,
   });

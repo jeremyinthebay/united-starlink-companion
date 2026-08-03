@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Finish setting up WiFi Odds</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050505;
+      --card: #0d0d0f;
+      --edge: #29292f;
+      --ink: #fff;
+      --dim: #a6a6ad;
+      --cyan: #29d8ff;
+      --violet: #926cff;
+      --green: #54f09b;
+      --mono: "SF Mono", ui-monospace, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.5 Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    main { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: 38px 0 28px; }
+    .wordmark {
+      margin: 0 0 10px;
+      color: var(--cyan);
+      font: 800 13px/1 var(--mono);
+      letter-spacing: .08em;
+      background: linear-gradient(105deg, var(--cyan), #7cc9ff 48%, var(--violet));
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    h1 { margin: 0; max-width: 650px; font-size: clamp(30px, 5vw, 46px); line-height: 1.04; letter-spacing: -.04em; }
+    .intro { max-width: 660px; margin: 14px 0 22px; color: var(--dim); }
+    .hosts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+    .host { min-height: 176px; padding: 17px; border: 1px solid var(--edge); border-radius: 14px; background: var(--card); }
+    .host-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    h2 { margin: 0; font: 750 15px/1.2 var(--mono); }
+    .state { flex: 0 0 auto; font: 750 10px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    .state-on { color: var(--green); }
+    .state-off { color: var(--dim); }
+    .host p { margin: 11px 0 0; color: #d7d7dc; font-size: 13px; line-height: 1.45; }
+    .scope { color: var(--dim) !important; font-size: 11px !important; }
+    button {
+      min-height: 44px;
+      width: 100%;
+      margin-top: 14px;
+      padding: 10px 14px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      color: #05060a;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      font: 800 12px/1.2 var(--mono);
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.08); }
+    button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+    button:disabled { cursor: default; filter: none; opacity: .7; }
+    button[data-granted="true"] { color: var(--green); background: transparent; border-color: var(--green); opacity: 1; }
+    .foot { margin: 18px 0 0; color: var(--dim); font-size: 12px; }
+    @media (max-width: 620px) {
+      main { padding-top: 26px; }
+      .hosts { grid-template-columns: 1fr; }
+      .host { min-height: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="wordmark">🛰️ WIFI ODDS</p>
+    <h1>Choose where WiFi Odds can help.</h1>
+    <p class="intro">United and Navan work immediately. Alaska and Google Flights are optional: grant only the sites you use, from this page or later in the extension popup.</p>
+
+    <ul class="hosts" aria-label="Supported flight-search sites">
+      <li class="host" data-host="united">
+        <div class="host-head"><h2>united.com</h2><span class="state state-on">access on</span></div>
+        <p>Per-flight next-gen odds and labels. Single-airline results sort automatically; undo and Settings remain available.</p>
+      </li>
+      <li class="host" data-host="alaska">
+        <div class="host-head"><h2>alaskaair.com</h2><span id="state-alaska" class="state state-off" role="status" aria-live="polite">optional access off</span></div>
+        <p>Per-flight next-gen odds and labels. Single-airline results sort automatically; undo and Settings remain available.</p>
+        <button id="grant-alaska" type="button" data-host="alaska">Allow on alaskaair.com</button>
+      </li>
+      <li class="host" data-host="navan">
+        <div class="host-head"><h2>app.navan.com</h2><span class="state state-on">access on</span></div>
+        <p>United rows can show per-flight odds. The booking site's order is preserved until you choose Prioritize United.</p>
+      </li>
+      <li class="host" data-host="gflights">
+        <div class="host-head"><h2>Google Flights</h2><span id="state-gflights" class="state state-off" role="status" aria-live="polite">optional access off</span></div>
+        <p>Recognized airlines get ConnectScore; a visible United or Alaska flight number can upgrade to per-flight odds. WiFi Odds never reorders Google Flights.</p>
+        <p class="scope">Chrome grants all of www.google.com. WiFi Odds injects only on google.com/travel/flights search results—not Search, Gmail, or checkout.</p>
+        <button id="grant-gflights" type="button" data-host="gflights">Allow on Google Flights</button>
+      </li>
+    </ul>
+
+    <p class="foot">Done when you are. Close this tab and search for a flight.</p>
+  </main>
+  <script src="coverage.js"></script>
+</body>
+</html>

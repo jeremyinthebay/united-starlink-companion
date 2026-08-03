@@ -27,6 +27,7 @@ PKGVER=$(node -e "console.log(require('$TMP/manifest.json').version)")
 node --check "$TMP/bg.js"
 node --check "$TMP/content.js"
 node --check "$TMP/popup.js"
+node --check "$TMP/coverage.js"
 [ -f "$TMP/manifest.json" ] || { echo "FAIL: manifest.json not at zip root"; exit 1; }
 # Chrome Web Store rejects a manifest description over 132 chars — guard it so a
 # too-long description can never ship again (it blocked the first v2.2 upload).

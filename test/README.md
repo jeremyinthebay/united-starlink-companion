@@ -67,6 +67,13 @@ node phase2-e2e.mjs
 
 Writes `out/phase2-report.md` and screenshots to `out/shots/`.
 
+## First-run coverage (`first-run-coverage-e2e.mjs`)
+
+Loads the extension into a new profile and requires the install event to open the one-screen
+coverage page. It exercises denial, retry and grant states for Alaska and Google Flights while
+proving the requested origins still come from `optional_host_permissions` and no named permission
+was added. Set `E2E_OUT=/tmp/...` to keep its screenshot outside the worktree.
+
 ## Politeness
 
 This tracker is @martinamps' work. The client throttles to one request at a time
