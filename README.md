@@ -96,3 +96,14 @@ A Git tag and changelog release record source identity; neither claims the Chrom
 published that source. Before Jeremy uploads, the entry says `Chrome Web Store: not uploaded`.
 Store upload and Submit remain Jeremy's manual actions, and the public website's release ledger moves
 only after the live listing has been owner-verified.
+
+## Shared driver lock
+
+This repository shares the relay's one-driver-at-a-time lock. Install the enforcement once per clone:
+
+    sh install-driver-lock-hooks.sh
+
+Both `pre-commit` and `pre-push` then read `wifiodds-relay/exchange/.driver-lock`. An active lock held
+by a different `WIFIODDS_DRIVER_ID` blocks the write. A missing, malformed, expired or dead-pid lock
+logs and allows, matching the relay's fail-open stale-lock semantics so an unattended refresh cannot
+be wedged by a bad lock file. Run `sh test/driver-lock-hooks-gate.sh` for healthy and failing controls.
