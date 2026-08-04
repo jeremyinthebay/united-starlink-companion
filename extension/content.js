@@ -713,7 +713,8 @@
       // round 26): an unlabelled "🛰 42" meant ConnectScore here and per-flight
       // next-gen odds on united.com, with nothing on screen to tell them apart.
       return {
-        sig: "live|" + fn + "|" + hit.prob + "|" + (hit.dep ? hit.dep.tail : "") + "|" + (hit.conf || "") + opSig,
+        sig: "live|" + fn + "|" + hit.prob + "|" + (hit.obs || 0) + "|" +
+          (hit.dep ? hit.dep.tail : "") + "|" + (hit.conf || "") + opSig,
         cn: "usl-badge usl-gf-chip usl-gf-live " + cls(hit.prob),
         tx: "NEXT-GEN " + hit.prob + "%" + (hit.dep ? " ✓" : ""),
         ti: fn + ": " +
@@ -724,6 +725,8 @@
           (hit.dep ? " — CONFIRMED Starlink tail " + hit.dep.tail : "") +
           " · data: " + (key === "alaska" ? "alaskastarlinktracker.com" : "unitedstarlinktracker.com") +
           opNote + " · " + GF_CREDIT,
+        record: flightEvidenceRecord(fn, hit, { k: "prob", value: hit.prob + "%" },
+          metricEvidence("tracker", WIFI_AIRLINES[key])),
       };
     }
     if (hit === null) {
@@ -734,6 +737,8 @@
         tx: "NEXT-GEN —",
         ti: fn + ": no per-flight next-gen history for this flight number yet" +
           opNote + " · " + GF_CREDIT,
+        record: flightEvidenceRecord(fn, null, { k: "nohistory", value: "—" },
+          metricEvidence("tracker", WIFI_AIRLINES[key])),
       };
     }
     // Tier 1: the airline's static STREAMING-class ConnectScore. This is NOT a
@@ -748,6 +753,7 @@
       ti: a.name + " · streaming-class ConnectScore " + a.score + " (" + a.label + ") — " +
         a.systemLabel + " on " + fleet + (freeTxt ? ", " + freeTxt : "") + ". " +
         (a.note || "") + opNote + " · " + GF_CREDIT,
+      record: connectScoreEvidenceRecord(a),
     };
   }
 
@@ -759,12 +765,13 @@
    * observe childList/subtree only, never attributes. */
   function gfChipFill(chip, key, fn, hit, op) {
     const s = gfChipState(key, fn, hit, op);
-    if (!s) return;
-    if (chip.dataset.gfSig === s.sig) return;
+    if (!s) return chip;
+    if (chip.dataset.gfSig === s.sig) return chip;
     chip.dataset.gfSig = s.sig;
     chip.className = s.cn;
     chip.textContent = s.tx;
     chip.title = s.ti;
+    return typeof USLEvidence !== "undefined" ? USLEvidence.upgrade(chip, s.record) : chip;
   }
 
   // The chip is attached next to the text node that named the airline, so it
@@ -861,7 +868,7 @@
         // Re-fill every pass: cheap, idempotent, and how Tier 1 upgrades to
         // Tier 2 once the odds arrive.
         chip.dataset.gfFn = fn || "";
-        gfChipFill(chip, key, fn, hit, op);
+        chip = gfChipFill(chip, key, fn, hit, op);
         if (chip.textContent) badgedRows.add(row);
       } catch (e) { /* one bad row never stops the rest */ }
     }
@@ -924,13 +931,13 @@
         const txt = ng === null ? "n/a" : (share > 0 && ng === 0 ? "<1%" : ng + "%");
         return `<div class="usl-row" title="${esc(a.note || "")}">` +
           `<span>${esc(a.name)}<span class="usl-time"> · ${esc(a.nextGenLabel || "no next-gen fleet announced")}</span></span>` +
-          `<span class="usl-badge ${ng === null ? "usl-na" : cls(ng)}">${txt}</span></div>`;
+          `<span class="usl-badge ${ng === null ? "usl-na" : cls(ng)}" data-evidence-fleet="${esc(a.key)}">${txt}</span></div>`;
       }).join("") +
       `<p class="usl-sect usl-sect--stream">Streaming-class · ConnectScore</p>` +
       ranked.map((a) =>
         `<div class="usl-row usl-stream" title="${esc(a.note || "")}">` +
         `<span>${esc(a.name)}<span class="usl-time"> · ${esc(a.systemLabel)}${a.fleet ? " " + a.equipped + "/" + a.fleet : ""}</span></span>` +
-        `<span class="usl-badge usl-cs ${cls(a.score)}">${a.score}</span></div>`).join("") +
+        `<span class="usl-badge usl-cs ${cls(a.score)}" data-evidence-connect="${esc(a.key)}">${a.score}</span></div>`).join("") +
       `<div style="margin-top:8px;font-size:11px;opacity:.75;line-height:1.45">` +
       `Next-gen odds = chance of a Starlink aircraft today (Amazon Leo from 2027, none flying yet). ConnectScore = odds of the good satellite wifi today, not of any wifi. ` +
       (liveRows ? `United and Alaska rows upgrade to live per-flight odds when Google shows a flight number. ` : ``) +
@@ -938,6 +945,7 @@
       `<div style="margin-top:8px;font-size:11.5px">` +
       `<a href="https://wifiodds.com/" target="_blank" rel="noopener" style="color:#8ecdff">${esc(GF_CREDIT)} ↗</a>` +
       `</div></div>`;
+    upgradePanelEvidence(p, [], null);
     p.querySelector("header").addEventListener("click", () => {
       p.classList.toggle("usl-collapsed");
       try { chrome.storage.local.set({ uslCollapsed: p.classList.contains("usl-collapsed") }); } catch (e) {}
@@ -1010,7 +1018,8 @@
   }
   function metricEvidence(kind, entry) {
     if (kind === "tracker") {
-      return { tier: "REPORTED", source: TRACKER, date: "source date not provided" };
+      return { tier: "REPORTED", source: entry && entry.tracker ? entry.tracker : TRACKER,
+        date: "source date not provided" };
     }
     return {
       tier: "MODELLED",
@@ -1024,6 +1033,45 @@
     el.dataset.evidenceSource = evidence.source;
     el.dataset.evidenceDate = evidence.date;
     el.title = evidenceText(evidence);
+  }
+  function flightEvidenceRecord(fn, hit, st, evidence) {
+    const isProbability = st.k === "prob" && hit && typeof hit.prob === "number";
+    return USLEvidence.flight({ fn, probability: isProbability ? hit.prob : null,
+      observations: obsCount(hit), confidence: hit && hit.conf,
+      stateText: isProbability ? "" : "No per-flight next-gen figure is available for this state.",
+      source: evidence.source, sourceDate: evidence.date });
+  }
+  function connectScoreEvidenceRecord(entry) {
+    return USLEvidence.connectScore({ airline: entry });
+  }
+  function fleetNextGenEvidenceRecord(entry, valueText) {
+    return USLEvidence.fleetNextGen({ airline: entry, valueText });
+  }
+  function itineraryEvidenceRecord(itin) {
+    return USLEvidence.itinerary({ subject: "All-legs next-gen estimate", probability: itin.joint,
+      legs: itin.legs, confidence: itin.coverage, source: TRACKER, sourceDate: "source date not provided" });
+  }
+  function panelFlightEvidenceRecord(f) {
+    const hit = probMap.get(f.fn) || { prob: f.prob };
+    return flightEvidenceRecord(f.fn, hit, { k: "prob", value: f.prob + "%" }, metricEvidence("tracker"));
+  }
+  function upgradePanelEvidence(root, flights, itin) {
+    if (typeof USLEvidence === "undefined" || !root) return;
+    root.querySelectorAll("[data-evidence-fn]").forEach((node) => {
+      const f = (flights || []).find((x) => x.fn === node.dataset.evidenceFn);
+      if (f) USLEvidence.upgrade(node, panelFlightEvidenceRecord(f));
+    });
+    root.querySelectorAll("[data-evidence-connect]").forEach((node) => {
+      const entry = airlineEntry(node.dataset.evidenceConnect);
+      USLEvidence.upgrade(node, connectScoreEvidenceRecord(entry));
+    });
+    root.querySelectorAll("[data-evidence-fleet]").forEach((node) => {
+      const entry = airlineEntry(node.dataset.evidenceFleet);
+      USLEvidence.upgrade(node, fleetNextGenEvidenceRecord(entry, node.textContent));
+    });
+    root.querySelectorAll("[data-evidence-itinerary]").forEach((node) => {
+      if (itin) USLEvidence.upgrade(node, itineraryEvidenceRecord(itin));
+    });
   }
   /* Build the group. Returns an element, or null when there is nothing honest
    * to say yet. `fn` may be null for a carrier-only row (Google Flights). */
@@ -1066,6 +1114,7 @@
         v.className = "usl-ng__value" + (st.k === "prob" ? " usl-badge " + cls(hit.prob) : "");
         v.textContent = (st.k === "prob" && typed ? "~" : "") + val;
         line.appendChild(v);
+        if (typeof USLEvidence !== "undefined") USLEvidence.upgrade(v, flightEvidenceRecord(fn, hit, st, ngEvidence));
       }
       grp.appendChild(line);
       ngText = def.label + " " + (val || "");
@@ -1094,6 +1143,7 @@
         v.className = "usl-stream__value";
         v.textContent = String(entry.score);
         line.appendChild(v);
+        if (typeof USLEvidence !== "undefined") USLEvidence.upgrade(v, connectScoreEvidenceRecord(entry));
         const w = document.createElement("span");
         w.className = "usl-stream__word";     // hidden at narrow widths
         w.textContent = "ConnectScore";
@@ -1104,6 +1154,7 @@
         v.className = "usl-stream__value usl-stream__value--none";
         v.textContent = "No ConnectScore";
         line.appendChild(v);
+        if (typeof USLEvidence !== "undefined") USLEvidence.upgrade(v, connectScoreEvidenceRecord(entry));
         streamText = "No streaming-class ConnectScore for this airline";
       }
       grp.appendChild(line);
@@ -1143,7 +1194,7 @@
       (showStream ? streamText + `. Evidence: ${evidenceText(streamEvidence)}` : "") +
       (hit && hit.dep && fn && !guardContradicts(fn) ? `. Confirmed Starlink tail ${hit.dep.tail} for ${hit.dep.date}` : "") +
       ".";
-    grp.setAttribute("role", "img");
+    grp.setAttribute("role", "group");
     grp.setAttribute("aria-label", sentence);
     grp.title = sentence;
     return grp;
@@ -1788,7 +1839,8 @@
         ` aria-label="Not enough to compare: only ${esc(only.fn)} has a historical Starlink score.">` +
         `<p class="usl-decision__kicker">Not enough to compare</p>` +
         `<p class="usl-decision__comparison">Only ${esc(only.fn)} has a score</p>` +
-        `<p class="usl-decision__evidence">${esc(ev)} · Historical tracker odds</p>` +
+        `<p class="usl-decision__evidence"><span class="usl-badge ${cls(only.prob)}" data-evidence-fn="${esc(only.fn)}">${only.prob}%</span>` +
+        (obsN ? ` · ${obsN} tracked departures` : "") + ` · Historical tracker odds</p>` +
         `<p class="usl-decision__note">${orderNote("single")}</p>` +
         `</section>`;
     }
@@ -1805,7 +1857,7 @@
         // candidate. Name the fact; ambiguity is never converted to a negative.
         reason = `${excluded[0].fn} is confirmed non-Starlink for this date`;
         detail = field.length
-          ? `${esc(field[0].fn)} ${field[0].prob}% is the only other scored flight.`
+          ? `${esc(field[0].fn)} <span class="usl-badge ${cls(field[0].prob)}" data-evidence-fn="${esc(field[0].fn)}">${field[0].prob}%</span> is the only other scored flight.`
           : `No other scored flight to compare.`;
       } else {
         const best = field[0], second = field[1];
@@ -1818,7 +1870,8 @@
           : `Top two are ${gap} point${gap === 1 ? "" : "s"} apart`;
         detail = lowGrade
           ? `${esc(best.fn)} leads, but its odds are not decision-grade.`
-          : `${esc(best.fn)} ${best.prob}% · ${esc(second.fn)} ${second.prob}%`;
+          : `${esc(best.fn)} <span class="usl-badge ${cls(best.prob)}" data-evidence-fn="${esc(best.fn)}">${best.prob}%</span> · ` +
+            `${esc(second.fn)} <span class="usl-badge ${cls(second.prob)}" data-evidence-fn="${esc(second.fn)}">${second.prob}%</span>`;
       }
       return `<section class="usl-decision usl-decision--close" data-usl-state="close" role="status"` +
         ` aria-live="${stripLive("close")}" aria-busy="false"` +
@@ -1852,7 +1905,7 @@
       ` aria-label="${esc(aria)}" aria-labelledby="usl-decision-title">` +
       `<div class="usl-decision__top">` +
         `<p class="usl-decision__kicker">Best WiFi choice</p>` +
-        `<span class="usl-badge ${cls(best.prob)}" aria-hidden="true">${best.prob}%</span>` +
+        `<span class="usl-badge ${cls(best.prob)}" data-evidence-fn="${esc(best.fn)}">${best.prob}%</span>` +
       `</div>` +
       `<h2 id="usl-decision-title" class="usl-decision__title">${esc(best.fn)}</h2>` +
       `<p class="usl-decision__comparison">${gap} points higher historical odds than ${esc(second.fn)}</p>` +
@@ -1897,7 +1950,7 @@
       rows.map((a) =>
         `<div class="usl-row usl-stream" title="${esc(a.note || "")}">` +
         `<span>${esc(a.name)}<span class="usl-time"> · ${esc(a.systemLabel)}</span></span>` +
-        `<span class="usl-badge usl-cs ${a.cls || cls(a.score)}">${a.score}</span></div>`).join("");
+        `<span class="usl-badge usl-cs ${a.cls || cls(a.score)}" data-evidence-connect="${esc(a.key)}">${a.score}</span></div>`).join("");
   }
 
   function updatePanelSortBtn() {
@@ -2005,11 +2058,12 @@
       (flights.length ? `<p class="usl-sect">Next-gen odds · Starlink and Amazon Leo</p>` : "") +
       (flights.length
         ? flights.map((f, i) =>
-            `<div class="usl-row usl-jump" data-fn="${esc(f.fn)}" role="button" tabindex="0" aria-label="Jump to ${esc(f.fn)} on the page">` +
-            `<span>${f.fn === winFn ? "⭐ " : ""}${esc(f.fn)}${probMap.get(f.fn) && probMap.get(f.fn).dep && !guardContradicts(f.fn) ? " ✓" : ""}` +
+            `<div class="usl-row usl-jump" data-fn="${esc(f.fn)}">` +
+            `<button type="button" class="usl-jump-control" data-fn="${esc(f.fn)}" aria-label="Jump to ${esc(f.fn)} on the page">` +
+            `${f.fn === winFn ? "⭐ " : ""}${esc(f.fn)}${probMap.get(f.fn) && probMap.get(f.fn).dep && !guardContradicts(f.fn) ? " ✓" : ""}` +
             (isGuarded(f.fn) ? GUARD_MARK : "") +
-            `<span class="usl-time" data-time="${esc(f.fn)}"></span>${obsSpan(f.fn)}</span>` +
-            `<span class="usl-badge ${cls(f.prob)}">${f.prob}%</span></div>`).join("")
+            `<span class="usl-time" data-time="${esc(f.fn)}"></span>${obsSpan(f.fn)}</button>` +
+            `<span class="usl-badge ${cls(f.prob)}" data-evidence-fn="${esc(f.fn)}">${f.prob}%</span></div>`).join("")
         : "") +
       (fromFallback && flights.length ? `<div style="margin-top:6px;font-size:11px;opacity:.7">Flights in these results · per-flight odds (no Starlink route history yet)</div>` : "") +
       // The carrier-framed action renders ONLY on mixed-carrier hosts. On
@@ -2018,7 +2072,7 @@
       // flight-specific action instead.
       (flights.length && NAVAN ? `<button type="button" class="usl-sortbtn usl-prioritize" aria-pressed="${prioritizeActive ? "true" : "false"}" style="display:none">Prioritize United flights with available WiFi odds; unscored flights follow</button>` : "") +
       (itin ? `<div class="usl-row" style="border-top:1px solid rgba(148,178,255,.14);margin-top:6px;padding-top:8px">` +
-        `<span>via ${esc(itin.via.join("+"))} · all-legs estimate</span><span class="usl-badge ${cls(Math.round(itin.joint))}">${Math.round(itin.joint)}%</span></div>` : "") +
+        `<span>via ${esc(itin.via.join("+"))} · all-legs estimate</span><span class="usl-badge ${cls(Math.round(itin.joint))}" data-evidence-itinerary="1">${Math.round(itin.joint)}%</span></div>` : "") +
       (deps.length ? `<div style="margin-top:8px;font-size:11px;opacity:.75">Confirmed tails (next ~72h): ` +
         deps.map((d) => `${esc(d.fn)} ${esc(d.date.slice(5))}`).join(" · ") + `</div>` :
         (ctx.date && daysOut(ctx.date) > 3 ? `<div style="margin-top:8px;font-size:11px;opacity:.6">Tail assignments publish ~48h out — firm ✓s appear closer to ${esc(fmtDate(ctx.date))}.</div>` : "")) +
@@ -2030,6 +2084,7 @@
       (typed ? `<span style="opacity:.55"> · odds derived from aircraft type</span>` : "") +
       (rel ? `<span style="opacity:.55"> · ✓ = confirmed Starlink tail</span>` : "") + `</div>` +
       `</div>`;
+    upgradePanelEvidence(p, flights, itin);
     // Collapse control: a real <button> carrying aria-expanded. Clicking the
     // header title (not a button) also toggles, for mouse convenience.
     const collapseBtn = p.querySelector(".usl-x");
@@ -2067,11 +2122,10 @@
     });
     // Jump rows are keyboard-operable (role=button tabindex=0): Enter/Space jump,
     // exactly like a click; ghost rows (not on the page) neither jump nor focus.
-    p.querySelectorAll(".usl-jump").forEach((row) => {
-      const jump = () => { if (!row.classList.contains("usl-ghost")) gotoFlight(row.dataset.fn); };
-      row.addEventListener("click", jump);
-      row.addEventListener("keydown", (ev) => {
-        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); jump(); }
+    p.querySelectorAll(".usl-jump-control").forEach((control) => {
+      control.addEventListener("click", () => {
+        const row = control.closest(".usl-jump");
+        if (!row || !row.classList.contains("usl-ghost")) gotoFlight(control.dataset.fn);
       });
     });
     // Bug 4 ruling: one explicit, keyboard-operable action. Off by default; the

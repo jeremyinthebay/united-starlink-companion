@@ -1120,11 +1120,10 @@ const DYN_GFLIGHTS_ID = "usl-dyn-gflights";
 const GFLIGHTS_ORIGINS = ["https://www.google.com/*"];
 const GFLIGHTS_MATCHES = ["https://www.google.com/travel/*"];
 
-// airlines.js must load BEFORE content.js: it defines WIFI_AIRLINES /
-// scoreAirline as top-level consts in the isolated world, which content.js
-// reads to build the Google Flights ConnectScore chips. Order matters, and it
-// has to match manifest.json's static content_scripts js list.
-const DYN_JS = ["airlines.js", "content.js"];
+// Script order matches the static manifest: airlines.js defines the fleet
+// model, evidence.js defines the local disclosure contract, and content.js
+// consumes both in the same isolated world.
+const DYN_JS = ["airlines.js", "evidence.js", "content.js"];
 const DYN_CSS = ["content.css"];
 
 const DYN_SCRIPTS = [

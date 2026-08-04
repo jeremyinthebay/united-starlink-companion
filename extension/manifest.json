@@ -30,6 +30,7 @@
       ],
       "js": [
         "airlines.js",
+        "evidence.js",
         "content.js"
       ],
       "css": [

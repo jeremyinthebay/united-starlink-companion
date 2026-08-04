@@ -29,6 +29,9 @@ boarding and alert when the assignment changes.
   or say `source date not provided`.
 - The first automatic single-carrier reorder explains why it happened and points directly to
   Settings; already-ranked and manually prioritised pages do not show that cue.
+- Every decision-bearing figure opens a local evidence disclosure with its definition, evidence
+  tier, source, source date, sample/resolution and exact ranking authority. Opening a disclosure
+  sends no message, makes no network request and collects no new data.
 
 ## Sort behaviour
 

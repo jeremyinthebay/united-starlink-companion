@@ -81,6 +81,18 @@ function jumpTo(fn) {
   });
 }
 
+function popupFlightEvidence(f, o, d) {
+  return USLEvidence.flight({ fn: f.fn, probability: f.prob, observations: f.obs,
+    confidence: f.conf, source: TRACKER_HOST[airline()], sourceDate: "source date not provided" });
+}
+function popupItineraryEvidence(it) {
+  return USLEvidence.itinerary({ subject: "All-legs next-gen estimate", probability: it.joint,
+    legs: it.legs, confidence: it.coverage, source: TRACKER_HOST[airline()], sourceDate: "source date not provided" });
+}
+function popupConnectScoreEvidence(a) {
+  return USLEvidence.connectScore({ airline: a });
+}
+
 function renderFlights(flights, o, d) {
   var top = flights.slice(0, 8);
   if (!top.length) return null;
@@ -90,31 +102,27 @@ function renderFlights(flights, o, d) {
     onPage ? "Flights — highest odds first · click to jump to it on the page" : "Flights — highest odds first"));
   top.forEach(function (f, i) {
     var row = el("div", "usl-flight-row");
-    var left = el("div", "usl-flight-left");
+    var times = pageFlights[f.fn];
+    var canJump = times !== undefined && onPage;
+    var left = el(canJump ? "button" : "div", "usl-flight-left");
     // Ranked history is not a recommendation. The popup has no reliable
     // exact-date Guard fact, so it deliberately never crowns row zero; the
     // injected decision card is the only surface allowed to name a winner.
     left.appendChild(el("span", null, f.fn));
-    var times = pageFlights[f.fn];
     if (times) left.appendChild(el("span", "usl-time", times));
     var right = el("div", "usl-flight-right");
-    right.appendChild(el("span", "usl-pct " + pctClass(f.prob), f.prob + "%"));
+    var pct = el("span", "usl-pct " + pctClass(f.prob), f.prob + "%");
+    right.appendChild(pct);
+    if (typeof USLEvidence !== "undefined") USLEvidence.upgrade(pct, popupFlightEvidence(f, o, d));
     right.appendChild(el("span", "usl-obs", f.obs + " obs"));
     row.appendChild(left);
     row.appendChild(right);
-    if (times !== undefined && onPage) {
-      // Keyboard-operable jump row (Codex P2-05): native-button semantics on the
-      // div — Tab reaches it, Enter/Space jump exactly like a click.
-      row.classList.add("usl-clickable");
-      row.setAttribute("role", "button");
-      row.tabIndex = 0;
-      row.setAttribute("aria-label", "Jump to " + f.fn + " on the page");
-      row.title = "Scroll the booking tab to " + f.fn;
-      var jump = function () { jumpTo(f.fn); };
-      row.addEventListener("click", jump);
-      row.addEventListener("keydown", function (ev) {
-        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); jump(); }
-      });
+    if (canJump) {
+      left.type = "button";
+      left.classList.add("usl-clickable");
+      left.setAttribute("aria-label", "Jump to " + f.fn + " on the page");
+      left.title = "Scroll the booking tab to " + f.fn;
+      left.addEventListener("click", function () { jumpTo(f.fn); });
     } else if (onPage) {
       row.classList.add("usl-ghost");
       row.setAttribute("aria-disabled", "true");
@@ -142,7 +150,9 @@ function renderItins(itins) {
     row.style.justifyContent = "space-between";
     row.style.gap = "8px";
     row.appendChild(el("span", null, (path ? path + " · " : "") + it.hours + "h"));
-    row.appendChild(el("span", "usl-pct " + pctClass(it.joint), it.joint + "%"));
+    var joint = el("span", "usl-pct " + pctClass(it.joint), it.joint + "%");
+    row.appendChild(joint);
+    if (typeof USLEvidence !== "undefined") USLEvidence.upgrade(joint, popupItineraryEvidence(it));
     wrap.appendChild(row);
   });
   return wrap;
@@ -480,7 +490,9 @@ function renderConnectScores() {
     var right = el("div", null);
     right.style.display = "flex";
     right.style.alignItems = "baseline";
-    right.appendChild(el("span", "usl-cs-chip " + a.cls, String(a.score)));
+    var score = el("span", "usl-cs-chip " + a.cls, String(a.score));
+    right.appendChild(score);
+    if (typeof USLEvidence !== "undefined") USLEvidence.upgrade(score, popupConnectScoreEvidence(a));
     right.appendChild(el("span", "usl-cs-label", a.label));
 
     head.appendChild(name);
@@ -608,6 +620,36 @@ function tripLine(t) {
   return { cls: "usl-t-early", txt: "… not checked yet" };
 }
 
+function trackerForFlight(fn) {
+  return /^AS/.test(String(fn || "")) ? "alaskastarlinktracker.com" : "unitedstarlinktracker.com";
+}
+
+function wrapTripFigure(root, needle, fn, probability, meta) {
+  if (!root || typeof USLEvidence === "undefined" || !Number.isFinite(probability)) return null;
+  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  var node;
+  while ((node = walker.nextNode())) {
+    var at = node.nodeValue.indexOf(needle);
+    if (at < 0) continue;
+    var before = node.nodeValue.slice(0, at);
+    var after = node.nodeValue.slice(at + needle.length);
+    var figure = el("span", "usl-trip-figure", needle);
+    var parent = node.parentNode;
+    if (before) parent.insertBefore(document.createTextNode(before), node);
+    parent.insertBefore(figure, node);
+    if (after) parent.insertBefore(document.createTextNode(after), node);
+    parent.removeChild(node);
+    meta = meta || {};
+    return USLEvidence.upgrade(figure, USLEvidence.flight({
+      fn: fn, probability: probability, observations: meta.observations,
+      confidence: meta.confidence || (meta.typeDerived ? "type" : null),
+      source: meta.source || trackerForFlight(fn),
+      sourceDate: meta.sourceDate || "source date not provided",
+    }));
+  }
+  return null;
+}
+
 function renderHistory(t) {
   var h = histOf(t);
   if (!h.length) return null;
@@ -668,6 +710,16 @@ function renderTrips(trips) {
     var chip = el("span", "usl-chip " + st.cls, st.label);
     sub.appendChild(chip);
     sub.appendChild(document.createTextNode(line.txt));
+    var alt = t.lastStatus === "no" && t.alts && t.alts[0];
+    if (alt && Number.isFinite(alt.pct)) {
+      var altFn = (String(alt.flights || "").match(/\b(?:UA|AS)\d{1,4}\b/) || [String(alt.flights || "Alternative")])[0];
+      wrapTripFigure(sub, alt.pct + "%", altFn, alt.pct, {});
+    }
+    if (t.lastStatus === "early" && Number.isFinite(t.prob)) {
+      wrapTripFigure(sub, t.prob + "%", t.fn, t.prob, {
+        typeDerived: t.typeDerived,
+      });
+    }
     // Stale data: last check failed, so say when the state was last confirmed.
     if (t.lastError && t.asOf) sub.appendChild(el("span", "usl-asof", "as of " + fmtTs(t.asOf)));
     left.appendChild(sub);

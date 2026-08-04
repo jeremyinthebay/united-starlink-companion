@@ -206,6 +206,69 @@ const MUTATIONS = {
     expect: "guard-shortlist-capture",
     note: "the trip-check loop stops clearing captured alternatives after departure",
   },
+  "disclosure-drop-source-date": {
+    file: "evidence.js",
+    from: 'line(drawer, "Source date", rec.sourceDate);',
+    to: 'line(drawer, "Source date", "");',
+    expect: "figure-disclosure-row-contract",
+    note: "drawer hides the required source date",
+  },
+  "disclosure-connectscore-ranks-flight": {
+    file: "evidence.js",
+    from: "Never ranks flight rows or names a Best WiFi choice.",
+    to: "May rank flight rows and name a Best WiFi choice.",
+    expect: "figure-disclosure-google-model",
+    note: "ConnectScore claims per-flight decision authority",
+  },
+  "disclosure-fabricates-sample": {
+    file: "evidence.js",
+    from: 'var MISSING_SAMPLE = "sample not provided";',
+    to: 'var MISSING_SAMPLE = "50 tracked departures";',
+    expect: "figure-disclosure-row-contract",
+    note: "missing sample becomes an invented observation count",
+  },
+  "disclosure-span-trigger": {
+    file: "evidence.js",
+    from: 'var TRIGGER_TAG = "button";',
+    to: 'var TRIGGER_TAG = "span";',
+    expect: "figure-disclosure-popup",
+    note: "native keyboard trigger regresses to a span",
+  },
+  "disclosure-unchanged-rewrite-loop": {
+    file: "content.js",
+    from: 'if (chip.dataset.gfSig === s.sig) return chip;',
+    to: 'if (chip.dataset.gfSig === s.sig) return typeof USLEvidence !== "undefined" ? USLEvidence.upgrade(chip, s.record) : chip;',
+    expect: "figure-disclosure-google-model",
+    note: "an unchanged Google Flights chip rebuilds its drawer and retriggers the page observer forever",
+  },
+  "disclosure-alaska-united-source": {
+    file: "content.js",
+    from: 'source: entry && entry.tracker ? entry.tracker : TRACKER,',
+    to: 'source: TRACKER,',
+    expect: "figure-disclosure-google-alaska-source",
+    note: "an Alaska flight on Google Flights falsely inherits the United tracker source",
+  },
+  "disclosure-guard-popup-plain": {
+    file: "popup.js",
+    from: 'if (!root || typeof USLEvidence === "undefined" || !Number.isFinite(probability)) return null;',
+    to: 'if (true) return null;',
+    expect: "guard-popup-state-matrix",
+    note: "Guard current and rescue odds regress to non-interactive plain text",
+  },
+  "disclosure-guard-excluded-plain": {
+    file: "content.js",
+    from: '? `${esc(field[0].fn)} <span class="usl-badge ${cls(field[0].prob)}" data-evidence-fn="${esc(field[0].fn)}">${field[0].prob}%</span> is the only other scored flight.`',
+    to: '? `${esc(field[0].fn)} ${field[0].prob}% is the only other scored flight.`',
+    expect: "united-guard-b-disqualifies",
+    note: "the Guard-excluded refusal leaves its remaining decision figure without evidence",
+  },
+  "disclosure-guard-stale-source-date": {
+    file: "popup.js",
+    from: 'typeDerived: t.typeDerived,\n      });',
+    to: 'typeDerived: t.typeDerived,\n        sourceDate: t.guardPrediction && t.guardPrediction.sourceDate,\n      });',
+    expect: "guard-popup-state-matrix",
+    note: "a later Guard check probability inherits the unrelated guard-time flight date as its source date",
+  },
   /* NOT IN THE MATRIX RUN, deliberately, and this is a COVERAGE GAP worth
    * stating rather than hiding. `fleet` / `announced` / `notinfleet` /
    * `nofleet` are four of the seven row states, and none of them can render on
@@ -387,6 +450,17 @@ function navanFixture({ o, d, rows = [], topHtml = "" }) {
 function googleFixture() {
   return '<!doctype html><html><body><h1>Travel hotels</h1><p>No flight results on this path.</p></body></html>';
 }
+function googleFlightsFixture() {
+  return `<!doctype html><html><body><h1>Flights SFO to DEN</h1><ul>
+    <li style="padding:12px">8:30 a.m. – 10:20 a.m. · Delta · DL 123 · SFO to DEN</li>
+    <li style="padding:12px">11:05 a.m. – 1:15 p.m. · United 1596 · SFO to DEN</li>
+  </ul></body></html>`;
+}
+function googleFlightsAlaskaFixture() {
+  return `<!doctype html><html><body><h1>Flights SEA to SFO</h1><ul>
+    <li style="padding:12px">8:30 a.m. – 10:20 a.m. · Alaska · AS 330 · SEA to SFO</li>
+  </ul></body></html>`;
+}
 
 function alaskaFixture({ o, d, rows = [] }) {
   const rowHtml = rows.map((r) =>
@@ -523,6 +597,10 @@ function stripProbe() {
     ring: !!document.querySelector(".usl-badge.usl-best"),
     boundaryCount: document.querySelectorAll(".usl-boundary").length,
     prioritizeBtn: !!document.querySelector(".usl-prioritize"),
+    decisionFigures: s ? [...s.querySelectorAll('[data-evidence-kind="flight-nextgen"]')].map((e) => ({
+      text: e.textContent || "", source: e.dataset.evidenceSource || "",
+      drawer: document.getElementById(e.getAttribute("aria-controls"))?.innerText || "",
+    })) : [],
     sects: [...document.querySelectorAll(".usl-sect")].map((e) => e.textContent || ""),
     grps,
     // v3.0 dual-metric row groups: the VISIBLE text (so an emptied label is
@@ -692,6 +770,57 @@ const CASES = [
     },
   },
   {
+    name: "figure-disclosure-popup",
+    o: "SFO", d: "DEN", rows: [], mock: {},
+    driver: async ({ page, extId }) => {
+      if (!extId) return { appeared: false, panelText: "(no extension id)", badges: [], checks: { extIdPresent: false } };
+      await page.goto("chrome-extension://" + extId + "/popup.html", { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => typeof renderFlights === "function" && typeof USLEvidence !== "undefined", null, { timeout: 15000 });
+      const seeded = await page.evaluate(() => {
+        tabRoute = { o: "SFO", d: "DEN" };
+        activeTab = { id: 999 };
+        pageFlights = { UA1596: "8:30 a.m.", UA1214: "11:05 a.m." };
+        const flights = renderFlights([
+          { fn: "UA1596", prob: 68, obs: 51, conf: "high" },
+          { fn: "UA1214", prob: 30, obs: 40, conf: "medium" },
+        ], "SFO", "DEN");
+        const itins = renderItins([{ joint: 55, hours: 5.5, coverage: "full", via: ["ORD"],
+          legs: [{ fn: "UA1", obs: 20 }, { fn: "UA2", obs: 30 }] }]);
+        document.getElementById("usl-results").replaceChildren(flights, itins);
+        renderConnectScores();
+        return {
+          kinds: [...document.querySelectorAll(".usl-evidence-trigger")].map((e) => e.dataset.evidenceKind),
+          outerRole: (document.querySelector(".usl-flight-row") || {}).getAttribute("role"),
+          jumpTag: (document.querySelector(".usl-flight-left") || {}).tagName,
+          stars: document.querySelectorAll(".usl-star").length,
+        };
+      });
+      const flight = page.locator('[data-evidence-kind="flight-nextgen"]').first();
+      await flight.focus();
+      await page.keyboard.press("Enter");
+      const targetId = await flight.getAttribute("aria-controls");
+      await page.waitForFunction((id) => document.getElementById(id)?.matches(":popover-open"), targetId, { timeout: 5000 });
+      const flightDrawer = await page.locator("#" + targetId).innerText();
+      await page.keyboard.press("Escape");
+      const closed = await page.evaluate((id) => !document.getElementById(id)?.matches(":popover-open"), targetId);
+      const itineraryText = await page.locator('[data-evidence-kind="itinerary-joint"]').first().getAttribute("aria-label");
+      const connect = page.locator('[data-evidence-kind="connectscore"]').first();
+      const connectId = await connect.getAttribute("aria-controls");
+      const connectDrawer = await page.locator("#" + connectId).textContent();
+      const panelText = flightDrawer + "\n" + connectDrawer;
+      return { appeared: true, panelText, badges: [], probe: seeded, checks: {
+        allPopupAdaptersPresent: seeded.kinds.includes("flight-nextgen") && seeded.kinds.includes("itinerary-joint") && seeded.kinds.includes("connectscore"),
+        disclosureTriggerNative: await flight.evaluate((e) => e.tagName === "BUTTON" && e.getBoundingClientRect().height >= 44),
+        enterOpensAndEscapeCloses: closed === true,
+        flightEvidenceReported: /REPORTED/.test(flightDrawer) && /unitedstarlinktracker\.com/.test(flightDrawer) && /source date not provided/.test(flightDrawer) && /51 tracked departures/.test(flightDrawer),
+        itineraryNamesWholeEstimate: /All-legs next-gen estimate/.test(itineraryText || ""),
+        connectScoreModelled: /MODELLED/.test(connectDrawer) && /frozen fleet-source ledger/.test(connectDrawer) && /Never ranks flight rows/.test(connectDrawer),
+        jumpIsSeparateNativeButton: seeded.outerRole === null && seeded.jumpTag === "BUTTON",
+        popupStillHasNoCrown: seeded.stars === 0,
+      } };
+    },
+  },
+  {
     name: "popup-refetch-source-date",
     o: "SFO", d: "DEN", rows: [], mock: {},
     driver: async ({ page, extId }) => {
@@ -780,6 +909,74 @@ const CASES = [
         countersRemainZero: out.response.rowsExamined === 0 && out.response.rowsBadged === 0 && out.response.lastScanOutcome === "no-supported-results",
         popupDoesNotCallItWorking: out.health === "no supported results detected",
         nonFlightPageUntouched: untouched === true,
+      } };
+    },
+  },
+  {
+    name: "figure-disclosure-google-model", google: true, googleFlights: true,
+    googleUrl: "https://www.google.com/travel/flights/search", o: "SFO", d: "DEN", rows: [],
+    mock: { predict: { UA1596: { p: 0.68, obs: 51, conf: "high" } }, route: [], itins: [] },
+    driver: async ({ page, url, context, extId, sw }) => {
+      if (sw) await sw.evaluate(async () => { for (let i = 0; i < 30; i++) { const r = await chrome.scripting.getRegisteredContentScripts({ ids: ["usl-dyn-gflights"] }); if (r.length) return true; await new Promise((x) => setTimeout(x, 100)); } return false; });
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelectorAll(".usl-gf-chip").length === 2 && !!document.querySelector(".usl-gf-live"), null, { timeout: 30000 });
+      await page.waitForFunction(() => document.querySelectorAll(".usl-panel [data-evidence-kind]").length >= 4, null, { timeout: 15000 });
+      const steadyDisclosureWrites = await page.evaluate(async () => {
+        const chip = document.querySelector(".usl-gf-live");
+        const drawer = document.getElementById(chip?.getAttribute("aria-controls"));
+        let writes = 0;
+        const observer = new MutationObserver((records) => { writes += records.length; });
+        observer.observe(drawer, { childList: true, subtree: true });
+        await new Promise((resolve) => setTimeout(resolve, 1800));
+        observer.disconnect();
+        return writes;
+      });
+      const state = await page.evaluate(() => ({
+        order: [...document.querySelectorAll("body > ul > li")].map((e) => /Delta/.test(e.textContent) ? "Delta" : /United/.test(e.textContent) ? "United" : "other"),
+        chipKinds: [...document.querySelectorAll(".usl-gf-chip")].map((e) => e.dataset.evidenceKind),
+        panelKinds: [...document.querySelectorAll(".usl-panel [data-evidence-kind]")].map((e) => e.dataset.evidenceKind),
+        trackerDrawer: document.getElementById(document.querySelector(".usl-gf-live")?.getAttribute("aria-controls"))?.innerText || "",
+        modelDrawer: document.getElementById(document.querySelector('[data-evidence-kind="connectscore"]')?.getAttribute("aria-controls"))?.innerText || "",
+      }));
+      const popup = await context.newPage();
+      await popup.goto("chrome-extension://" + extId + "/popup.html", { waitUntil: "domcontentloaded" });
+      const bridge = await popup.evaluate(async () => {
+        const tabs = await new Promise((resolve) => chrome.tabs.query({}, resolve));
+        const hits = await Promise.all(tabs.map((tab) => new Promise((resolve) => chrome.tabs.sendMessage(tab.id,
+          { type: "integrationSelfTest" }, (response) => { void chrome.runtime.lastError; resolve(response || null); }))));
+        return hits.find((x) => x && x.host === "gflights") || null;
+      });
+      await popup.close();
+      return { appeared: true, panelText: JSON.stringify(state), badges: [], probe: { state, bridge, steadyDisclosureWrites }, checks: {
+        googleUsesTrackerAndModelAdapters: state.chipKinds.includes("flight-nextgen") && state.chipKinds.includes("connectscore"),
+        bothPanelSectionsDisclose: state.panelKinds.includes("fleet-nextgen") && state.panelKinds.includes("connectscore"),
+        trackerDisclosureHonest: /REPORTED/.test(state.trackerDrawer) && /unitedstarlinktracker\.com/.test(state.trackerDrawer) && /51 tracked departures/.test(state.trackerDrawer),
+        modelDisclosureCannotClaimFlightAuthority: /MODELLED/.test(state.modelDrawer) && /frozen fleet-source ledger/.test(state.modelDrawer) && /Never ranks flight rows/.test(state.modelDrawer),
+        integrationCountersSurvive: !!bridge && bridge.rowsExamined === 2 && bridge.rowsBadged === 2 && bridge.lastScanOutcome === "working",
+        unchangedChipDoesNotRewriteDrawer: steadyDisclosureWrites === 0,
+        googleOrderUnchanged: eq(state.order, ["Delta", "United"]),
+      } };
+    },
+  },
+  {
+    name: "figure-disclosure-google-alaska-source", google: true, googleFlightsAlaska: true,
+    googleUrl: "https://www.google.com/travel/flights/search", o: "SEA", d: "SFO", rows: [],
+    mock: { predict: { AS330: { p: 0.64, obs: 39, conf: "high" } }, route: [], itins: [] },
+    driver: async ({ page, url, sw }) => {
+      if (sw) await sw.evaluate(async () => { for (let i = 0; i < 30; i++) { const r = await chrome.scripting.getRegisteredContentScripts({ ids: ["usl-dyn-gflights"] }); if (r.length) return true; await new Promise((x) => setTimeout(x, 100)); } return false; });
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => !!document.querySelector(".usl-gf-live"), null, { timeout: 30000 });
+      const state = await page.evaluate(() => {
+        const chip = document.querySelector(".usl-gf-live");
+        const drawer = document.getElementById(chip?.getAttribute("aria-controls"));
+        return { chip: chip?.textContent || "", drawer: drawer?.innerText || "",
+          source: chip?.dataset.evidenceSource || "" };
+      });
+      return { appeared: true, panelText: state.drawer, badges: [], probe: state, checks: {
+        alaskaFlightDetected: /NEXT-GEN 64%/.test(state.chip),
+        alaskaTrackerDisclosed: state.source === "alaskastarlinktracker.com" &&
+          /REPORTED/.test(state.drawer) && /alaskastarlinktracker\.com/.test(state.drawer),
+        unitedTrackerAbsent: !/unitedstarlinktracker\.com/.test(state.drawer),
       } };
     },
   },
@@ -1490,6 +1687,8 @@ const CASES = [
         noConfirmTokenAfterB: !!strip && strip.confirmInStrip === false,
         noBadgeConfirmAfterB: g.confirm === false,
         noConfirmedTailsFooter: !/Confirmed tails/.test(txt),
+        guardExcludedRemainingFigureDiscloses: !!strip && strip.decisionFigures.some((x) =>
+          x.text === "30%" && x.source === "unitedstarlinktracker.com" && /40 tracked departures/.test(x.drawer)),
       };
     },
   },
@@ -1701,9 +1900,11 @@ const CASES = [
       const day = (n) => new Date(now + n * 864e5).toISOString().slice(0, 10);
       const trips = [
         { fn: "UA100", date: day(5), route: "SFO-DEN", added: now, history: [], asOf: now, lastError: null, lastStatus: "yes", tail: "N101UA" },
-        { fn: "UA200", date: day(6), route: "SFO-DEN", added: now, history: [], asOf: now, lastError: null, lastStatus: "no", tail: "N202UA", equip: "Viasat" },
+        { fn: "UA200", date: day(6), route: "SFO-DEN", added: now, history: [], asOf: now, lastError: null, lastStatus: "no", tail: "N202UA", equip: "Viasat",
+          alts: [{ flights: "UA201", pct: 80, route: "SFO-DEN", via: "direct" }] },
         { fn: "UA300", date: day(7), route: "SFO-DEN", added: now, history: [], asOf: now, lastError: null, lastStatus: "unconfirmed", tail: "N303UA" },
-        { fn: "UA400", date: day(8), route: "SFO-DEN", added: now, history: [], asOf: now, lastError: null, lastStatus: "early", prob: 55 },
+        { fn: "UA400", date: day(8), route: "SFO-DEN", added: now, history: [], asOf: now, lastError: null, lastStatus: "early", prob: 55,
+          guardPrediction: { status: "yes", probability: 72, tier: "REPORTED", source: "unitedstarlinktracker.com", sourceDate: day(8) } },
         { fn: "UA500", date: day(9), route: "SFO-DEN", added: now, history: [], asOf: now - 3 * 36e5, lastError: "check budget exhausted", lastStatus: "early", prob: 41 },
         { fn: "UA600", date: day(10), route: "SFO-DEN", added: now, history: [], asOf: null, lastError: null, lastStatus: "invalid", invalidCount: 1 },
       ];
@@ -1714,6 +1915,10 @@ const CASES = [
         [...document.querySelectorAll(".usl-trip-row")].map((r) => ({
           txt: r.innerText,
           chip: (r.querySelector(".usl-chip") || {}).textContent || "",
+          figures: [...r.querySelectorAll('[data-evidence-kind="flight-nextgen"]')].map((e) => ({
+            value: e.textContent || "", source: e.dataset.evidenceSource || "",
+            drawer: document.getElementById(e.getAttribute("aria-controls"))?.innerText || "",
+          })),
         })));
       const row = (fn) => rows.find((r) => r.txt.indexOf(fn) === 0 || r.txt.includes(fn + " ·")) || { txt: "", chip: "" };
       const chipA = await pixelContrast(page, ".usl-chip-a");
@@ -1734,6 +1939,11 @@ const CASES = [
           cOutageCarriesDatedFact: /as of /.test(row("UA500").txt),
           cInvalidIsItsOwnReason: row("UA600").chip === "Flight not found",
           cInvalidNeverAwaiting: !/Awaiting assignment/.test(row("UA600").txt),
+          guardCurrentOddsDisclose: row("UA400").figures.some((x) => x.value === "55%" &&
+            x.source === "unitedstarlinktracker.com" && /sample not provided/i.test(x.drawer) &&
+            /source date not provided/i.test(x.drawer) && !new RegExp(day(8)).test(x.drawer)),
+          guardRescueOddsDisclose: row("UA200").figures.some((x) => x.value === "80%" &&
+            x.source === "unitedstarlinktracker.com" && /confidence not provided/i.test(x.drawer)),
           chipContrastA: chipA !== null && chipA >= 4.5,
           chipContrastB: chipB !== null && chipB >= 4.5,
           chipContrastC: chipC !== null && chipC >= 4.5,
@@ -1965,6 +2175,66 @@ const CASES = [
           !/unitedstarlinktracker/.test(g.streamEvidence.title),
         confirmStillSeparate: g.confirm === true,
       };
+    },
+  },
+  {
+    name: "figure-disclosure-row-contract",
+    o: "SFO", d: "DEN",
+    rows: [{ num: 1596, time: "8:30 a.m." }, { num: 800, time: "11:05 a.m." }],
+    mock: { o: "SFO", d: "DEN",
+      route: [{ fn: "UA1596", prob: 68, obs: 51, conf: "high" }],
+      predict: { UA800: null }, itins: [{ via: ["ORD"], joint: 0.55, any: 0.82, coverage: "full", hours: 5.5,
+        legs: [{ fn: "UA1", obs: 20 }, { fn: "UA2", obs: 30 }] }] },
+    driver: async ({ page, url }) => {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.querySelectorAll(".res-row .usl-metrics").length === 2 &&
+        document.querySelectorAll('.res-row [data-evidence-kind="flight-nextgen"]').length === 2, null, { timeout: 30000 });
+      const highRow = page.locator(".res-row").filter({ hasText: "United 1596" });
+      const groupKinds = await highRow.locator(".usl-metrics .usl-evidence-trigger").evaluateAll((els) => els.map((e) => e.dataset.evidenceKind));
+      const panelKinds = await page.locator(".usl-panel .usl-evidence-trigger").evaluateAll((els) => els.map((e) => e.dataset.evidenceKind));
+      const flight = highRow.locator('[data-evidence-kind="flight-nextgen"]');
+      await flight.focus();
+      await page.keyboard.press("Enter");
+      const flightId = await flight.getAttribute("aria-controls");
+      await page.waitForFunction((id) => document.getElementById(id)?.matches(":popover-open"), flightId, { timeout: 5000 });
+      const flightDrawer = await page.locator("#" + flightId).innerText();
+      const flightData = await flight.evaluate((e) => ({ tier: e.dataset.evidenceTier, source: e.dataset.evidenceSource,
+        date: e.dataset.evidenceDate, sample: e.dataset.evidenceSample, tag: e.tagName,
+        rect: { w: e.getBoundingClientRect().width, h: e.getBoundingClientRect().height } }));
+      await page.keyboard.press("Escape");
+      const connect = highRow.locator('[data-evidence-kind="connectscore"]');
+      const connectAuthority = await connect.evaluate((e) => ({
+        row: e.dataset.evidenceRowRanking,
+        decision: e.dataset.evidenceDecisionRanking,
+      }));
+      const connectDrawer = await page.locator("#" + await connect.getAttribute("aria-controls")).innerText();
+      const none = page.locator(".res-row").filter({ hasText: "United 800" }).locator('[data-evidence-kind="flight-nextgen"]');
+      const noneDrawer = await page.locator("#" + await none.getAttribute("aria-controls")).innerText();
+      await page.setViewportSize({ width: 390, height: 844 });
+      await connect.click();
+      const connectId = await connect.getAttribute("aria-controls");
+      const geometry = await page.locator("#" + connectId).evaluate((e) => {
+        const r = e.getBoundingClientRect();
+        return { left: r.left, right: r.right, top: r.top, bottom: r.bottom,
+          vw: innerWidth, vh: innerHeight, scroll: document.documentElement.scrollWidth };
+      });
+      await page.keyboard.press("Escape");
+      const panelText = flightDrawer + "\n" + connectDrawer + "\n" + noneDrawer;
+      return { appeared: true, panelText, badges: [], probe: { flightData, connectAuthority, geometry, groupKinds, panelKinds }, checks: {
+        twoNativeControlsPerDualGroup: eq(groupKinds, ["flight-nextgen", "connectscore"]) && flightData.tag === "BUTTON",
+        injectedPanelAdaptersComplete: panelKinds.includes("flight-nextgen") && panelKinds.includes("connectscore") && panelKinds.includes("itinerary-joint"),
+        triggersMeetTouchTarget: flightData.rect.w >= 44 && flightData.rect.h >= 44,
+        trackerContractComplete: /REPORTED/.test(flightDrawer) && /unitedstarlinktracker\.com/.test(flightDrawer) &&
+          /source date not provided/.test(flightDrawer) && /51 tracked departures/.test(flightDrawer) && /winner gate/i.test(flightDrawer),
+        datasetMatchesDrawer: flightData.tier === "REPORTED" && flightData.source === "unitedstarlinktracker.com" &&
+          flightData.date === "source date not provided" && flightData.sample === "51 tracked departures",
+        connectScoreContractComplete: /MODELLED/.test(connectDrawer) && /frozen fleet-source ledger/.test(connectDrawer) &&
+          /2026-07/.test(connectDrawer) && /RESOLUTION/i.test(connectDrawer) && /known aircraft/.test(connectDrawer) && /Never ranks flight rows/.test(connectDrawer),
+        connectScoreCannotRankFlights: connectAuthority.row === "false" && connectAuthority.decision === "false",
+        noHistoryCannotRank: /sample not provided/i.test(noneDrawer) && /does not affect flight-row or winner ranking/i.test(noneDrawer),
+        enterAndEscapeWork: await page.evaluate((id) => !document.getElementById(id)?.matches(":popover-open"), flightId),
+        mobileDrawerContained: geometry.left >= 0 && geometry.right <= geometry.vw && geometry.top >= 0 && geometry.bottom <= geometry.vh && geometry.scroll <= geometry.vw,
+      } };
     },
   },
   {
@@ -2615,7 +2885,7 @@ async function run() {
     for (const c of CASES) {
       if (ONLY && !ONLY.test(c.name)) continue;
       currentFixture = c.google
-        ? googleFixture()
+        ? (c.googleFlightsAlaska ? googleFlightsAlaskaFixture() : c.googleFlights ? googleFlightsFixture() : googleFixture())
         : c.navan
         ? navanFixture({ o: c.o, d: c.d, rows: c.rows, topHtml: c.topHtml })
         : c.alaska

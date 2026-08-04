@@ -51,6 +51,15 @@ const MATRIX = {
   "shortlist-live-requery": { only: "guard-shortlist-capture", expect: "guard-shortlist-capture" },
   "shortlist-bare-max":     { only: "guard-shortlist-no-bare-max", expect: "guard-shortlist-no-bare-max" },
   "shortlist-retention-unbound": { only: "guard-shortlist-capture", expect: "guard-shortlist-capture" },
+  "disclosure-drop-source-date": { only: "figure-disclosure-row-contract", expect: "figure-disclosure-row-contract" },
+  "disclosure-connectscore-ranks-flight": { only: "figure-disclosure-google-model", expect: "figure-disclosure-google-model" },
+  "disclosure-fabricates-sample": { only: "figure-disclosure-row-contract", expect: "figure-disclosure-row-contract" },
+  "disclosure-span-trigger": { only: "figure-disclosure-popup", expect: "figure-disclosure-popup" },
+  "disclosure-unchanged-rewrite-loop": { only: "figure-disclosure-google-model", expect: "figure-disclosure-google-model" },
+  "disclosure-alaska-united-source": { only: "figure-disclosure-google-alaska-source", expect: "figure-disclosure-google-alaska-source" },
+  "disclosure-guard-popup-plain": { only: "guard-popup-state-matrix", expect: "guard-popup-state-matrix" },
+  "disclosure-guard-excluded-plain": { only: "united-guard-b-disqualifies", expect: "united-guard-b-disqualifies" },
+  "disclosure-guard-stale-source-date": { only: "guard-popup-state-matrix", expect: "guard-popup-state-matrix" },
   "outcome-network-leak":   { only: "outcome-capture-local-only", expect: "outcome-capture-local-only" },
   // "fleet-as-probability" is intentionally ABSENT. Its target state cannot
   // render on any currently supported host (see the note in phase2-e2e.mjs),
@@ -64,7 +73,7 @@ const MATRIX = {
   "first-run-no-permission-request": { gate: FIRST_RUN_GATE, only: "first-run-coverage", expect: "first-run-coverage" },
   "first-run-add-tabs-permission": { gate: FIRST_RUN_GATE, only: "first-run-coverage", expect: "first-run-coverage" },
 };
-const CONTROLS_EXPECTED = 37;
+const CONTROLS_EXPECTED = 46;
 
 // Owner ruling, 3 Aug 2026: keep these honest-degradation states, but never
 // manufacture a green mutation result for branches no supported host can

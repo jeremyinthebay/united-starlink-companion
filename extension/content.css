@@ -323,9 +323,9 @@ span.usl-watching:focus-visible{
   font:inherit;font-size:14px;line-height:1;border-radius:6px;
 }
 .usl-panel .usl-refresh:hover,.usl-panel .usl-x:hover{color:#cfd3dc}
-.usl-panel .usl-jump{outline:none}
+.usl-panel .usl-jump-control{appearance:none;background:none;border:0;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer;min-height:44px}
 .usl-panel .usl-refresh:focus-visible,.usl-panel .usl-x:focus-visible,
-.usl-panel .usl-jump:focus-visible,.usl-panel .usl-sortbtn:focus-visible,
+.usl-panel .usl-jump-control:focus-visible,.usl-panel .usl-sortbtn:focus-visible,
 .usl-panel .usl-prioritize:focus-visible{
   outline:2px solid #29d8ff;outline-offset:2px;
 }
@@ -543,3 +543,16 @@ span.usl-watching:focus-visible{
 .usl-panel .usl-undo:hover{background:rgba(41,216,255,.12)}
 .usl-panel .usl-undo:focus-visible{outline:2px solid #29d8ff;outline-offset:2px}
 @media (max-width:420px){.usl-panel .usl-sorted{flex-wrap:wrap}.usl-panel .usl-undo{margin-left:auto}}
+
+.usl-evidence-trigger{appearance:none;font:inherit;min-width:44px;min-height:44px;cursor:pointer;border:1px solid currentColor;border-radius:9px;padding:4px 8px}
+.usl-evidence-trigger:focus-visible{outline:2px solid #29d8ff;outline-offset:2px}
+.usl-evidence-drawer[popover]{position:fixed;inset:auto 12px 12px auto;margin:0;width:min(370px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;box-sizing:border-box;border:1px solid #5b6474;border-radius:12px;padding:14px;background:#11141d;color:#f3f5f8;box-shadow:0 16px 45px rgba(0,0,0,.55);font-family:system-ui,-apple-system,sans-serif;z-index:2147483647}
+.usl-evidence-drawer::backdrop{background:rgba(4,6,10,.28)}
+.usl-evidence-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.usl-evidence-title{font-weight:800;font-size:13px;line-height:1.35}
+.usl-evidence-close{min-width:44px;min-height:44px;border:1px solid #5b6474;border-radius:8px;background:#191d28;color:#f3f5f8;cursor:pointer}
+.usl-evidence-measures,.usl-evidence-ranking{font-size:11.5px;line-height:1.45;color:#c8cfda}
+.usl-evidence-row{display:grid;grid-template-columns:100px 1fr;gap:8px;padding:5px 0;border-top:1px solid rgba(148,178,255,.13);font-size:10.5px;line-height:1.4}
+.usl-evidence-key{color:#9aa2b1;font-family:ui-monospace,SFMono-Regular,monospace;text-transform:uppercase;letter-spacing:.04em}
+.usl-evidence-value{color:#f3f5f8}
+@media(max-width:420px){.usl-evidence-drawer[popover]{inset:auto 6px 6px 6px;width:auto}}

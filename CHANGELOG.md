@@ -24,6 +24,9 @@ Chrome Web Store: not uploaded.
 - A local active-page self-test that distinguishes granted host access from a page where supported
   results were actually detected and annotated.
 - A one-time explanation beside the first automatic single-carrier reorder, with a direct pointer to Settings.
+- Per-figure evidence disclosures now explain what each next-gen, ConnectScore, and itinerary
+  figure measures; its tier, source, source date, sample and resolution; and whether it may rank
+  flights, airlines or itineraries.
 
 ### Fixed
 

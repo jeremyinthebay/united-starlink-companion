@@ -207,6 +207,7 @@
     line-height: 1.4;
   }
   .usl-clickable{cursor:pointer;border-radius:8px}
+  button.usl-flight-left{appearance:none;background:none;border:0;color:inherit;font:inherit;text-align:left;padding:0;min-height:44px}
   .usl-clickable:hover{background:rgba(148,178,255,.08)}
   .usl-clickable:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
   .usl-time{color:var(--dim,#93a1c0);font-size:11px;margin-left:6px}
@@ -298,6 +299,18 @@
   .usl-cs-row:hover .usl-cs-note,.usl-cs-row.usl-open .usl-cs-note{display:block}
   .usl-cs-live{color:var(--sky)}
   .usl-cs-method{font-family:var(--mono);font-size:9.5px;color:var(--dim);line-height:1.45;margin-top:8px;opacity:.85}
+  .usl-evidence-trigger{appearance:none;font:inherit;min-width:44px;min-height:44px;cursor:pointer;border:1px solid currentColor;border-radius:9px;padding:4px 8px}
+  .usl-evidence-trigger:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+  .usl-evidence-drawer[popover]{position:fixed;inset:auto 10px 10px auto;margin:0;width:min(350px,calc(100vw - 20px));max-height:calc(100vh - 20px);overflow:auto;box-sizing:border-box;border:1px solid var(--card-edge);border-radius:12px;padding:14px;background:#11141d;color:var(--ink);box-shadow:0 16px 45px rgba(0,0,0,.55);font-family:var(--sans);z-index:2147483647}
+  .usl-evidence-drawer::backdrop{background:rgba(4,6,10,.28)}
+  .usl-evidence-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .usl-evidence-title{font-weight:800;font-size:13px;line-height:1.35}
+  .usl-evidence-close{min-width:44px;min-height:44px;border:1px solid var(--card-edge);border-radius:8px;background:#191d28;color:var(--ink);cursor:pointer}
+  .usl-evidence-measures,.usl-evidence-ranking{font-size:11.5px;line-height:1.45;color:#c8cfda}
+  .usl-evidence-row{display:grid;grid-template-columns:92px 1fr;gap:8px;padding:5px 0;border-top:1px solid rgba(148,178,255,.13);font-size:10.5px;line-height:1.4}
+  .usl-evidence-key{color:var(--dim);font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em}
+  .usl-evidence-value{color:var(--ink)}
+  @media(max-width:420px){.usl-evidence-drawer[popover]{inset:auto 6px 6px 6px;width:auto}}
 </style>
 </head>
 <body>
@@ -387,6 +400,7 @@
     <div class="usl-footer">Estimates from tail-assignment history — verify at T-48h.</div>
   </div>
   <script src="airlines.js"></script>
+  <script src="evidence.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
