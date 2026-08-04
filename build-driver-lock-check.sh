@@ -8,8 +8,7 @@ set -u
 
 ACTION=${1:-git write}
 REPO=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-PROJECTS_DIR=$(cd "$REPO/.." 2>/dev/null && pwd)
-LOCK=${WIFIODDS_DRIVER_LOCK_FILE:-"$PROJECTS_DIR/wifiodds-relay/exchange/.driver-lock"}
+LOCK=${WIFIODDS_DRIVER_LOCK_FILE:-"$HOME/Projects/wifiodds-relay/exchange/.driver-lock"}
 DRIVER=${WIFIODDS_DRIVER_ID:-}
 
 allow() {
@@ -56,6 +55,10 @@ if [ "$PID" != 0 ] && ! kill -0 "$PID" 2>/dev/null; then
 fi
 
 if [ -n "$DRIVER" ] && [ "$DRIVER" = "$HOLDER" ]; then
+  ISOLATOR="$HOME/Projects/wifiodds-relay/exchange/driver-worktree.sh"
+  if [ -x "$ISOLATOR" ]; then
+    sh "$ISOLATOR" verify "$DRIVER" extension "$REPO" || exit $?
+  fi
   exit 0
 fi
 
